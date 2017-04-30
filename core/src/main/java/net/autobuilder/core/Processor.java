@@ -11,6 +11,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
@@ -23,13 +24,17 @@ import static net.autobuilder.core.LessElements.asType;
 
 public final class Processor extends AbstractProcessor {
 
-  private static final String SUFFIX = "_Builder";
+  private static final String AB_PREFIX = "AutoBuilder_";
+  private static final String AV_PREFIX = "AutoValue_";
 
   private final Set<TypeName> done = new HashSet<>();
+  private final Set<TypeElement> remembered = new HashSet<>();
 
   @Override
   public Set<String> getSupportedAnnotationTypes() {
-    return new HashSet<>();
+    HashSet<String> strings = new HashSet<>();
+    strings.add(AutoBuilder.class.getCanonicalName());
+    return strings;
   }
 
   @Override
@@ -41,14 +46,21 @@ public final class Processor extends AbstractProcessor {
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
     Set<TypeElement> typeElements =
         typesIn(env.getElementsAnnotatedWith(AutoBuilder.class));
-    validate(typeElements);
-    for (TypeElement typeElement : typeElements) {
+    for (TypeElement typeElement : remembered) {
+      ClassName source = ClassName.get(typeElement);
+      TypeElement avType = processingEnv.getElementUtils().getTypeElement(
+          avPeer(source).toString());
+      if (avType == null) {
+        // auto-value isn't finished yet, skip this round
+        continue;
+      }
+      processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "exist");
+      Model model = Model.create(source, avType);
+      if (!done.add(model.source)) {
+        continue;
+      }
+      TypeSpec typeSpec = Analyser.create(model).analyse();
       try {
-        Model model = Model.create(typeElement);
-        if (!done.add(model.source)) {
-          continue;
-        }
-        TypeSpec typeSpec = Analyser.create(model).analyse();
         write(model.generatedClass, typeSpec);
       } catch (ValidationException e) {
         processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
@@ -57,6 +69,7 @@ public final class Processor extends AbstractProcessor {
         return false;
       }
     }
+    remembered.addAll(typeElements);
     return false;
   }
 
@@ -66,9 +79,6 @@ public final class Processor extends AbstractProcessor {
         ClassName.get(asType(typeElement.getEnclosingElement())) +
         ": " + e.getMessage();
     processingEnv.getMessager().printMessage(ERROR, message, typeElement);
-  }
-
-  private void validate(Set<TypeElement> types) {
   }
 
   private void write(ClassName generatedType, TypeSpec typeSpec) throws IOException {
@@ -86,20 +96,26 @@ public final class Processor extends AbstractProcessor {
   static final class Model {
     final ClassName source;
     final ClassName generatedClass;
+    final TypeElement avType;
 
-    Model(ClassName source, ClassName generatedClass) {
+    Model(ClassName source, ClassName generatedClass, TypeElement avType) {
       this.source = source;
       this.generatedClass = generatedClass;
+      this.avType = avType;
     }
 
-    static Model create(TypeElement typeElement) {
-      ClassName source = ClassName.get(typeElement);
-      return new Model(source, peer(source, SUFFIX));
+    static Model create(ClassName source, TypeElement avType) {
+      return new Model(source, abPeer(source), avType);
     }
   }
 
-  private static ClassName peer(ClassName type, String suffix) {
-    String name = String.join("_", type.simpleNames()) + suffix;
+  private static ClassName abPeer(ClassName type) {
+    String name = AB_PREFIX + String.join("_", type.simpleNames());
+    return type.topLevelClassName().peerClass(name);
+  }
+
+  private static ClassName avPeer(ClassName type) {
+    String name = AV_PREFIX + String.join("_", type.simpleNames());
     return type.topLevelClassName().peerClass(name);
   }
 }
