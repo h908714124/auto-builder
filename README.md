@@ -38,7 +38,7 @@ The builder instance can be created in one of two ways:
 
 The `static Animal create` method is not necessary for  `@AutoBuilder` to work.
 In fact, this annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
-If it can't find `AutoValue_Animal` on the class path,
+If it can't find `AutoValue_Animal` on the classpath,
 presumably because auto-value is misconfigured or threw an error, it won't generate anything either.
 
 ### It's maven time
