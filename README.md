@@ -28,8 +28,8 @@ abstract class Animal {
 A class `Animal_Builder` will be created in the same package.
 The builder instance can be created in one of two ways:
 
-* `AnimalBuilder.builder()` to create a builder filled with `null`, `0` and `false`.
-* `AnimalBuilder.builder(Animal source)` creates a builder initialized from `source`, suitable for creating a modified copy.
+* `Animal_Builder.builder()` to create a builder filled with `null`, `0` and `false`.
+* `Animal_Builder.builder(Animal source)` creates a builder initialized from `source`, suitable for creating a modified copy.
 
 The `static Animal create` method is not necessary for  `@AutoBuilder` to work.
 In fact, this annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
