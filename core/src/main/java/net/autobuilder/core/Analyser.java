@@ -19,13 +19,13 @@ import static net.autobuilder.core.Processor.rawType;
 
 final class Analyser {
 
-  private final Processor.Model model;
+  private final Model model;
 
-  private Analyser(Processor.Model model) {
+  private Analyser(Model model) {
     this.model = model;
   }
 
-  static Analyser create(Processor.Model model) {
+  static Analyser create(Model model) {
     return new Analyser(model);
   }
 
@@ -97,13 +97,12 @@ final class Analyser {
         .returns(model.generatedClass)
         .addJavadoc("Creates a new builder.\n" +
                 "\n" +
-                "@param $N input\n" +
+                "@param $N the data source\n" +
                 "@return a builder for creating a modified copy\n" +
                 "@throws $T if the input is null\n",
             input, NullPointerException.class)
         .build();
   }
-
 
   private MethodSpec buildMethod() {
     CodeBlock.Builder block = CodeBlock.builder();
