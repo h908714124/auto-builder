@@ -3,8 +3,13 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder)
 
 This very simple annotation processor relieves the 
-user of the `@AutoValue.Builder` drudgery.
-The generated class `*_Builder` should be an identical replacement.
+user of the repetitive `@AutoValue.Builder` drudgery.
+The generated `*_Builder.java` should be an equivalent replacement.
+
+The single purpose of auto-builder is to make [auto-value](https://github.com/google/auto/tree/master/value)
+more convenient.
+If you're not using auto-value,
+then auto-builder will not be helpful.
 
 ### Quick start
 
@@ -29,7 +34,7 @@ A class `Animal_Builder` will be created in the same package.
 The builder instance can be created in one of two ways:
 
 * `Animal_Builder.builder()` to create a builder filled with `null`, `0` and `false`.
-* `Animal_Builder.builder(Animal source)` creates a builder initialized from `source`, suitable for creating a modified copy.
+* `Animal_Builder.builder(Animal input)` creates a builder initialized from `input`, suitable for creating a modified copy.
 
 The `static Animal create` method is not necessary for  `@AutoBuilder` to work.
 In fact, this annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
