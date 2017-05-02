@@ -23,18 +23,18 @@ final class Model {
   final TypeName sourceClass;
   final TypeName generatedClass;
   final TypeElement avType;
-  final ExecutableElement avConstructor;
+  final List<Parameter> parameters;
   final Map<String, ExecutableElement> getters;
   final List<TypeVariableName> typevars;
 
-  Model(TypeName sourceClass,
-        TypeName generatedClass, TypeElement avType, ExecutableElement avConstructor,
-        Map<String, ExecutableElement> getters,
-        List<TypeVariableName> typevars) {
+  private Model(TypeName sourceClass,
+                TypeName generatedClass, TypeElement avType, ExecutableElement avConstructor,
+                Map<String, ExecutableElement> getters,
+                List<TypeVariableName> typevars) {
     this.sourceClass = sourceClass;
     this.generatedClass = generatedClass;
     this.avType = avType;
-    this.avConstructor = avConstructor;
+    this.parameters = Parameter.scan(avConstructor, avType);
     this.getters = getters;
     this.typevars = typevars;
   }
@@ -72,7 +72,7 @@ final class Model {
     String param = parameter.getSimpleName().toString();
     String upcaseParam = Character.toUpperCase(parameter.getSimpleName().charAt(0)) +
         param.substring(1);
-    String[] names = TypeName.get(parameter.asType()).box().equals(TypeName.get(Boolean.class)) ?
+    String[] names = TypeName.get(parameter.asType()).box().equals(TypeName.BOOLEAN) ?
         new String[]{"get" + upcaseParam, "is" + upcaseParam, param} :
         new String[]{"get" + upcaseParam, param};
     for (String name : names) {
@@ -101,5 +101,6 @@ final class Model {
     return ParameterizedTypeName.get(className, typeargs.toArray(
         new TypeName[typeargs.size()]));
   }
+
 
 }

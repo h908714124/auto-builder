@@ -5,11 +5,9 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import javax.annotation.Generated;
-import javax.lang.model.element.VariableElement;
 
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -35,22 +33,38 @@ final class Analyser {
     builder.addMethod(builderMethod());
     builder.addMethod(builderMethodWithParam());
     builder.addMethod(buildMethod());
-    for (VariableElement variableElement : model.avConstructor.getParameters()) {
-      FieldSpec f = FieldSpec.builder(TypeName.get(variableElement.asType()),
-          variableElement.getSimpleName().toString())
-          .addModifiers(PRIVATE)
-          .build();
-      ParameterSpec p = ParameterSpec.builder(TypeName.get(variableElement.asType()),
-          variableElement.getSimpleName().toString()).build();
+    for (Parameter parameter : model.parameters) {
+      FieldSpec.Builder fieldBuilder = FieldSpec.builder(parameter.type,
+          parameter.cleanName)
+          .addModifiers(PRIVATE);
+      OptionalInfo optionalInfo = OptionalInfo.create(parameter.type);
+      if (optionalInfo != null) {
+        fieldBuilder.initializer("$T.empty()", optionalInfo.wrapper);
+      }
+      FieldSpec f = fieldBuilder.build();
+      ParameterSpec p = ParameterSpec.builder(parameter.type,
+          parameter.cleanName).build();
       builder.addField(f);
       builder.addMethod(MethodSpec.methodBuilder(
-          variableElement.getSimpleName().toString())
+          parameter.cleanName)
           .addStatement("this.$N = $N", f, p)
           .addStatement("return this")
           .addParameter(p)
           .addModifiers(PUBLIC)
           .returns(model.generatedClass)
           .build());
+      if (optionalInfo != null) {
+        p = ParameterSpec.builder(optionalInfo.wrapped,
+            parameter.cleanName).build();
+        builder.addMethod(MethodSpec.methodBuilder(
+            parameter.cleanName)
+            .addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p)
+            .addStatement("return this")
+            .addParameter(p)
+            .addModifiers(PUBLIC)
+            .returns(model.generatedClass)
+            .build());
+      }
     }
     return builder.addModifiers(PUBLIC, FINAL)
         .addMethod(MethodSpec.constructorBuilder()
@@ -83,10 +97,9 @@ final class Analyser {
             NullPointerException.class, "Null " + input.name)
         .endControlFlow();
     block.addStatement("$T $N = new $T()", builder.type, builder, model.generatedClass);
-    for (VariableElement parameter : model.avConstructor.getParameters()) {
-      String name = parameter.getSimpleName().toString();
-      block.addStatement("$N.$N = $N.$L()", builder, name, input,
-          model.getters.get(name).getSimpleName().toString());
+    for (Parameter parameter : model.parameters) {
+      block.addStatement("$N.$N = $N.$L()", builder, parameter.cleanName, input,
+          model.getters.get(parameter.name).getSimpleName().toString());
     }
     block.addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
@@ -106,10 +119,10 @@ final class Analyser {
 
   private MethodSpec buildMethod() {
     CodeBlock.Builder block = CodeBlock.builder();
-    for (int i = 0; i < model.avConstructor.getParameters().size(); i++) {
-      VariableElement variableElement = model.avConstructor.getParameters().get(i);
-      FieldSpec f = FieldSpec.builder(TypeName.get(variableElement.asType()),
-          variableElement.getSimpleName().toString())
+    for (int i = 0; i < model.parameters.size(); i++) {
+      Parameter parameter = model.parameters.get(i);
+      FieldSpec f = FieldSpec.builder(parameter.type,
+          parameter.cleanName)
           .addModifiers(PRIVATE)
           .build();
       if (i > 0) {

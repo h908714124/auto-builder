@@ -12,7 +12,6 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
@@ -47,26 +46,25 @@ public final class Processor extends AbstractProcessor {
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
     Set<TypeElement> typeElements =
         typesIn(env.getElementsAnnotatedWith(AutoBuilder.class));
-    for (TypeElement typeElement : seen) {
-      TypeName sourceClass = TypeName.get(typeElement.asType());
+    for (TypeElement sourceClassElement : seen) {
+      TypeName sourceClass = TypeName.get(sourceClassElement.asType());
       TypeElement avType = processingEnv.getElementUtils().getTypeElement(
           avPeer(sourceClass).toString());
       if (avType == null) {
         // auto-value isn't finished yet, skip this round
         continue;
       }
-      processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "exist");
-      Model model = Model.create(sourceClass, avType);
-      if (!done.add(model.sourceClass)) {
-        continue;
-      }
       try {
+        Model model = Model.create(sourceClass, avType);
+        if (!done.add(model.sourceClass)) {
+          continue;
+        }
         TypeSpec typeSpec = Analyser.create(model).analyse();
         write(rawType(model.generatedClass), typeSpec);
       } catch (ValidationException e) {
         processingEnv.getMessager().printMessage(ERROR, e.getMessage(), e.about);
       } catch (Exception e) {
-        handleException(typeElement, e);
+        handleException(sourceClassElement, e);
         return false;
       }
     }
