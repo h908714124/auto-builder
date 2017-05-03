@@ -6,9 +6,9 @@ import net.autobuilder.AutoBuilder;
 @AutoBuilder
 @AutoValue
 abstract class Animal {
-  abstract String name();
+  abstract String getName();
 
-  abstract int numberOfLegs();
+  abstract int getNumberOfLegs();
 
   static Animal create(String name, int numberOfLegs) {
     return new AutoValue_Animal(name, numberOfLegs);

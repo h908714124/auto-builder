@@ -99,7 +99,7 @@ final class Analyser {
     block.addStatement("$T $N = new $T()", builder.type, builder, model.generatedClass);
     for (Parameter parameter : model.parameters) {
       block.addStatement("$N.$N = $N.$L()", builder, parameter.cleanName, input,
-          model.getters.get(parameter.name).getSimpleName().toString());
+          model.getters.get(parameter.methodName).getSimpleName().toString());
     }
     block.addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")

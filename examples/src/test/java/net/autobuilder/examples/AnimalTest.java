@@ -15,7 +15,7 @@ public class AnimalTest {
     Animal horse = Animal_Builder.builder(spiderPig)
         .name("Horse")
         .build();
-    assertThat(spiderPig.name(), is("Spider-Pig"));
-    assertThat(horse.name(), is("Horse"));
+    assertThat(spiderPig.getName(), is("Spider-Pig"));
+    assertThat(horse.getName(), is("Horse"));
   }
 }

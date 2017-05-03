@@ -22,13 +22,18 @@ final class Parameter {
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
 
-  final String name;
+  private final String originalName;
   final String cleanName;
+  final String methodName;
   final TypeName type;
 
-  private Parameter(String name, String cleanName, TypeName type) {
-    this.name = name;
+  private Parameter(String originalName,
+                    String cleanName,
+                    String methodName,
+                    TypeName type) {
+    this.originalName = originalName;
     this.cleanName = cleanName;
+    this.methodName = methodName;
     this.type = type;
   }
 
@@ -46,26 +51,43 @@ final class Parameter {
       String name = variableElement.getSimpleName().toString();
       String cleanName = name;
       TypeName type = TypeName.get(variableElement.asType());
-      // auto-value changed its gen code?
-      if (!methodNames.contains(name)) {
-        throw new ValidationException("no matching getter: " + name, variableElement);
-      }
+      String methodName = methodName(methodNames, variableElement);
       if (GETTER_PATTERN.matcher(name).matches()) {
         cleanName = Character.toLowerCase(name.charAt(3)) + name.substring(4);
       } else if (type.equals(TypeName.BOOLEAN) &&
           IS_PATTERN.matcher(name).matches()) {
         cleanName = Character.toLowerCase(name.charAt(2)) + name.substring(3);
       }
-      parameters.add(new Parameter(name, cleanName, type));
+      parameters.add(new Parameter(name, cleanName, methodName, type));
     }
     Set<String> duplicateCheck = parameters.stream()
         .map(p -> p.cleanName)
         .collect(toSet());
     if (duplicateCheck.size() < parameters.size()) {
       return parameters.stream()
-          .map(p -> new Parameter(p.name, p.name, p.type))
+          .map(p -> new Parameter(p.originalName, p.originalName, p.methodName, p.type))
           .collect(toList());
     }
     return parameters;
+  }
+
+  private static String methodName(Set<String> methodNames,
+                                   VariableElement variableElement) {
+    String name = variableElement.getSimpleName().toString();
+    TypeName type = TypeName.get(variableElement.asType());
+    if (methodNames.contains(name)) {
+      return name;
+    }
+    if (type.equals(TypeName.BOOLEAN)) {
+      String getter = "is" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+      if (methodNames.contains(getter)) {
+        return getter;
+      }
+    }
+    String getter = "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    if (!methodNames.contains(getter)) {
+      throw new ValidationException("no matching getter: " + name, variableElement);
+    }
+    return getter;
   }
 }

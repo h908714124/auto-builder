@@ -28,7 +28,8 @@ final class Model {
   final List<TypeVariableName> typevars;
 
   private Model(TypeName sourceClass,
-                TypeName generatedClass, TypeElement avType, ExecutableElement avConstructor,
+                TypeName generatedClass, TypeElement avType,
+                ExecutableElement avConstructor,
                 Map<String, ExecutableElement> getters,
                 List<TypeVariableName> typevars) {
     this.sourceClass = sourceClass;
@@ -59,7 +60,7 @@ final class Model {
         throw new ValidationException("Getter not found for '" +
             parameter.getSimpleName() + "'", avType);
       }
-      getters.put(parameter.getSimpleName().toString(), getter);
+      getters.put(getter.getSimpleName().toString(), getter);
     }
     List<TypeVariableName> typevars = avType.getTypeParameters().stream()
         .map(TypeVariableName::get)
