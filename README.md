@@ -2,9 +2,10 @@
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder)
 
-This very simple annotation processor relieves the 
-user of the repetitive `@AutoValue.Builder` drudgery.
-The generated `*_Builder.java` should be an equivalent replacement.
+This ~~very~~ simple annotation processor relieves the 
+user of the repetitive drudgery that comes with `@AutoValue.Builder`.
+The forced repetition is, by auto-value's design choice, also present in
+[some auto-value extensions](https://github.com/gabrielittner/auto-value-with).
 
 The single purpose of auto-builder is to make [auto-value](https://github.com/google/auto/tree/master/value)
 more convenient.
@@ -13,7 +14,9 @@ then auto-builder will not be helpful.
 
 ### Quick start
 
-Add the `@AutoBuilder` annotation to a normal (non-builder) `@AutoValue` class.
+1. Add the `@AutoBuilder` annotation to a normal (non-builder) `@AutoValue` class. 
+1. Done! A class `*_Builder.java` will be generated in the same package.
+
 The following is roughly equivalent to the `Animal` example from the
 [auto-value docs](https://github.com/google/auto/blob/master/value/userguide/builders.md):
 
@@ -30,11 +33,26 @@ abstract class Animal {
 }
 ````
 
-A class `Animal_Builder` will be created in the same package.
-The builder instance can be created in one of two ways:
+A class `Animal_Builder` will now be generated in the same package as `Animal`.
+An instance of `Animal_Builder` can be obtained in one of two ways:
 
 * `Animal_Builder.builder()` to create a builder filled with `null`, `0` and `false`.
-* `Animal_Builder.builder(Animal input)` creates a builder initialized from `input`, suitable for creating a modified copy.
+* `Animal_Builder.builder(Animal input)` makes a builder initialized from `input`, suitable for creating a modified copy.
+
+It might be a good idea to add the usual `toBuilder` convenience method:
+
+````java
+@AutoBuilder
+@AutoValue
+abstract class Animal {
+
+  // [...]
+
+  final Animal_Builder toBuilder() {
+    return Animal_Builder.builder(this);
+  }
+}
+````
 
 The `static Animal create` method is not necessary for  `@AutoBuilder` to work.
 In fact, this annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
