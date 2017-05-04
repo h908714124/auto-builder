@@ -12,6 +12,8 @@ abstract class GradleMan<S> {
 
   abstract Optional<S> getName();
 
+  abstract S getSnake();
+
   abstract boolean good();
   
   abstract boolean isNice();
