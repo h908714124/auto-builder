@@ -3,15 +3,18 @@ package net.autobuilder.core;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeVariableName;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
+import static net.autobuilder.core.Processor.rawType;
+
 final class OptionalInfo {
 
-  private static final ClassName OPTIONAL_CLASS =
+  static final ClassName OPTIONAL_CLASS =
       ClassName.get(Optional.class);
   private static final OptionalInfo OPTIONAL_INT_INFO =
       new OptionalInfo(ClassName.get(OptionalInt.class), TypeName.INT);
@@ -53,5 +56,11 @@ final class OptionalInfo {
     }
     return new OptionalInfo(OPTIONAL_CLASS,
         type.typeArguments.get(0));
+  }
+
+  boolean isDoubleOptional() {
+    return wrapped instanceof TypeVariableName ||
+        wrapper.equals(OPTIONAL_CLASS) &&
+            rawType(wrapped).equals(OPTIONAL_CLASS);
   }
 }

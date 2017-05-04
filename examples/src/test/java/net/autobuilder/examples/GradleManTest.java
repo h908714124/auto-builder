@@ -17,11 +17,18 @@ public class GradleManTest {
         .nice(true)
         .build();
     GradleMan<String> badman = GradleMan_Builder.builder(batman)
-        .name("Bad")
+        .name(Optional.of("Bad"))
         .legs(2)
         .good(false)
         .nice(false)
         .build();
+    GradleMan<String> optman = GradleMan_Builder.builder(batman)
+        .name(Optional.of("Bad"))
+        .legs(2)
+        .good(false)
+        .nice(false)
+        .build();
+
     assertThat(batman.getName(), is(Optional.empty()));
     assertThat(batman.good(), is(true));
     assertThat(batman.isNice(), is(true));

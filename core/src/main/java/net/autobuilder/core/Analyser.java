@@ -29,13 +29,13 @@ final class Analyser {
 
   TypeSpec analyse() {
     TypeSpec.Builder builder = TypeSpec.classBuilder(rawType(model.generatedClass));
-    builder.addTypeVariables(model.typevars);
+    builder.addTypeVariables(model.typevars());
     builder.addMethod(builderMethod());
     builder.addMethod(builderMethodWithParam());
     builder.addMethod(buildMethod());
     for (Parameter parameter : model.parameters) {
       FieldSpec.Builder fieldBuilder = FieldSpec.builder(parameter.type,
-          parameter.cleanName)
+          parameter.setterName)
           .addModifiers(PRIVATE);
       OptionalInfo optionalInfo = OptionalInfo.create(parameter.type);
       if (optionalInfo != null) {
@@ -43,27 +43,14 @@ final class Analyser {
       }
       FieldSpec f = fieldBuilder.build();
       ParameterSpec p = ParameterSpec.builder(parameter.type,
-          parameter.cleanName).build();
+          parameter.setterName).build();
       builder.addField(f);
-      builder.addMethod(MethodSpec.methodBuilder(
-          parameter.cleanName)
-          .addStatement("this.$N = $N", f, p)
-          .addStatement("return this")
-          .addParameter(p)
-          .addModifiers(PUBLIC)
-          .returns(model.generatedClass)
-          .build());
-      if (optionalInfo != null) {
-        p = ParameterSpec.builder(optionalInfo.wrapped,
-            parameter.cleanName).build();
-        builder.addMethod(MethodSpec.methodBuilder(
-            parameter.cleanName)
-            .addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p)
-            .addStatement("return this")
-            .addParameter(p)
-            .addModifiers(PUBLIC)
-            .returns(model.generatedClass)
-            .build());
+      builder.addMethod(setterMethod(parameter, f, p));
+      if (optionalInfo != null &&
+          !optionalInfo.isDoubleOptional()) {
+        builder.addMethod(optionalSetterMethod(parameter, optionalInfo, f,
+            ParameterSpec.builder(optionalInfo.wrapped,
+                parameter.setterName).build()));
       }
     }
     return builder.addModifiers(PUBLIC, FINAL)
@@ -76,10 +63,32 @@ final class Analyser {
         .build();
   }
 
+  private MethodSpec optionalSetterMethod(Parameter parameter, OptionalInfo optionalInfo, FieldSpec f, ParameterSpec p) {
+    return MethodSpec.methodBuilder(
+        parameter.setterName)
+        .addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p)
+        .addStatement("return this")
+        .addParameter(p)
+        .addModifiers(PUBLIC)
+        .returns(model.generatedClass)
+        .build();
+  }
+
+  private MethodSpec setterMethod(Parameter parameter, FieldSpec f, ParameterSpec p) {
+    return MethodSpec.methodBuilder(
+        parameter.setterName)
+        .addStatement("this.$N = $N", f, p)
+        .addStatement("return this")
+        .addParameter(p)
+        .addModifiers(PUBLIC)
+        .returns(model.generatedClass)
+        .build();
+  }
+
   private MethodSpec builderMethod() {
     return MethodSpec.methodBuilder("builder")
         .addModifiers(PUBLIC, STATIC)
-        .addTypeVariables(model.typevars)
+        .addTypeVariables(model.typevars())
         .addStatement("return new $T()", model.generatedClass)
         .returns(model.generatedClass)
         .addJavadoc("Creates a new builder.\n" +
@@ -98,15 +107,15 @@ final class Analyser {
         .endControlFlow();
     block.addStatement("$T $N = new $T()", builder.type, builder, model.generatedClass);
     for (Parameter parameter : model.parameters) {
-      block.addStatement("$N.$N = $N.$L()", builder, parameter.cleanName, input,
-          model.getters.get(parameter.methodName).getSimpleName().toString());
+      block.addStatement("$N.$N = $N.$L()", builder, parameter.setterName, input,
+          parameter.getterName);
     }
     block.addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
         .addCode(block.build())
         .addParameter(input)
         .addModifiers(PUBLIC, STATIC)
-        .addTypeVariables(model.typevars)
+        .addTypeVariables(model.typevars())
         .returns(model.generatedClass)
         .addJavadoc("Creates a new builder.\n" +
                 "\n" +
@@ -122,7 +131,7 @@ final class Analyser {
     for (int i = 0; i < model.parameters.size(); i++) {
       Parameter parameter = model.parameters.get(i);
       FieldSpec f = FieldSpec.builder(parameter.type,
-          parameter.cleanName)
+          parameter.setterName)
           .addModifiers(PRIVATE)
           .build();
       if (i > 0) {
