@@ -17,7 +17,7 @@ public class AnimalTest {
         .maybeMaybe(Optional.of(Optional.of("mama")))
         .good(false)
         .build();
-    Animal horse = Animal_Builder.builder(spiderPig)
+    Animal horse = spiderPig.toBuilder()
         .name("Horse")
         .good(true)
         .build();
