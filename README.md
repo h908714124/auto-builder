@@ -7,10 +7,9 @@ user of the repetitive drudgery that comes with `@AutoValue.Builder`.
 The forced repetition is, by auto-value's design choice, also present in
 [some auto-value extensions](https://github.com/gabrielittner/auto-value-with).
 
-The single purpose of auto-builder is to make [auto-value](https://github.com/google/auto/tree/master/value)
-more convenient.
-If you're not using auto-value,
-then auto-builder will not be helpful.
+The purpose of auto-builder is to make [auto-value](https://github.com/google/auto/tree/master/value)
+more convenient (and more efficient, see <a href="#caching">caching</a>).
+If you're not using auto-value with builders, then auto-builder will not be helpful.
 
 ### Quick start
 
@@ -59,13 +58,41 @@ In fact, this annotation processor scans the generated class `AutoValue_Animal`,
 If it can't find `AutoValue_Animal` on the classpath,
 presumably because auto-value is misconfigured or threw an error, it won't generate anything either.
 
+### caching
+
+Since version 1.5, auto-builder is capable of caching the builder instance.
+This should in general help to reduce the garbage collection overhead.
+
+Unless your `Animal` has type parameters (like `Animal<X>`),
+a third static method `Animal_Builder.threadLocalFactory()` is now generated, which returns a factory.
+
+> This factory is safe for use by a single thread, but it <em>must not</em> be shared between different threads.
+> If you're willing to store the factory in an instance field,
+> you have to make all access `synchronized`, or wrap it in a `ThreadLocal` as shown below.
+
+````java
+@AutoBuilder
+@AutoValue
+abstract class Animal {
+
+  private static final ThreadLocal<Animal_Builder.PerThreadFactory> FACTORY =
+      ThreadLocal.withInitial(Animal_Builder::perThreadFactory);
+
+  // [...]
+
+  final Animal_Builder toBuilder() {
+    return FACTORY.get().builder(this);
+  }
+}
+````
+
 ### It's maven time
 
 ````xml
 <dependency>
   <groupId>com.github.h908714124</groupId>
   <artifactId>auto-builder</artifactId>
-  <version>1.4</version>
+  <version>1.5</version>
   <scope>provided</scope>
 </dependency>
 ````

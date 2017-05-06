@@ -1,5 +1,8 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.element.ExecutableElement;
@@ -14,6 +17,7 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static javax.lang.model.element.Modifier.PRIVATE;
 
 final class Parameter {
 
@@ -98,5 +102,15 @@ final class Parameter {
       throw new ValidationException("no matching accessor: " + name, constructorArgument);
     }
     return getter;
+  }
+
+  FieldSpec.Builder asField() {
+    return FieldSpec.builder(type,
+        setterName)
+        .addModifiers(PRIVATE);
+  }
+
+  ParameterSpec asParameter() {
+    return ParameterSpec.builder(type, setterName).build();
   }
 }

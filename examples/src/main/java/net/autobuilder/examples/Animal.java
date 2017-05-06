@@ -8,6 +8,10 @@ import java.util.Optional;
 @AutoBuilder
 @AutoValue
 abstract class Animal {
+
+  private static final ThreadLocal<Animal_Builder.PerThreadFactory> FACTORY =
+      ThreadLocal.withInitial(Animal_Builder::perThreadFactory);
+
   abstract String getName();
 
   abstract int getNumberOfLegs();
@@ -18,7 +22,7 @@ abstract class Animal {
 
   abstract Optional<String> maybe();
 
-  public Animal_Builder toBuilder() {
-    return Animal_Builder.builder(this);
+  final Animal_Builder toBuilder() {
+    return FACTORY.get().builder(this);
   }
 }

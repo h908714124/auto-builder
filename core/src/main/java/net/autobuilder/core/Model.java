@@ -9,12 +9,14 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
-import javax.tools.Diagnostic;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
+import static javax.tools.Diagnostic.Kind.WARNING;
 import static net.autobuilder.core.Processor.rawType;
+import static net.autobuilder.core.Processor.typeArguments;
 
 final class Model {
 
@@ -22,15 +24,21 @@ final class Model {
 
   final TypeName sourceClass;
   final TypeName generatedClass;
+  final TypeName simpleBuilderClass;
+  final Optional<ClassName> optionalRefTrackingBuilderClass;
   final TypeElement avType;
   final List<Parameter> parameters;
 
   private Model(TypeName sourceClass,
                 TypeName generatedClass, TypeElement avType,
-                ExecutableElement avConstructor) {
+                ExecutableElement avConstructor,
+                TypeName simpleBuilderClass,
+                Optional<ClassName> optionalRefTrackingBuilderClass) {
     this.sourceClass = sourceClass;
     this.generatedClass = generatedClass;
     this.avType = avType;
+    this.simpleBuilderClass = simpleBuilderClass;
+    this.optionalRefTrackingBuilderClass = optionalRefTrackingBuilderClass;
     this.parameters = Parameter.scan(avConstructor, avType);
   }
 
@@ -40,7 +48,7 @@ final class Model {
         avType.getEnclosedElements());
     if (constructors.size() != 1) {
       throw new ValidationException(
-          "Expecting exactly one constructor", avType);
+          avType + " does not have exactly one constructor.", sourceClassElement);
     }
     ExecutableElement constructor = constructors.get(0);
     if (constructor.getModifiers().contains(Modifier.PRIVATE)) {
@@ -54,26 +62,41 @@ final class Model {
               }));
       if (suspicious) {
         throw new ValidationException(
-            "@AutoBuilder and @AutoValue.Builder cannot be used together.",
-            sourceClassElement, Diagnostic.Kind.WARNING);
+            sourceClassElement + ": @AutoBuilder and @AutoValue.Builder cannot be used together.",
+            sourceClassElement, WARNING);
       }
       throw new ValidationException(
           avType + " has a private constructor.",
-          sourceClassElement, Diagnostic.Kind.ERROR);
+          sourceClassElement);
     }
-    return new Model(sourceClass, abPeer(sourceClass), avType,
-        constructor);
+    TypeName generatedClass = abPeer(sourceClass);
+    TypeName simpleBuilderClass = nestedClass(generatedClass, "SimpleBuilder");
+    Optional<ClassName> optionalRefTrackingBuilderClass = Optional.empty();
+    if (typeArguments(generatedClass).isEmpty()) {
+      optionalRefTrackingBuilderClass =
+          Optional.of(rawType(generatedClass).nestedClass("RefTrackingBuilder"));
+    }
+    return new Model(sourceClass, generatedClass, avType,
+        constructor, simpleBuilderClass, optionalRefTrackingBuilderClass);
   }
 
   private static TypeName abPeer(TypeName type) {
     String name = String.join("_", rawType(type).simpleNames()) + SUFFIX;
     ClassName className = rawType(type).topLevelClassName().peerClass(name);
-    List<TypeName> typeargs = Processor.typeArguments(type);
-    if (typeargs.isEmpty()) {
+    return withTypevars(className, typeArguments(type));
+  }
+
+  private static TypeName nestedClass(TypeName generatedClass, String name) {
+    return withTypevars(rawType(generatedClass).nestedClass(name),
+        typeArguments(generatedClass));
+  }
+
+  private static TypeName withTypevars(ClassName className, List<TypeName> typevars) {
+    if (typevars.isEmpty()) {
       return className;
     }
-    return ParameterizedTypeName.get(className, typeargs.toArray(
-        new TypeName[typeargs.size()]));
+    return ParameterizedTypeName.get(className, typevars.toArray(
+        new TypeName[typevars.size()]));
   }
 
   List<TypeVariableName> typevars() {

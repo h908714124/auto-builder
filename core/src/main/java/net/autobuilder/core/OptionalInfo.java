@@ -5,6 +5,8 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -16,12 +18,12 @@ final class OptionalInfo {
 
   private static final ClassName OPTIONAL_CLASS =
       ClassName.get(Optional.class);
-  private static final OptionalInfo OPTIONAL_INT_INFO =
-      new OptionalInfo(ClassName.get(OptionalInt.class), TypeName.INT);
-  private static final OptionalInfo OPTIONAL_DOUBLE_INFO =
-      new OptionalInfo(ClassName.get(OptionalDouble.class), TypeName.DOUBLE);
-  private static final OptionalInfo OPTIONAL_LONG_INFO =
-      new OptionalInfo(ClassName.get(OptionalLong.class), TypeName.LONG);
+
+  private static final List<OptionalInfo> OPTIONAL_PRIMITIVES =
+      Arrays.asList(
+          new OptionalInfo(ClassName.get(OptionalInt.class), TypeName.INT),
+          new OptionalInfo(ClassName.get(OptionalDouble.class), TypeName.DOUBLE),
+          new OptionalInfo(ClassName.get(OptionalLong.class), TypeName.LONG));
 
   final ClassName wrapper;
   final TypeName wrapped;
@@ -31,16 +33,24 @@ final class OptionalInfo {
     this.wrapped = wrapped;
   }
 
+  static boolean isOptionalPrimitive(TypeName typeName) {
+    if (!(typeName instanceof ClassName)) {
+      return false;
+    }
+    for (OptionalInfo optionalPrimitive : OPTIONAL_PRIMITIVES) {
+      if (optionalPrimitive.wrapper.equals(typeName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   static OptionalInfo create(TypeName typeName) {
     if (typeName instanceof ClassName) {
-      if (OPTIONAL_DOUBLE_INFO.wrapper.equals(typeName)) {
-        return OPTIONAL_DOUBLE_INFO;
-      }
-      if (OPTIONAL_INT_INFO.wrapper.equals(typeName)) {
-        return OPTIONAL_INT_INFO;
-      }
-      if (OPTIONAL_LONG_INFO.wrapper.equals(typeName)) {
-        return OPTIONAL_LONG_INFO;
+      for (OptionalInfo optionalPrimitive : OPTIONAL_PRIMITIVES) {
+        if (optionalPrimitive.wrapper.equals(typeName)) {
+          return optionalPrimitive;
+        }
       }
       return null;
     }
@@ -53,6 +63,11 @@ final class OptionalInfo {
     }
     return new OptionalInfo(OPTIONAL_CLASS,
         type.typeArguments.get(0));
+  }
+
+  static boolean isOptional(TypeName typeName) {
+    return typeName instanceof ParameterizedTypeName &&
+        rawType(typeName).equals(OPTIONAL_CLASS);
   }
 
   boolean isDoubleOptional() {
