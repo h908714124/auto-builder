@@ -58,7 +58,7 @@ In fact, this annotation processor scans the generated class `AutoValue_Animal`,
 If it can't find `AutoValue_Animal` on the classpath,
 presumably because auto-value is misconfigured or threw an error, it won't generate anything either.
 
-### caching
+### Caching
 
 Since version 1.5, auto-builder is capable of caching the builder instance.
 This should in general help to reduce the garbage collection overhead.
@@ -68,7 +68,9 @@ a third static method `Animal_Builder.threadLocalFactory()` is now generated, wh
 
 > This factory is safe for use by a single thread, but it <em>must not</em> be shared between different threads.
 > If you're willing to store the factory in an instance field,
-> you have to make all access `synchronized`, or wrap it in a `ThreadLocal` as shown below.
+> you have to make all access `synchronized`, or wrap it in a `ThreadLocal`, as shown below.
+
+#### Example: Wrapping the cache in a ThreadLocal
 
 ````java
 @AutoBuilder
@@ -85,6 +87,27 @@ abstract class Animal {
   }
 }
 ````
+
+#### Example: Synchronizing access to the cache
+
+````java
+@AutoBuilder
+@AutoValue
+abstract class Animal {
+
+  private static final Animal_Builder.PerThreadFactory FACTORY =
+      Animal_Builder.perThreadFactory();
+
+  // [...]
+
+  final synchronized Animal_Builder toBuilder() {
+    return FACTORY.builder(this);
+  }
+}
+````
+
+If you use a "naked" cache like this, and there are other methods that access the `FACTORY` field,
+you should make them `synchronized` as well.
 
 ### It's maven time
 
