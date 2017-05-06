@@ -65,7 +65,7 @@ presumably because auto-value is misconfigured or threw an error, it won't gener
 <dependency>
   <groupId>com.github.h908714124</groupId>
   <artifactId>auto-builder</artifactId>
-  <version>1.3</version>
+  <version>1.4</version>
   <scope>provided</scope>
 </dependency>
 ````

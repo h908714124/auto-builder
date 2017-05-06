@@ -59,7 +59,6 @@ final class Analyser {
         .addAnnotation(AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", Processor.class.getCanonicalName())
             .build())
-        .addJavadoc("Builder for {@link $T}\n", model.sourceClass)
         .build();
   }
 
@@ -91,9 +90,6 @@ final class Analyser {
         .addTypeVariables(model.typevars())
         .addStatement("return new $T()", model.generatedClass)
         .returns(model.generatedClass)
-        .addJavadoc("Creates a new builder.\n" +
-            "\n" +
-            "@return a builder\n")
         .build();
   }
 
@@ -117,12 +113,6 @@ final class Analyser {
         .addModifiers(PUBLIC, STATIC)
         .addTypeVariables(model.typevars())
         .returns(model.generatedClass)
-        .addJavadoc("Creates a new builder.\n" +
-                "\n" +
-                "@param $N the data source\n" +
-                "@return a builder for creating a modified copy\n" +
-                "@throws $T if the input is null\n",
-            input, NullPointerException.class)
         .build();
   }
 

@@ -55,14 +55,14 @@ public final class Processor extends AbstractProcessor {
         continue;
       }
       try {
-        Model model = Model.create(sourceClass, avType);
+        Model model = Model.create(sourceClassElement, avType);
         if (!done.add(model.sourceClass)) {
           continue;
         }
         TypeSpec typeSpec = Analyser.create(model).analyse();
         write(rawType(model.generatedClass), typeSpec);
       } catch (ValidationException e) {
-        processingEnv.getMessager().printMessage(ERROR, e.getMessage(), e.about);
+        processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
       } catch (Exception e) {
         handleException(sourceClassElement, e);
         return false;

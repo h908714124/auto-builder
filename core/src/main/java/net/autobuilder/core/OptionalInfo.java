@@ -14,7 +14,7 @@ import static net.autobuilder.core.Processor.rawType;
 
 final class OptionalInfo {
 
-  static final ClassName OPTIONAL_CLASS =
+  private static final ClassName OPTIONAL_CLASS =
       ClassName.get(Optional.class);
   private static final OptionalInfo OPTIONAL_INT_INFO =
       new OptionalInfo(ClassName.get(OptionalInt.class), TypeName.INT);
@@ -32,9 +32,6 @@ final class OptionalInfo {
   }
 
   static OptionalInfo create(TypeName typeName) {
-    if (typeName.isPrimitive()) {
-      return null;
-    }
     if (typeName instanceof ClassName) {
       if (OPTIONAL_DOUBLE_INFO.wrapper.equals(typeName)) {
         return OPTIONAL_DOUBLE_INFO;
