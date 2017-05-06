@@ -13,7 +13,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.tools.Diagnostic.Kind.WARNING;
 import static net.autobuilder.core.Processor.rawType;
 import static net.autobuilder.core.Processor.typeArguments;
@@ -21,25 +23,31 @@ import static net.autobuilder.core.Processor.typeArguments;
 final class Model {
 
   private static final String SUFFIX = "_Builder";
+  private static final Modifier[] PUBLIC_MODIFIER = {PUBLIC};
+  private static final Modifier[] NO_MODIFIERS = new Modifier[0];
 
-  final TypeName sourceClass;
+  private final TypeElement sourceClassElement;
+
+  private final ClassName optionalRefTrackingBuilderClass;
+
   final TypeName generatedClass;
   final TypeName simpleBuilderClass;
-  final Optional<ClassName> optionalRefTrackingBuilderClass;
   final TypeElement avType;
   final List<Parameter> parameters;
+  final TypeName sourceClass;
 
-  private Model(TypeName sourceClass,
+  private Model(TypeElement sourceClassElement,
                 TypeName generatedClass, TypeElement avType,
                 ExecutableElement avConstructor,
                 TypeName simpleBuilderClass,
-                Optional<ClassName> optionalRefTrackingBuilderClass) {
-    this.sourceClass = sourceClass;
+                ClassName optionalRefTrackingBuilderClass) {
+    this.sourceClassElement = sourceClassElement;
     this.generatedClass = generatedClass;
     this.avType = avType;
     this.simpleBuilderClass = simpleBuilderClass;
     this.optionalRefTrackingBuilderClass = optionalRefTrackingBuilderClass;
     this.parameters = Parameter.scan(avConstructor, avType);
+    this.sourceClass = TypeName.get(sourceClassElement.asType());
   }
 
   static Model create(TypeElement sourceClassElement, TypeElement avType) {
@@ -71,12 +79,12 @@ final class Model {
     }
     TypeName generatedClass = abPeer(sourceClass);
     TypeName simpleBuilderClass = nestedClass(generatedClass, "SimpleBuilder");
-    Optional<ClassName> optionalRefTrackingBuilderClass = Optional.empty();
-    if (typeArguments(generatedClass).isEmpty()) {
-      optionalRefTrackingBuilderClass =
-          Optional.of(rawType(generatedClass).nestedClass("RefTrackingBuilder"));
-    }
-    return new Model(sourceClass, generatedClass, avType,
+    ClassName optionalRefTrackingBuilderClass =
+        typeArguments(generatedClass).isEmpty() ?
+            rawType(generatedClass).nestedClass("RefTrackingBuilder") :
+            null;
+
+    return new Model(sourceClassElement, generatedClass, avType,
         constructor, simpleBuilderClass, optionalRefTrackingBuilderClass);
   }
 
@@ -103,5 +111,30 @@ final class Model {
     return avType.getTypeParameters().stream()
         .map(TypeVariableName::get)
         .collect(toList());
+  }
+
+  private boolean isPublic() {
+    return sourceClassElement.getModifiers().contains(PUBLIC);
+  }
+
+  Modifier[] maybePublic() {
+    if (isPublic()) {
+      return PUBLIC_MODIFIER;
+    }
+    return NO_MODIFIERS;
+  }
+
+  Optional<ClassName> optionalRefTrackingBuilderClass() {
+    return Optional.ofNullable(optionalRefTrackingBuilderClass);
+  }
+
+  String cacheWarning() {
+    return "Caching not implemented: " +
+        rawType(sourceClass).simpleName() +
+        "<" +
+        typevars().stream()
+            .map(TypeVariableName::toString)
+            .collect(joining(", ")) +
+        "> has type parameters";
   }
 }

@@ -14,7 +14,6 @@ import java.util.Optional;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
-import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 import static net.autobuilder.core.Processor.rawType;
 
@@ -47,10 +46,20 @@ final class Analyser {
       builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder).define());
       builder.addMethod(MethodSpec.methodBuilder("perThreadFactory")
           .addStatement("return new $T()", refTrackingBuilder.perThreadFactoryClass)
-          .addModifiers(PUBLIC, STATIC)
+          .addModifiers(STATIC)
+          .addModifiers(model.maybePublic())
           .returns(refTrackingBuilder.perThreadFactoryClass)
           .build());
     });
+    if (!optionalRefTrackingBuilder.isPresent()) {
+      builder.addType(PerThreadFactory.defineDummy(model));
+      builder.addMethod(MethodSpec.methodBuilder("perThreadFactory")
+          .addStatement("throw new $T(\n$S)", UnsupportedOperationException.class,
+              model.cacheWarning())
+          .addModifiers(PRIVATE, STATIC)
+          .returns(RefTrackingBuilder.perThreadFactoryClass(model))
+          .build());
+    }
     for (Parameter parameter : model.parameters) {
       OptionalInfo optionalInfo = OptionalInfo.create(parameter.type);
       FieldSpec field = fieldOf(parameter, optionalInfo);
@@ -64,7 +73,8 @@ final class Analyser {
                 parameter.setterName).build()));
       }
     }
-    return builder.addModifiers(PUBLIC, ABSTRACT)
+    builder.addModifiers(model.maybePublic());
+    return builder.addModifiers(ABSTRACT)
         .addMethod(initMethod)
         .addMethod(staticBuildMethod)
         .addMethod(buildMethod())
@@ -110,7 +120,8 @@ final class Analyser {
         .addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p)
         .addStatement("return this")
         .addParameter(p)
-        .addModifiers(PUBLIC, FINAL)
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
         .returns(model.generatedClass)
         .build();
   }
@@ -121,14 +132,16 @@ final class Analyser {
         .addStatement("this.$N = $N", f, p)
         .addStatement("return this")
         .addParameter(p)
-        .addModifiers(PUBLIC, FINAL)
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
         .returns(model.generatedClass)
         .build();
   }
 
   private MethodSpec builderMethod() {
     return MethodSpec.methodBuilder("builder")
-        .addModifiers(PUBLIC, STATIC)
+        .addModifiers(STATIC)
+        .addModifiers(model.maybePublic())
         .addTypeVariables(model.typevars())
         .addStatement("return new $T()", model.simpleBuilderClass)
         .returns(model.generatedClass)
@@ -145,7 +158,8 @@ final class Analyser {
     return MethodSpec.methodBuilder("builder")
         .addCode(block.build())
         .addParameter(input)
-        .addModifiers(PUBLIC, STATIC)
+        .addModifiers(STATIC)
+        .addModifiers(model.maybePublic())
         .addTypeVariables(model.typevars())
         .returns(model.generatedClass)
         .build();
@@ -176,7 +190,8 @@ final class Analyser {
   private MethodSpec buildMethod() {
     return MethodSpec.methodBuilder("build")
         .returns(model.sourceClass)
-        .addModifiers(PUBLIC, ABSTRACT)
+        .addModifiers(ABSTRACT)
+        .addModifiers(model.maybePublic())
         .build();
   }
 }

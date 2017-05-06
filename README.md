@@ -115,7 +115,7 @@ you should make them `synchronized` as well.
 <dependency>
   <groupId>com.github.h908714124</groupId>
   <artifactId>auto-builder</artifactId>
-  <version>1.5</version>
+  <version>1.6</version>
   <scope>provided</scope>
 </dependency>
 ````

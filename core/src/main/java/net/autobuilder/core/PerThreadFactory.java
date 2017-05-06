@@ -9,7 +9,6 @@ import com.squareup.javapoet.TypeSpec;
 import static com.squareup.javapoet.MethodSpec.constructorBuilder;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
-import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
 final class PerThreadFactory {
@@ -32,12 +31,24 @@ final class PerThreadFactory {
     return new PerThreadFactory(model, initMethod, refTrackingBuilder);
   }
 
+  static TypeSpec defineDummy(Model model) {
+    return TypeSpec.classBuilder(RefTrackingBuilder.perThreadFactoryClass(model))
+        .addMethod(constructorBuilder()
+            .addModifiers(PRIVATE)
+            .addStatement("throw new $T(\n$S)", UnsupportedOperationException.class,
+                model.cacheWarning())
+            .build())
+        .addModifiers(PRIVATE, STATIC, FINAL)
+        .build();
+  }
+
   TypeSpec define() {
     return TypeSpec.classBuilder(refTrackingBuilder.perThreadFactoryClass)
         .addField(builder)
         .addMethod(builderMethod())
         .addMethod(constructorBuilder().addModifiers(PRIVATE).build())
-        .addModifiers(PUBLIC, STATIC, FINAL)
+        .addModifiers(model.maybePublic())
+        .addModifiers(STATIC, FINAL)
         .build();
   }
 
@@ -51,7 +62,7 @@ final class PerThreadFactory {
         .addStatement("this.$N.$N = $L", builder, refTrackingBuilder.inUse, true)
         .addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
-        .addModifiers(PUBLIC)
+        .addModifiers(model.maybePublic())
         .addParameter(input)
         .addCode(block.build())
         .returns(model.generatedClass)

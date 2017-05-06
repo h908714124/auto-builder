@@ -8,7 +8,7 @@ import java.util.OptionalInt;
 
 @AutoBuilder
 @AutoValue
-abstract class GradleMan<S> {
+abstract class GradleMan<S extends String> {
 
   abstract Optional<S> getName();
 

@@ -13,7 +13,6 @@ import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
-import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 import static net.autobuilder.core.Processor.rawType;
 
@@ -35,10 +34,14 @@ final class RefTrackingBuilder {
     this.inUse = FieldSpec.builder(TypeName.BOOLEAN, "inUse", PRIVATE).build();
   }
 
+  static ClassName perThreadFactoryClass(Model model) {
+    return rawType(model.generatedClass)
+        .nestedClass("PerThreadFactory");
+  }
+
   static Optional<RefTrackingBuilder> create(Model model, MethodSpec staticBuildMethod) {
-    return model.optionalRefTrackingBuilderClass.map(refTrackingBuilderClass -> {
-      ClassName perThreadFactoryClass = rawType(model.generatedClass)
-          .nestedClass("PerThreadFactory");
+    return model.optionalRefTrackingBuilderClass().map(refTrackingBuilderClass -> {
+      ClassName perThreadFactoryClass = perThreadFactoryClass(model);
       return new RefTrackingBuilder(model, staticBuildMethod,
           refTrackingBuilderClass, perThreadFactoryClass);
     });
@@ -49,7 +52,7 @@ final class RefTrackingBuilder {
         .addField(inUse)
         .superclass(model.generatedClass)
         .addMethod(buildMethod())
-        .addModifiers(PUBLIC, STATIC, FINAL)
+        .addModifiers(PRIVATE, STATIC, FINAL)
         .build();
   }
 
@@ -74,7 +77,7 @@ final class RefTrackingBuilder {
         .addAnnotation(Override.class)
         .addCode(builder.build())
         .returns(model.sourceClass)
-        .addModifiers(PUBLIC)
+        .addModifiers(model.maybePublic())
         .build();
   }
 }

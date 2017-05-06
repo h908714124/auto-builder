@@ -4,7 +4,7 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import static javax.lang.model.element.Modifier.FINAL;
-import static javax.lang.model.element.Modifier.PUBLIC;
+import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
 import static net.autobuilder.core.Processor.rawType;
 
@@ -27,7 +27,7 @@ final class SimpleBuilder {
         .addTypeVariables(model.typevars())
         .superclass(model.generatedClass)
         .addMethod(buildMethod())
-        .addModifiers(PUBLIC, STATIC, FINAL)
+        .addModifiers(PRIVATE, STATIC, FINAL)
         .build();
   }
 
@@ -37,7 +37,7 @@ final class SimpleBuilder {
         .addStatement("return $T.$N(this)",
             rawType(model.generatedClass), staticBuildMethod)
         .returns(model.sourceClass)
-        .addModifiers(PUBLIC)
+        .addModifiers(model.maybePublic())
         .build();
   }
 }
