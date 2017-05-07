@@ -22,7 +22,7 @@ abstract class Animal {
 
   abstract Optional<String> maybe();
 
-  final synchronized Animal_Builder toBuilder() {
+  final Animal_Builder toBuilder() {
     return FACTORY.get().builder(this);
   }
 }
