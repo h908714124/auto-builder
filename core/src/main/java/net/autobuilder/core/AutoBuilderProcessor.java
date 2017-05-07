@@ -1,16 +1,20 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import net.autobuilder.AutoBuilder;
 
+import javax.annotation.Generated;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
@@ -20,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static javax.lang.model.element.Modifier.STATIC;
 import static javax.lang.model.util.ElementFilter.typesIn;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
@@ -48,20 +54,24 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         typesIn(env.getElementsAnnotatedWith(AutoBuilder.class));
     for (TypeElement sourceClassElement : seen) {
       TypeName sourceClass = TypeName.get(sourceClassElement.asType());
-      TypeElement avType = processingEnv.getElementUtils().getTypeElement(
-          avPeer(sourceClass).toString());
-      if (avType == null) {
-        // auto-value isn't finished yet, skip this round
-        writeDummy(sourceClassElement);
+      if (done.contains(sourceClass)) {
         continue;
       }
+      ClassName generatedByAutoValue = avPeer(sourceClass);
+      TypeElement avType = processingEnv.getElementUtils().getTypeElement(
+          generatedByAutoValue.toString());
+      if (avType == null) {
+        // Auto-value hasn't written its class yet.
+        // Leave a placeholder, to notify the user.
+        // This will hopefully be overwritten in a future round.
+        writePlaceholder(sourceClassElement, generatedByAutoValue);
+        continue;
+      }
+      done.add(sourceClass);
       try {
         Model model = Model.create(sourceClassElement, avType);
-        if (!done.add(model.sourceClass)) {
-          continue;
-        }
         TypeSpec typeSpec = Analyser.create(model).analyse();
-        write(rawType(model.generatedClass), typeSpec);
+        write(sourceClassElement, rawType(model.generatedClass), typeSpec);
       } catch (ValidationException e) {
         processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
       } catch (Exception e) {
@@ -69,39 +79,57 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         return false;
       }
     }
+    // Don't even try to do anything in the first round.
+    // Just remember these type elements, so we can handle them later.
     seen.addAll(typeElements);
     return false;
   }
 
-  private void writeDummy(TypeElement sourceClassElement) {
+  private void writePlaceholder(TypeElement sourceClassElement,
+                                ClassName generatedByAutoValue) {
     TypeName sourceClass = TypeName.get(sourceClassElement.asType());
     TypeName generatedClass = Model.abPeer(sourceClass);
     TypeSpec typeSpec = TypeSpec.classBuilder(rawType(generatedClass))
+        .addModifiers(Modifier.ABSTRACT)
+        .addAnnotation(AnnotationSpec.builder(Generated.class)
+            .addMember("value", "$S", AutoBuilderProcessor.class.getCanonicalName())
+            .build())
+        .addMethod(MethodSpec.methodBuilder("builder")
+            .addModifiers(STATIC, PRIVATE)
+            .returns(generatedClass)
+            .addStatement("throw new $T(\n$S + \n$S)", UnsupportedOperationException.class,
+                generatedByAutoValue.simpleName() + " not found. ",
+                "Maybe auto-value is not configured?")
+            .build())
         .build();
-    try {
-      write(rawType(generatedClass), typeSpec);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    write(sourceClassElement, rawType(generatedClass), typeSpec);
   }
 
   private void handleException(TypeElement typeElement, Exception e) {
-    e.printStackTrace();
     String message = "Error processing " +
         ClassName.get(typeElement) +
         ": " + e.getMessage();
     processingEnv.getMessager().printMessage(ERROR, message, typeElement);
   }
 
-  private void write(ClassName generatedType, TypeSpec typeSpec) throws IOException {
+  private void write(TypeElement sourceTypeElement,
+                     ClassName generatedType, TypeSpec typeSpec) {
     JavaFile javaFile = JavaFile.builder(generatedType.packageName(), typeSpec)
         .skipJavaLangImports(true)
         .build();
-    JavaFileObject sourceFile = processingEnv.getFiler()
-        .createSourceFile(generatedType.toString(),
-            javaFile.typeSpec.originatingElements.toArray(new Element[0]));
+    JavaFileObject sourceFile;
+    try {
+      sourceFile = processingEnv.getFiler()
+          .createSourceFile(generatedType.toString(),
+              javaFile.typeSpec.originatingElements.toArray(new Element[0]));
+    } catch (IOException e) {
+      handleException(sourceTypeElement, e);
+      return;
+    }
     try (Writer writer = sourceFile.openWriter()) {
       writer.write(javaFile.toString());
+    } catch (IOException e) {
+      handleException(sourceTypeElement, e);
     }
   }
 

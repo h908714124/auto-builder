@@ -9,8 +9,8 @@ import com.squareup.javapoet.TypeSpec;
 
 import javax.annotation.Generated;
 import java.util.Arrays;
-import java.util.Optional;
 
+import static java.util.Objects.requireNonNull;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -22,7 +22,7 @@ final class Analyser {
   private final Model model;
   private final MethodSpec initMethod;
   private final MethodSpec staticBuildMethod;
-  private final Optional<RefTrackingBuilder> optionalRefTrackingBuilder;
+  private final RefTrackingBuilder optionalRefTrackingBuilder;
 
   private Analyser(Model model) {
     this.model = model;
@@ -41,18 +41,17 @@ final class Analyser {
     builder.addMethod(builderMethod());
     builder.addMethod(builderMethodWithParam());
     builder.addType(SimpleBuilder.create(model, staticBuildMethod).define());
-    optionalRefTrackingBuilder.ifPresent(refTrackingBuilder -> {
+    if (optionalRefTrackingBuilder != null) {
+      RefTrackingBuilder refTrackingBuilder = requireNonNull(optionalRefTrackingBuilder);
       builder.addType(refTrackingBuilder.define());
       builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder).define());
       builder.addMethod(MethodSpec.methodBuilder("perThreadFactory")
           .addStatement("return new $T()", refTrackingBuilder.perThreadFactoryClass)
           .addModifiers(STATIC)
-          .addModifiers(model.maybePublic())
           .returns(refTrackingBuilder.perThreadFactoryClass)
           .build());
-    });
-    if (!optionalRefTrackingBuilder.isPresent()) {
-      builder.addType(PerThreadFactory.defineDummy(model));
+    } else {
+      builder.addType(PerThreadFactory.createStub(model));
       builder.addMethod(MethodSpec.methodBuilder("perThreadFactory")
           .addStatement("throw new $T(\n$S)", UnsupportedOperationException.class,
               model.cacheWarning())
@@ -77,7 +76,7 @@ final class Analyser {
     return builder.addModifiers(ABSTRACT)
         .addMethod(initMethod)
         .addMethod(staticBuildMethod)
-        .addMethod(buildMethod())
+        .addMethod(abstractBuildMethod())
         .addMethod(MethodSpec.constructorBuilder()
             .addModifiers(PRIVATE).build())
         .addAnnotation(AnnotationSpec.builder(Generated.class)
@@ -141,7 +140,6 @@ final class Analyser {
   private MethodSpec builderMethod() {
     return MethodSpec.methodBuilder("builder")
         .addModifiers(STATIC)
-        .addModifiers(model.maybePublic())
         .addTypeVariables(model.typevars())
         .addStatement("return new $T()", model.simpleBuilderClass)
         .returns(model.generatedClass)
@@ -159,7 +157,6 @@ final class Analyser {
         .addCode(block.build())
         .addParameter(input)
         .addModifiers(STATIC)
-        .addModifiers(model.maybePublic())
         .addTypeVariables(model.typevars())
         .returns(model.generatedClass)
         .build();
@@ -187,7 +184,7 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec buildMethod() {
+  private MethodSpec abstractBuildMethod() {
     return MethodSpec.methodBuilder("build")
         .returns(model.sourceClass)
         .addModifiers(ABSTRACT)

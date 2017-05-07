@@ -67,10 +67,10 @@ Unless your `Animal` has type parameters (like `Animal<X>`),
 a third static method `Animal_Builder.threadLocalFactory()` is now generated, which returns a factory.
 
 > This factory is safe for use by a single thread, but it <em>must not</em> be shared between different threads.
-> If you're willing to store the factory in an instance field,
-> you have to make all access `synchronized`, or wrap it in a `ThreadLocal`, as shown below.
+> If you're going to store the factory in a field,
+> you have to wrap it in a `ThreadLocal`, as shown below.
 
-#### Example: Wrapping the cache in a ThreadLocal
+#### Example: Wrapping the factory in a ThreadLocal
 
 ````java
 @AutoBuilder
@@ -88,26 +88,8 @@ abstract class Animal {
 }
 ````
 
-#### Example: Synchronizing access to the cache
-
-````java
-@AutoBuilder
-@AutoValue
-abstract class Animal {
-
-  private static final Animal_Builder.PerThreadFactory FACTORY =
-      Animal_Builder.perThreadFactory();
-
-  // [...]
-
-  final synchronized Animal_Builder toBuilder() {
-    return FACTORY.builder(this);
-  }
-}
-````
-
-If you use a "naked" cache like this, and there are other methods that access the `FACTORY` field,
-you should make them `synchronized` as well.
+Of course, the builder instance that's returned by `toBuilder` is also not thread-safe,
+and shouldn't be stored in a field where other threads might see it.
 
 ### It's maven time
 
@@ -115,7 +97,7 @@ you should make them `synchronized` as well.
 <dependency>
   <groupId>com.github.h908714124</groupId>
   <artifactId>auto-builder</artifactId>
-  <version>1.6</version>
+  <version>1.7</version>
   <scope>provided</scope>
 </dependency>
 ````
