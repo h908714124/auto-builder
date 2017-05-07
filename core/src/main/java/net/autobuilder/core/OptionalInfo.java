@@ -12,7 +12,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-import static net.autobuilder.core.Processor.rawType;
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 final class OptionalInfo {
 

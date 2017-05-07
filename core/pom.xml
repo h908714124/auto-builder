@@ -36,6 +36,13 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value</artifactId>
+      <version>1.4.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.testing.compile</groupId>
       <artifactId>compile-testing</artifactId>
       <version>0.10</version>

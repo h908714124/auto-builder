@@ -15,7 +15,7 @@ import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
-import static net.autobuilder.core.Processor.rawType;
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 final class Analyser {
 
@@ -81,7 +81,7 @@ final class Analyser {
         .addMethod(MethodSpec.constructorBuilder()
             .addModifiers(PRIVATE).build())
         .addAnnotation(AnnotationSpec.builder(Generated.class)
-            .addMember("value", "$S", Processor.class.getCanonicalName())
+            .addMember("value", "$S", AutoBuilderProcessor.class.getCanonicalName())
             .build())
         .build();
   }

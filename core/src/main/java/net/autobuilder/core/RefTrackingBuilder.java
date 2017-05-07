@@ -14,7 +14,7 @@ import java.util.Optional;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
-import static net.autobuilder.core.Processor.rawType;
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 final class RefTrackingBuilder {
 

@@ -17,8 +17,8 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.tools.Diagnostic.Kind.WARNING;
-import static net.autobuilder.core.Processor.rawType;
-import static net.autobuilder.core.Processor.typeArguments;
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
+import static net.autobuilder.core.AutoBuilderProcessor.typeArguments;
 
 final class Model {
 
@@ -88,7 +88,7 @@ final class Model {
         constructor, simpleBuilderClass, optionalRefTrackingBuilderClass);
   }
 
-  private static TypeName abPeer(TypeName type) {
+  static TypeName abPeer(TypeName type) {
     String name = String.join("_", rawType(type).simpleNames()) + SUFFIX;
     ClassName className = rawType(type).topLevelClassName().peerClass(name);
     return withTypevars(className, typeArguments(type));

@@ -23,7 +23,7 @@ import java.util.Set;
 import static javax.lang.model.util.ElementFilter.typesIn;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
-public final class Processor extends AbstractProcessor {
+public final class AutoBuilderProcessor extends AbstractProcessor {
 
   private static final String PREFIX = "AutoValue_";
 
@@ -52,6 +52,7 @@ public final class Processor extends AbstractProcessor {
           avPeer(sourceClass).toString());
       if (avType == null) {
         // auto-value isn't finished yet, skip this round
+        writeDummy(sourceClassElement);
         continue;
       }
       try {
@@ -70,6 +71,18 @@ public final class Processor extends AbstractProcessor {
     }
     seen.addAll(typeElements);
     return false;
+  }
+
+  private void writeDummy(TypeElement sourceClassElement) {
+    TypeName sourceClass = TypeName.get(sourceClassElement.asType());
+    TypeName generatedClass = Model.abPeer(sourceClass);
+    TypeSpec typeSpec = TypeSpec.classBuilder(rawType(generatedClass))
+        .build();
+    try {
+      write(rawType(generatedClass), typeSpec);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   private void handleException(TypeElement typeElement, Exception e) {
