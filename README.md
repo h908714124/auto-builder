@@ -4,7 +4,8 @@
 
 This ~~very~~ simple annotation processor relieves the 
 user of the repetitive drudgery that comes with `@AutoValue.Builder`.
-The forced repetition is, by auto-value's design choice, also present in
+The repetition of property names is, by auto-value's design choice 
+not to generate any APIs, but only to extend user-defined classes, also present in
 [some auto-value extensions](https://github.com/gabrielittner/auto-value-with).
 
 The purpose of auto-builder is to make [auto-value](https://github.com/google/auto/tree/master/value)
