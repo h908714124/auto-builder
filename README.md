@@ -57,7 +57,7 @@ abstract class Animal {
 The `static Animal create` method is not necessary for  `@AutoBuilder` to work.
 In fact, this annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
 If it can't find `AutoValue_Animal` on the classpath,
-presumably because auto-value is misconfigured or threw an error, it won't generate anything either.
+presumably because auto-value is misconfigured or threw an error, it won't generate anything useful either.
 
 ### Caching
 
