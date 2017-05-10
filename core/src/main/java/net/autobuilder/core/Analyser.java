@@ -40,24 +40,17 @@ final class Analyser {
     builder.addTypeVariables(model.typevars());
     builder.addMethod(builderMethod());
     builder.addMethod(builderMethodWithParam());
+    builder.addMethod(initMethod);
+    builder.addMethod(staticBuildMethod);
+    builder.addMethod(abstractBuildMethod());
+    builder.addMethod(perThreadFactoryMethod(optionalRefTrackingBuilder));
     builder.addType(SimpleBuilder.create(model, staticBuildMethod).define());
     if (optionalRefTrackingBuilder != null) {
       RefTrackingBuilder refTrackingBuilder = requireNonNull(optionalRefTrackingBuilder);
       builder.addType(refTrackingBuilder.define());
       builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder).define());
-      builder.addMethod(MethodSpec.methodBuilder("perThreadFactory")
-          .addStatement("return new $T()", refTrackingBuilder.perThreadFactoryClass)
-          .addModifiers(STATIC)
-          .returns(refTrackingBuilder.perThreadFactoryClass)
-          .build());
     } else {
       builder.addType(PerThreadFactory.createStub(model));
-      builder.addMethod(MethodSpec.methodBuilder("perThreadFactory")
-          .addStatement("throw new $T(\n$S)", UnsupportedOperationException.class,
-              model.cacheWarning())
-          .addModifiers(PRIVATE, STATIC)
-          .returns(RefTrackingBuilder.perThreadFactoryClass(model))
-          .build());
     }
     for (Parameter parameter : model.parameters) {
       OptionalInfo optionalInfo = OptionalInfo.create(parameter.type);
@@ -74,15 +67,29 @@ final class Analyser {
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(ABSTRACT)
-        .addMethod(initMethod)
-        .addMethod(staticBuildMethod)
-        .addMethod(abstractBuildMethod())
         .addMethod(MethodSpec.constructorBuilder()
             .addModifiers(PRIVATE).build())
         .addAnnotation(AnnotationSpec.builder(Generated.class)
             .addMember("value", "$S", AutoBuilderProcessor.class.getCanonicalName())
             .build())
         .build();
+  }
+
+  private MethodSpec perThreadFactoryMethod(RefTrackingBuilder optionalRefTrackingBuilder) {
+    MethodSpec.Builder builder = MethodSpec.methodBuilder("perThreadFactory")
+        .returns(RefTrackingBuilder.perThreadFactoryClass(model))
+        .addModifiers(STATIC);
+    if (optionalRefTrackingBuilder != null) {
+      RefTrackingBuilder refTrackingBuilder = requireNonNull(optionalRefTrackingBuilder);
+      return builder.addStatement("return new $T()",
+          refTrackingBuilder.perThreadFactoryClass)
+          .build();
+    } else {
+      return builder.addStatement("throw new $T(\n$S)",
+          UnsupportedOperationException.class, model.cacheWarning())
+          .addModifiers(PRIVATE)
+          .build();
+    }
   }
 
   private static FieldSpec fieldOf(Parameter parameter, OptionalInfo optionalInfo) {
