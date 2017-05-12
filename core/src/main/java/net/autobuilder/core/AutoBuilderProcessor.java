@@ -144,11 +144,4 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
     }
     return ((ClassName) typeName);
   }
-
-  static List<TypeName> typeArguments(TypeName typeName) {
-    if (typeName instanceof ParameterizedTypeName) {
-      return ((ParameterizedTypeName) typeName).typeArguments;
-    }
-    return Collections.emptyList();
-  }
 }

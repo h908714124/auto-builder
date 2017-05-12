@@ -104,10 +104,6 @@ final class Analyser {
     ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder").build();
     ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
-    block.beginControlFlow("if ($N == null)", input)
-        .addStatement("throw new $T($S)",
-            NullPointerException.class, "Null " + input.name)
-        .endControlFlow();
     for (Parameter parameter : model.parameters) {
       block.addStatement("$N.$N = $N.$L()", builder, parameter.setterName, input,
           parameter.getterName);

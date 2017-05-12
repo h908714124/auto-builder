@@ -10,6 +10,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,7 +19,6 @@ import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.tools.Diagnostic.Kind.WARNING;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
-import static net.autobuilder.core.AutoBuilderProcessor.typeArguments;
 
 final class Model {
 
@@ -137,4 +137,12 @@ final class Model {
             .collect(joining(", ")) +
         "> has type parameters";
   }
+
+  private static List<TypeName> typeArguments(TypeName typeName) {
+    if (typeName instanceof ParameterizedTypeName) {
+      return ((ParameterizedTypeName) typeName).typeArguments;
+    }
+    return Collections.emptyList();
+  }
+
 }
