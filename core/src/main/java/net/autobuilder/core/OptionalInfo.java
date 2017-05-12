@@ -33,18 +33,6 @@ final class OptionalInfo {
     this.wrapped = wrapped;
   }
 
-  static boolean isOptionalPrimitive(TypeName typeName) {
-    if (!(typeName instanceof ClassName)) {
-      return false;
-    }
-    for (OptionalInfo optionalPrimitive : OPTIONAL_PRIMITIVES) {
-      if (optionalPrimitive.wrapper.equals(typeName)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   static OptionalInfo create(TypeName typeName) {
     if (typeName instanceof ClassName) {
       for (OptionalInfo optionalPrimitive : OPTIONAL_PRIMITIVES) {
