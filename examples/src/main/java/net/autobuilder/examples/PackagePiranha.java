@@ -5,6 +5,6 @@ import net.autobuilder.AutoBuilder;
 
 @AutoValue
 @AutoBuilder
-abstract class PackagePinranha {
+abstract class PackagePiranha {
   abstract String foo();
 }

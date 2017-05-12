@@ -40,10 +40,10 @@ final class Analyser {
     builder.addTypeVariables(model.typevars());
     builder.addMethod(builderMethod());
     builder.addMethod(builderMethodWithParam());
+    builder.addMethod(perThreadFactoryMethod(optionalRefTrackingBuilder));
     builder.addMethod(initMethod);
     builder.addMethod(staticBuildMethod);
     builder.addMethod(abstractBuildMethod());
-    builder.addMethod(perThreadFactoryMethod(optionalRefTrackingBuilder));
     builder.addType(SimpleBuilder.create(model, staticBuildMethod).define());
     if (optionalRefTrackingBuilder != null) {
       RefTrackingBuilder refTrackingBuilder = requireNonNull(optionalRefTrackingBuilder);
