@@ -3,8 +3,11 @@ package net.autobuilder.examples;
 import org.junit.Test;
 
 import java.lang.reflect.Modifier;
+import java.util.Optional;
+import java.util.OptionalInt;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
@@ -37,5 +40,17 @@ public class PublicPenguinTest {
         PublicPenguin_Builder.class.getDeclaredMethod("build")
             .getModifiers());
     assertThat(buildMethodModifiers, containsString("public"));
+  }
+
+  @Test
+  public void testOptionalNull() {
+    String nobody = null;
+    PublicPenguin p0 = PublicPenguin_Builder.builder().foo("").bar(1).build();
+    PublicPenguin p1 = p0.toBuilder().friend("steven").build();
+    PublicPenguin p2 = p1.toBuilder().friend(nobody).build();
+    assertThat(p0.friend(), is(Optional.empty()));
+    assertThat(p1.friend(), is(Optional.of("steven")));
+    assertThat(p2.friend(), is(Optional.empty()));
+    assertThat(p2.bar(), is(OptionalInt.of(1)));
   }
 }

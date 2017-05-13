@@ -1,7 +1,6 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 
@@ -11,6 +10,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.ElementFilter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,6 +31,8 @@ final class Parameter {
   final String getterName;
   final TypeName type;
 
+  private final OptionalInfo optionalInfo;
+
   private Parameter(String name,
                     String setterName,
                     String getterName,
@@ -39,6 +41,7 @@ final class Parameter {
     this.setterName = setterName;
     this.getterName = getterName;
     this.type = type;
+    this.optionalInfo = OptionalInfo.create(type);
   }
 
   static List<Parameter> scan(ExecutableElement constructor,
@@ -110,7 +113,19 @@ final class Parameter {
         .addModifiers(PRIVATE);
   }
 
+  FieldSpec asInitializedField() {
+    FieldSpec.Builder fieldBuilder = asField();
+    if (optionalInfo != null) {
+      fieldBuilder.initializer("$T.empty()", optionalInfo.wrapper);
+    }
+    return fieldBuilder.build();
+  }
+
   ParameterSpec asParameter() {
     return ParameterSpec.builder(type, setterName).build();
+  }
+
+  Optional<OptionalInfo> optionalInfo() {
+    return Optional.ofNullable(optionalInfo);
   }
 }

@@ -53,14 +53,17 @@ final class OptionalInfo {
         type.typeArguments.get(0));
   }
 
-  static boolean isOptional(TypeName typeName) {
-    return typeName instanceof ParameterizedTypeName &&
-        rawType(typeName).equals(OPTIONAL_CLASS);
+  boolean isOptional() {
+    return wrapper.equals(OPTIONAL_CLASS);
   }
 
-  boolean isDoubleOptional() {
+  private boolean isIrregular() {
     return wrapped instanceof TypeVariableName ||
-        wrapper.equals(OPTIONAL_CLASS) &&
+        isOptional() &&
             rawType(wrapped).equals(OPTIONAL_CLASS);
+  }
+
+  boolean isRegular() {
+    return !isIrregular();
   }
 }

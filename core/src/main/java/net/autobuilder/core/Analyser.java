@@ -53,17 +53,13 @@ final class Analyser {
       builder.addType(PerThreadFactory.createStub(model));
     }
     for (Parameter parameter : model.parameters) {
-      OptionalInfo optionalInfo = OptionalInfo.create(parameter.type);
-      FieldSpec field = fieldOf(parameter, optionalInfo);
-      ParameterSpec p = parameter.asParameter();
-      builder.addField(field);
-      builder.addMethod(setterMethod(parameter, field, p));
-      if (optionalInfo != null &&
-          !optionalInfo.isDoubleOptional()) {
-        builder.addMethod(optionalSetterMethod(parameter, optionalInfo, field,
-            ParameterSpec.builder(optionalInfo.wrapped,
-                parameter.setterName).build()));
-      }
+      builder.addField(parameter.asInitializedField());
+      builder.addMethod(setterMethod(parameter));
+      parameter.optionalInfo()
+          .filter(OptionalInfo::isRegular)
+          .ifPresent(optionalInfo ->
+              builder.addMethod(optionalSetterMethod(parameter,
+                  optionalInfo)));
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(ABSTRACT)
@@ -92,14 +88,6 @@ final class Analyser {
     }
   }
 
-  private static FieldSpec fieldOf(Parameter parameter, OptionalInfo optionalInfo) {
-    FieldSpec.Builder fieldBuilder = parameter.asField();
-    if (optionalInfo != null) {
-      fieldBuilder.initializer("$T.empty()", optionalInfo.wrapper);
-    }
-    return fieldBuilder.build();
-  }
-
   private static MethodSpec initMethod(Model model) {
     ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder").build();
     ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
@@ -116,10 +104,12 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec optionalSetterMethod(Parameter parameter, OptionalInfo optionalInfo, FieldSpec f, ParameterSpec p) {
+  private MethodSpec setterMethod(Parameter parameter) {
+    FieldSpec f = parameter.asField().build();
+    ParameterSpec p = parameter.asParameter();
     return MethodSpec.methodBuilder(
         parameter.setterName)
-        .addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p)
+        .addStatement("this.$N = $N", f, p)
         .addStatement("return this")
         .addParameter(p)
         .addModifiers(FINAL)
@@ -128,10 +118,19 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec setterMethod(Parameter parameter, FieldSpec f, ParameterSpec p) {
+  private MethodSpec optionalSetterMethod(Parameter parameter, OptionalInfo optionalInfo) {
+    FieldSpec f = parameter.asField().build();
+    ParameterSpec p = ParameterSpec.builder(optionalInfo.wrapped,
+        parameter.setterName).build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    if (optionalInfo.isOptional()) {
+      block.addStatement("this.$N = $T.ofNullable($N)", f, optionalInfo.wrapper, p);
+    } else {
+      block.addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p);
+    }
     return MethodSpec.methodBuilder(
         parameter.setterName)
-        .addStatement("this.$N = $N", f, p)
+        .addCode(block.build())
         .addStatement("return this")
         .addParameter(p)
         .addModifiers(FINAL)
