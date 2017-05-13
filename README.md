@@ -36,7 +36,7 @@ abstract class Animal {
 A class `Animal_Builder` will now be generated in the same package as `Animal`.
 An instance of `Animal_Builder` can be obtained in one of two ways:
 
-* `Animal_Builder.builder()` to create a builder filled with `null`, `0` and `false`.
+* `Animal_Builder.builder()` to create a builder filled with `null`, `0`, `false` and `Optional.empty()`.
 * `Animal_Builder.builder(Animal input)` makes a builder initialized from `input`, suitable for creating a modified copy.
 
 It might be a good idea to add the usual `toBuilder` convenience method:
