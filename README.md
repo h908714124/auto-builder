@@ -8,9 +8,12 @@ The repetition of property names is, by auto-value's design choice
 not to generate any APIs, but only to extend user-defined classes, also present in
 [some auto-value extensions](https://github.com/gabrielittner/auto-value-with).
 
-The purpose of auto-builder is to make [auto-value](https://github.com/google/auto/tree/master/value)
+The purpose of [auto-builder](https://github.com/h908714124/auto-builder) is to make 
+[auto-value](https://github.com/google/auto/tree/master/value)
 more convenient (and more efficient, see <a href="#caching">caching</a>).
 If you're not using auto-value with builders, then auto-builder will not be helpful.
+Depending on your use case, you may want to have a look at
+[readable](https://github.com/h908714124/readable) instead.
 
 ### Quick start
 
@@ -65,7 +68,7 @@ Since version 1.5, auto-builder is capable of caching the builder instance.
 This should in general help to reduce the garbage collection overhead.
 
 Unless your `Animal` has type parameters (like `Animal<X>`),
-a third static method `Animal_Builder.threadLocalFactory()` is now generated, which returns a factory.
+a third static method `Animal_Builder.perThreadFactory()` is now generated, which returns a factory.
 
 > This factory is safe for use by a single thread, but it <em>must not</em> be shared between different threads.
 > If you're going to store the factory in a field,
