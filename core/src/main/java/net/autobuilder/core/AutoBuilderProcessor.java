@@ -1,14 +1,20 @@
 package net.autobuilder.core;
 
-import static java.util.stream.Collectors.toList;
-import static javax.lang.model.util.ElementFilter.typesIn;
-import static javax.tools.Diagnostic.Kind.ERROR;
-
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
+import net.autobuilder.AutoBuilder;
+
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -19,20 +25,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
-import net.autobuilder.AutoBuilder;
+
+import static java.util.stream.Collectors.toList;
+import static javax.lang.model.util.ElementFilter.typesIn;
+import static javax.tools.Diagnostic.Kind.ERROR;
 
 public final class AutoBuilderProcessor extends AbstractProcessor {
 
   private static final String AV_PREFIX = "AutoValue_";
 
   private final Set<String> deferredTypeNames = new HashSet<>();
+  private final Set<String> done = new HashSet<>();
 
   @Override
   public Set<String> getSupportedAnnotationTypes() {
@@ -68,6 +71,10 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
     deferredTypeNames.clear();
 
     for (TypeElement sourceClassElement : types) {
+      String key = sourceClassElement.getQualifiedName().toString();
+      if (done.contains(key)) {
+        continue;
+      }
       ClassName generatedByAutoValue = avPeer(sourceClassElement);
       TypeElement avType = processingEnv.getElementUtils().getTypeElement(
           generatedByAutoValue.toString());
@@ -81,6 +88,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         Model model = Model.create(sourceClassElement, avType);
         TypeSpec typeSpec = Analyser.create(model).analyse();
         write(rawType(model.generatedClass), typeSpec);
+        done.add(key);
       } catch (ValidationException e) {
         processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
       } catch (Exception e) {
@@ -112,6 +120,12 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
   }
 
   static ClassName rawType(TypeName typeName) {
+    if (typeName instanceof TypeVariableName) {
+      return TypeName.OBJECT;
+    }
+    if (typeName.getClass().equals(TypeName.class)) {
+      return TypeName.OBJECT;
+    }
     if (typeName instanceof ParameterizedTypeName) {
       return ((ParameterizedTypeName) typeName).rawType;
     }

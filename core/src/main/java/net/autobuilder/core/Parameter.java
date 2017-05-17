@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static javax.lang.model.element.Modifier.PRIVATE;
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
+import static net.autobuilder.core.Optionalish.OPTIONAL_CLASS;
 
 final class Parameter {
 
@@ -31,7 +33,7 @@ final class Parameter {
   final String getterName;
   final TypeName type;
 
-  private final OptionalInfo optionalInfo;
+  private final Optionalish optionalish;
 
   private Parameter(String name,
                     String setterName,
@@ -41,7 +43,7 @@ final class Parameter {
     this.setterName = setterName;
     this.getterName = getterName;
     this.type = type;
-    this.optionalInfo = OptionalInfo.create(type);
+    this.optionalish = Optionalish.create(type);
   }
 
   static List<Parameter> scan(ExecutableElement constructor,
@@ -108,15 +110,15 @@ final class Parameter {
   }
 
   FieldSpec.Builder asField() {
-    return FieldSpec.builder(type,
-        setterName)
-        .addModifiers(PRIVATE);
+    return FieldSpec.builder(type, setterName).addModifiers(PRIVATE);
   }
 
   FieldSpec asInitializedField() {
     FieldSpec.Builder fieldBuilder = asField();
-    if (optionalInfo != null) {
-      fieldBuilder.initializer("$T.empty()", optionalInfo.wrapper);
+    if (optionalish != null) {
+      fieldBuilder.initializer("$T.empty()", optionalish.wrapper);
+    } else if (rawType(type).equals(OPTIONAL_CLASS)) {
+      fieldBuilder.initializer("$T.empty()", OPTIONAL_CLASS);
     }
     return fieldBuilder.build();
   }
@@ -125,7 +127,7 @@ final class Parameter {
     return ParameterSpec.builder(type, setterName).build();
   }
 
-  Optional<OptionalInfo> optionalInfo() {
-    return Optional.ofNullable(optionalInfo);
+  Optional<Optionalish> optionalInfo() {
+    return Optional.ofNullable(optionalish);
   }
 }

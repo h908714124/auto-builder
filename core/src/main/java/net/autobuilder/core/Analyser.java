@@ -56,10 +56,9 @@ final class Analyser {
       builder.addField(parameter.asInitializedField());
       builder.addMethod(setterMethod(parameter));
       parameter.optionalInfo()
-          .filter(OptionalInfo::isRegular)
-          .ifPresent(optionalInfo ->
+          .ifPresent(optionalish ->
               builder.addMethod(optionalSetterMethod(parameter,
-                  optionalInfo)));
+                  optionalish)));
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(ABSTRACT)
@@ -118,15 +117,15 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec optionalSetterMethod(Parameter parameter, OptionalInfo optionalInfo) {
+  private MethodSpec optionalSetterMethod(Parameter parameter, Optionalish optionalish) {
     FieldSpec f = parameter.asField().build();
-    ParameterSpec p = ParameterSpec.builder(optionalInfo.wrapped,
+    ParameterSpec p = ParameterSpec.builder(optionalish.wrapped,
         parameter.setterName).build();
     CodeBlock.Builder block = CodeBlock.builder();
-    if (optionalInfo.isOptional()) {
-      block.addStatement("this.$N = $T.ofNullable($N)", f, optionalInfo.wrapper, p);
+    if (optionalish.isOptional()) {
+      block.addStatement("this.$N = $T.ofNullable($N)", f, optionalish.wrapper, p);
     } else {
-      block.addStatement("this.$N = $T.of($N)", f, optionalInfo.wrapper, p);
+      block.addStatement("this.$N = $T.of($N)", f, optionalish.wrapper, p);
     }
     return MethodSpec.methodBuilder(
         parameter.setterName)

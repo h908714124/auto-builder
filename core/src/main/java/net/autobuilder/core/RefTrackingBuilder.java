@@ -64,8 +64,8 @@ final class RefTrackingBuilder {
     for (Parameter parameter : model.parameters) {
       if (parameter.optionalInfo().isPresent()) {
         parameter.optionalInfo()
-            .filter(OptionalInfo::isOptional)
-            .ifPresent(optionalInfo ->
+            .filter(Optionalish::isOptional)
+            .ifPresent(optionalish ->
                 builder.addStatement("this.$L($T.empty())",
                     parameter.setterName, Optional.class));
       } else if (parameter.type instanceof ClassName ||

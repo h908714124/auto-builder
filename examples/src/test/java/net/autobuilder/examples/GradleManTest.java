@@ -18,7 +18,7 @@ public class GradleManTest {
         .snake("snake")
         .build();
     GradleMan<String> badman = GradleMan_Builder.builder(batman)
-        .name(Optional.of("Bad"))
+        .name("Bad")
         .legs(2)
         .good(false)
         .nice(false)
