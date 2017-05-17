@@ -1,16 +1,15 @@
 package net.autobuilder.core;
 
-import com.google.auto.value.processor.AutoValueProcessor;
-import org.junit.Test;
-
-import javax.tools.JavaFileObject;
-import java.util.Arrays;
-import java.util.List;
-
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.testing.compile.JavaFileObjects.forSourceLines;
 import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
 import static java.util.Collections.singletonList;
+
+import com.google.auto.value.processor.AutoValueProcessor;
+import java.util.Arrays;
+import java.util.List;
+import javax.tools.JavaFileObject;
+import org.junit.Test;
 
 public class ProcessorTest {
 
@@ -69,23 +68,10 @@ public class ProcessorTest {
         "  abstract String foo();",
         "}");
     JavaFileObject javaFile = forSourceLines("test.Animal", sourceLines);
-    JavaFileObject expected =
-        forSourceLines("test.Animal_Builder",
-            "package test;",
-            "import javax.annotation.Generated;",
-            "",
-            "@Generated(\"net.autobuilder.core.AutoBuilderProcessor\")",
-            "abstract class Animal_Builder {",
-            "",
-            "  private static Animal_Builder builder() {",
-            "    throw new UnsupportedOperationException(",
-            "        \"AutoValue_Animal not found. \" + ",
-            "        \"Maybe auto-value is not configured?\"",
-            "  }",
-            "}");
     assertAbout(javaSources()).that(singletonList(javaFile))
         .processedWith(new AutoBuilderProcessor())
-        .compilesWithoutError()
-        .and().generatesSources(expected);
+        .failsToCompile()
+        .withErrorContaining("Could not find test.AutoValue_Animal, " +
+            "maybe auto-value is not configured?");
   }
 }
