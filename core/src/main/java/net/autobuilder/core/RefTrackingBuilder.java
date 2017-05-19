@@ -62,8 +62,8 @@ final class RefTrackingBuilder {
         .addStatement("$T $N = $T.$N(this)", model.sourceClass, result,
             rawType(model.generatedClass), staticBuildMethod);
     for (Parameter parameter : model.parameters) {
-      if (parameter.optionalInfo().isPresent()) {
-        parameter.optionalInfo()
+      if (parameter.optionalish().isPresent()) {
+        parameter.optionalish()
             .filter(Optionalish::isOptional)
             .ifPresent(optionalish ->
                 builder.addStatement("this.$L($T.empty())",
@@ -72,6 +72,11 @@ final class RefTrackingBuilder {
           parameter.type instanceof ParameterizedTypeName) {
         builder.addStatement("this.$L(null)",
             parameter.setterName);
+      } else if (parameter.collectionish().isPresent()) {
+        parameter.collectionish().ifPresent(collectionish ->
+            builder.addStatement("this.$L($T.$L())",
+                parameter.setterName,
+                collectionish.factoryClassName, collectionish.emptyMethod));
       }
     }
     builder.addStatement("this.$N = $L", inUse, false)

@@ -101,7 +101,7 @@ and shouldn't be stored in a field where other threads might see it.
 <dependency>
   <groupId>com.github.h908714124</groupId>
   <artifactId>auto-builder</artifactId>
-  <version>1.9</version>
+  <version>2.0</version>
   <scope>provided</scope>
 </dependency>
 ````

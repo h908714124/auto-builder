@@ -34,6 +34,7 @@ final class Parameter {
   final TypeName type;
 
   private final Optionalish optionalish;
+  private final Collectionish collectionish;
 
   private Parameter(String name,
                     String setterName,
@@ -44,6 +45,7 @@ final class Parameter {
     this.getterName = getterName;
     this.type = type;
     this.optionalish = Optionalish.create(type);
+    this.collectionish = Collectionish.create(type);
   }
 
   static List<Parameter> scan(ExecutableElement constructor,
@@ -119,6 +121,9 @@ final class Parameter {
       fieldBuilder.initializer("$T.empty()", optionalish.wrapper);
     } else if (rawType(type).equals(OPTIONAL_CLASS)) {
       fieldBuilder.initializer("$T.empty()", OPTIONAL_CLASS);
+    } else if (collectionish != null) {
+      fieldBuilder.initializer("$T.$L()",
+          collectionish.factoryClassName, collectionish.emptyMethod);
     }
     return fieldBuilder.build();
   }
@@ -127,7 +132,11 @@ final class Parameter {
     return ParameterSpec.builder(type, setterName).build();
   }
 
-  Optional<Optionalish> optionalInfo() {
+  Optional<Optionalish> optionalish() {
     return Optional.ofNullable(optionalish);
+  }
+
+  Optional<Collectionish> collectionish() {
+    return Optional.ofNullable(collectionish);
   }
 }

@@ -1,15 +1,16 @@
 package net.autobuilder.core;
 
+import com.google.auto.value.processor.AutoValueProcessor;
+import org.junit.Test;
+
+import javax.tools.JavaFileObject;
+import java.util.Arrays;
+import java.util.List;
+
 import static com.google.common.truth.Truth.assertAbout;
 import static com.google.testing.compile.JavaFileObjects.forSourceLines;
 import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
 import static java.util.Collections.singletonList;
-
-import com.google.auto.value.processor.AutoValueProcessor;
-import java.util.Arrays;
-import java.util.List;
-import javax.tools.JavaFileObject;
-import org.junit.Test;
 
 public class ProcessorTest {
 

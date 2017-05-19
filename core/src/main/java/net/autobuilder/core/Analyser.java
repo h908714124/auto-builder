@@ -55,7 +55,7 @@ final class Analyser {
     for (Parameter parameter : model.parameters) {
       builder.addField(parameter.asInitializedField());
       builder.addMethod(setterMethod(parameter));
-      parameter.optionalInfo()
+      parameter.optionalish()
           .ifPresent(optionalish ->
               builder.addMethod(optionalSetterMethod(parameter,
                   optionalish)));
