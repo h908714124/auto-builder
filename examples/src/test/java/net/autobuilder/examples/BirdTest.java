@@ -14,6 +14,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class BirdTest {
+
   @Test
   public void testBird() throws Exception {
     Map<String, String> map1 = new HashMap<>();
@@ -21,7 +22,7 @@ public class BirdTest {
     set1.add("");
     map1.put("", "");
     Bird bird = Bird_Builder.builder().build();
-    Bird bard = Bird_Builder.builder(bird)
+    Bird bard = bird.toBuilder()
         .beak(Collections.singletonList(""))
         .eyes(ImmutableMap.of("", ""))
         .feathers(ImmutableList.of(""))
@@ -29,6 +30,7 @@ public class BirdTest {
         .tail(map1)
         .wings(set1)
         .build();
+    Bird bord = bard.toBuilder().build();
     assertThat(bird.beak().size(), is(0));
     assertThat(bird.eyes().size(), is(0));
     assertThat(bird.feathers().size(), is(0));
@@ -41,6 +43,12 @@ public class BirdTest {
     assertThat(bard.feet().size(), is(1));
     assertThat(bard.tail().size(), is(1));
     assertThat(bard.wings().size(), is(1));
+    assertThat(bord.beak().size(), is(1));
+    assertThat(bord.eyes().size(), is(1));
+    assertThat(bord.feathers().size(), is(1));
+    assertThat(bord.feet().size(), is(1));
+    assertThat(bord.tail().size(), is(1));
+    assertThat(bord.wings().size(), is(1));
   }
 
   @Test

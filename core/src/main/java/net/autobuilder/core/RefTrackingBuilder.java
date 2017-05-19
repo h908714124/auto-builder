@@ -72,11 +72,6 @@ final class RefTrackingBuilder {
           parameter.type instanceof ParameterizedTypeName) {
         builder.addStatement("this.$L(null)",
             parameter.setterName);
-      } else if (parameter.collectionish().isPresent()) {
-        parameter.collectionish().ifPresent(collectionish ->
-            builder.addStatement("this.$L($T.$L())",
-                parameter.setterName,
-                collectionish.factoryClassName, collectionish.emptyMethod));
       }
     }
     builder.addStatement("this.$N = $L", inUse, false)

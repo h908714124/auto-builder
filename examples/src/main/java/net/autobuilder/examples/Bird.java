@@ -13,6 +13,10 @@ import java.util.Set;
 @AutoBuilder
 @AutoValue
 abstract class Bird {
+
+  private static final ThreadLocal<Bird_Builder.PerThreadFactory> FACTORY =
+      ThreadLocal.withInitial(Bird_Builder::perThreadFactory);
+
   abstract ImmutableList<String> feathers();
   abstract ImmutableSet<String> feet();
   abstract ImmutableMap<String, String> eyes();
@@ -20,6 +24,10 @@ abstract class Bird {
   abstract List<String> beak();
   abstract Set<String> wings();
   abstract Map<String, String> tail();
+
+  final Bird_Builder toBuilder() {
+    return FACTORY.get().builder(this);
+  }
 
   @AutoBuilder
   @AutoValue
