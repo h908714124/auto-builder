@@ -55,12 +55,19 @@ public class BirdTest {
   public void testAggregate() {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
-        .putEyes("", "")
-        .addFeathers("")
-        .addFeet("")
+        .putInEyes("", "")
+        .addToFeathers("")
+        .addToFeet("")
         .build();
     Bird bord = bard.toBuilder()
-        .addFeathers("")
+        .putInEyes(" ", "")
+        .addToFeathers("")
+        .build();
+    Bird burd = bord.toBuilder()
+        .eyes(ImmutableMap.of())
+        .putInEyes("", "")
+        .eyes(ImmutableMap.of())
+        .putInEyes("", "")
         .build();
     assertThat(bird.beak().size(), is(0));
     assertThat(bird.eyes().size(), is(0));
@@ -75,11 +82,12 @@ public class BirdTest {
     assertThat(bard.tail().size(), is(0));
     assertThat(bard.wings().size(), is(0));
     assertThat(bord.beak().size(), is(0));
-    assertThat(bord.eyes().size(), is(1));
+    assertThat(bord.eyes().size(), is(2));
     assertThat(bord.feathers().size(), is(2));
     assertThat(bord.feet().size(), is(1));
     assertThat(bord.tail().size(), is(0));
     assertThat(bord.wings().size(), is(0));
+    assertThat(burd.eyes().size(), is(1));
   }
 
   @Test
@@ -122,12 +130,12 @@ public class BirdTest {
   public void testAggregateNoCache() {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = Bird_Builder.builder(bird)
-        .putEyes("", "")
-        .addFeathers("")
-        .addFeet("")
+        .putInEyes("", "")
+        .addToFeathers("")
+        .addToFeet("")
         .build();
     Bird bord = Bird_Builder.builder(bard)
-        .addFeathers("")
+        .addToFeathers("")
         .build();
     assertThat(bird.beak().size(), is(0));
     assertThat(bird.eyes().size(), is(0));
@@ -151,15 +159,15 @@ public class BirdTest {
 
   @Test
   public void testNest() throws Exception {
-    Bird.Nest nest = Bird_Nest_Builder.builder().addFeathers("").build();
+    Bird.Nest nest = Bird_Nest_Builder.builder().addToFeathers("").build();
     Bird.Nest test = Bird_Nest_Builder.builder(nest)
         .feathers(ImmutableList.of(""))
         .build();
     Bird.Nest best = Bird_Nest_Builder.builder(test)
-        .addFeathers("best")
+        .addToFeathers("best")
         .build();
     assertThat(test.feathers(), is(ImmutableList.of("")));
     assertThat(best.feathers(), is(ImmutableList.of("")));
-    assertThat(best.addFeathers(), is("best"));
+    assertThat(best.addToFeathers(), is("best"));
   }
 }

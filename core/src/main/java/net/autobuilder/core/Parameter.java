@@ -179,14 +179,11 @@ final class Parameter {
     if (collectionish == null || !collectionish.hasBuilder()) {
       return singletonList(setterName);
     }
-    return asList(setterName, adderName());
+    return asList(setterName, aggregatorName(collectionish));
   }
 
-  String adderName() {
-    String addMethod = collectionish == null ?
-        "add" :
-        collectionish.addMethod;
-    return addMethod + upcase(setterName);
+  String aggregatorName(Collectionish collectionish) {
+    return collectionish.type.aggregatorPrefix + upcase(setterName);
   }
 
   private List<String> fieldNames() {

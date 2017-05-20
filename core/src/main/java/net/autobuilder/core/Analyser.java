@@ -70,7 +70,7 @@ final class Analyser {
                   parameter.asBuilderField()));
       parameter.collectionish()
           .filter(Collectionish::hasBuilder)
-          .map(collectionish -> adderMethod(parameter, collectionish))
+          .map(collectionish -> aggregatorMethod(parameter, collectionish))
           .ifPresent(builder::addMethod);
     }
     builder.addModifiers(model.maybePublic());
@@ -83,13 +83,14 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec adderMethod(Parameter parameter, Collectionish collectionish) {
-    if (parameter.builderType().typeArguments.size() == 2) {
-      return putterMethod(parameter, collectionish);
+  private MethodSpec aggregatorMethod(Parameter parameter, Collectionish collectionish) {
+    if (collectionish.type == Collectionish.CollectionType.MAP) {
+      return putInMethod(parameter, collectionish);
     }
-    if (parameter.builderType().typeArguments.size() != 1) {
-      throw new AssertionError();
-    }
+    return addToMethod(parameter, collectionish);
+  }
+
+  private MethodSpec addToMethod(Parameter parameter, Collectionish collectionish) {
     FieldSpec field = parameter.asField().build();
     FieldSpec builderField = parameter.asBuilderField();
     ParameterizedTypeName builderType = parameter.builderType();
@@ -108,7 +109,7 @@ final class Analyser {
     block.addStatement("this.$N.$L($N)",
         builderField, collectionish.addMethod, key);
     return MethodSpec.methodBuilder(
-        parameter.adderName())
+        parameter.aggregatorName(collectionish))
         .addCode(block.build())
         .addStatement("return this")
         .addParameter(key)
@@ -118,7 +119,7 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec putterMethod(Parameter parameter, Collectionish collectionish) {
+  private MethodSpec putInMethod(Parameter parameter, Collectionish collectionish) {
     FieldSpec field = parameter.asField().build();
     FieldSpec builderField = parameter.asBuilderField();
     ParameterizedTypeName builderType = parameter.builderType();
@@ -139,7 +140,7 @@ final class Analyser {
     block.addStatement("this.$N.$L($N, $N)",
         builderField, collectionish.addMethod, key, value);
     return MethodSpec.methodBuilder(
-        parameter.adderName())
+        parameter.aggregatorName(collectionish))
         .addCode(block.build())
         .addStatement("return this")
         .addParameters(asList(key, value))

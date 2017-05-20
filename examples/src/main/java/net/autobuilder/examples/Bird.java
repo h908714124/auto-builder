@@ -33,6 +33,6 @@ abstract class Bird {
   @AutoValue
   static abstract class Nest {
     abstract ImmutableList<String> feathers();
-    abstract String addFeathers();
+    abstract String addToFeathers();
   }
 }
