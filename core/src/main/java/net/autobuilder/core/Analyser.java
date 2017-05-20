@@ -184,10 +184,9 @@ final class Analyser {
   }
 
   private MethodSpec setterMethod(Parameter parameter) {
-    FieldSpec f = parameter.asField().build();
     ParameterSpec p = parameter.asParameter();
-    CodeBlock.Builder block = CodeBlock.builder()
-        .addStatement("this.$N = $N", f, p);
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.add(parameter.setterAssignment());
     parameter.collectionish()
         .filter(Collectionish::hasBuilder)
         .ifPresent(collectionish ->

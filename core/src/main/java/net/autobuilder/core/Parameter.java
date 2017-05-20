@@ -1,9 +1,11 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.WildcardTypeName;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -158,12 +160,25 @@ final class Parameter {
   }
 
   ParameterizedTypeName builderType() {
-    ParameterizedTypeName typeName = (ParameterizedTypeName) TypeName.get(variableElement.asType());
+    ParameterizedTypeName typeName =
+        (ParameterizedTypeName) TypeName.get(variableElement.asType());
     return ParameterizedTypeName.get(collectionish.className.nestedClass("Builder"),
         typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
   }
 
   ParameterSpec asParameter() {
+    TypeName type = this.type;
+    if (collectionish != null) {
+      ParameterizedTypeName typeName = (ParameterizedTypeName) TypeName.get(
+          variableElement.asType());
+      TypeName[] typeArguments = collectionish.wildTyping ?
+          typeName.typeArguments.stream()
+              .map(WildcardTypeName::subtypeOf)
+              .toArray(TypeName[]::new) :
+          typeName.typeArguments.toArray(new TypeName[0]);
+      type = ParameterizedTypeName.get(collectionish.setterParameterClassName,
+          typeArguments);
+    }
     return ParameterSpec.builder(type, setterName).build();
   }
 
@@ -209,5 +224,15 @@ final class Parameter {
     }
     return new Parameter(variableElement, setterName, getterName, type,
         optionalish, collectionish.noBuilder());
+  }
+
+  CodeBlock setterAssignment() {
+    if (collectionish != null && collectionish.setterAssignment != null) {
+      return collectionish.setterAssignment.apply(this);
+    }
+    FieldSpec field = asField().build();
+    ParameterSpec p = asParameter();
+    return CodeBlock.builder()
+        .addStatement("this.$N = $N", field, p).build();
   }
 }

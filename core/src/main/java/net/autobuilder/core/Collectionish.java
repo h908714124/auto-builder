@@ -1,6 +1,9 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
@@ -9,11 +12,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.Collectionish.CollectionType.MAP;
 
 final class Collectionish {
+
+  private static final String GCC = "com.google.common.collect";
 
   enum CollectionType {
     LIST(1, "addTo"), MAP(2, "putIn");
@@ -29,9 +35,9 @@ final class Collectionish {
       of(List.class, Collections.class, "emptyList", LIST),
       of(Set.class, Collections.class, "emptySet", LIST),
       of(Map.class, Collections.class, "emptyMap", MAP),
-      of("com.google.common.collect", "ImmutableList", "of", "add", "addAll", LIST),
-      of("com.google.common.collect", "ImmutableSet", "of", "add", "addAll", LIST),
-      of("com.google.common.collect", "ImmutableMap", "of", "put", "putAll", MAP));
+      ofGuava("ImmutableList", Iterable.class, LIST),
+      ofGuava("ImmutableSet", Iterable.class, LIST),
+      ofGuava("ImmutableMap", Map.class, MAP));
 
   final ClassName className;
   final ClassName factoryClassName;
@@ -39,6 +45,9 @@ final class Collectionish {
   final String addMethod;
   final String addAllMethod;
   final CollectionType type;
+  final ClassName setterParameterClassName;
+  final Function<Parameter, CodeBlock> setterAssignment;
+  final boolean wildTyping;
 
   private Collectionish(
       ClassName className,
@@ -46,13 +55,18 @@ final class Collectionish {
       String emptyMethod,
       String addMethod,
       String addAllMethod,
-      CollectionType type) {
+      CollectionType type,
+      ClassName setterParameterClassName,
+      Function<Parameter, CodeBlock> setterAssignment, boolean wildTyping) {
     this.className = className;
     this.factoryClassName = factoryClassName;
     this.emptyMethod = emptyMethod;
     this.addMethod = addMethod;
     this.addAllMethod = addAllMethod;
     this.type = type;
+    this.setterParameterClassName = setterParameterClassName;
+    this.setterAssignment = setterAssignment;
+    this.wildTyping = wildTyping;
   }
 
   private static Collectionish of(
@@ -60,19 +74,27 @@ final class Collectionish {
     return new Collectionish(
         ClassName.get(className),
         ClassName.get(factoryClassName),
-        emptyMethod, null, null, type);
+        emptyMethod, null, null, type, ClassName.get(className), null, false);
   }
 
-  private static Collectionish of(
-      String packageName,
+  private static Collectionish ofGuava(
       String simpleName,
-      String emptyMethod,
-      String addMethod,
-      String addAllMethod,
+      Class<?> setterParameterClass,
       CollectionType type) {
-    ClassName className = ClassName.get(packageName, simpleName);
+    ClassName className = ClassName.get(GCC, simpleName);
     return new Collectionish(className,
-        className, emptyMethod, addMethod, addAllMethod, type);
+        className, "of",
+        type == LIST ? "add" : "put",
+        type == LIST ? "addAll" : "putAll",
+        type, ClassName.get(setterParameterClass),
+        parameter -> {
+          FieldSpec field = parameter.asField().build();
+          ParameterSpec p = parameter.asParameter();
+          return CodeBlock.builder()
+              .addStatement("this.$N = $N != null ? $T.copyOf($N) : null",
+                  field, p, className, p)
+              .build();
+        }, true);
   }
 
   static Collectionish create(TypeName typeName) {
@@ -102,7 +124,7 @@ final class Collectionish {
     if (!hasBuilder()) {
       return this;
     }
-    return new Collectionish(className, factoryClassName, emptyMethod, null, addAllMethod, type);
+    return new Collectionish(className, factoryClassName, emptyMethod, null, addAllMethod, type, setterParameterClassName, setterAssignment, wildTyping);
   }
 
   boolean hasBuilder() {

@@ -64,7 +64,7 @@ public class BirdTest {
         .addToFeathers("")
         .build();
     Bird burd = bord.toBuilder()
-        .eyes(ImmutableMap.of())
+        .eyes(null)
         .putInEyes("", "")
         .eyes(ImmutableMap.of())
         .putInEyes("", "")
