@@ -16,27 +16,44 @@ final class Collectionish {
       of(List.class, Collections.class, "emptyList"),
       of(Map.class, Collections.class, "emptyMap"),
       of(Set.class, Collections.class, "emptySet"),
-      of("com.google.common.collect", "ImmutableList", "of"),
-      of("com.google.common.collect", "ImmutableSet", "of"),
-      of("com.google.common.collect", "ImmutableMap", "of"));
+      of("com.google.common.collect", "ImmutableList", "of", "add", "addAll"),
+      of("com.google.common.collect", "ImmutableSet", "of", "add", "addAll"),
+      of("com.google.common.collect", "ImmutableMap", "of", "put", "putAll"));
 
-  private final ClassName className;
+  final ClassName className;
   final ClassName factoryClassName;
   final String emptyMethod;
+  final String addMethod;
+  final String addAllMethod;
 
-  private Collectionish(ClassName className, ClassName factoryClassName, String emptyMethod) {
+  private Collectionish(
+      ClassName className,
+      ClassName factoryClassName,
+      String emptyMethod,
+      String addMethod, String addAllMethod) {
     this.className = className;
     this.factoryClassName = factoryClassName;
     this.emptyMethod = emptyMethod;
+    this.addMethod = addMethod;
+    this.addAllMethod = addAllMethod;
   }
 
   private static Collectionish of(Class<?> className, Class<?> factoryClassName, String emptyMethod) {
-    return new Collectionish(ClassName.get(className), ClassName.get(factoryClassName), emptyMethod);
+    return new Collectionish(
+        ClassName.get(className),
+        ClassName.get(factoryClassName),
+        emptyMethod, null, null);
   }
 
-  private static Collectionish of(String packageName, String simpleName, String emptyMethod) {
+  private static Collectionish of(
+      String packageName,
+      String simpleName,
+      String emptyMethod,
+      String addMethod,
+      String addAllMethod) {
     ClassName className = ClassName.get(packageName, simpleName);
-    return new Collectionish(className, className, emptyMethod);
+    return new Collectionish(className,
+        className, emptyMethod, addMethod, addAllMethod);
   }
 
   static Collectionish create(TypeName typeName) {
@@ -54,4 +71,14 @@ final class Collectionish {
     return map;
   }
 
+  Collectionish noBuilder() {
+    if (!hasBuilder()) {
+      return this;
+    }
+    return new Collectionish(className, factoryClassName, emptyMethod, null, addAllMethod);
+  }
+
+  boolean hasBuilder() {
+    return addMethod != null;
+  }
 }

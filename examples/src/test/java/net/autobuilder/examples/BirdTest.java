@@ -52,14 +52,114 @@ public class BirdTest {
   }
 
   @Test
+  public void testAggregate() {
+    Bird bird = Bird_Builder.builder().build();
+    Bird bard = bird.toBuilder()
+        .putEyes("", "")
+        .addFeathers("")
+        .addFeet("")
+        .build();
+    Bird bord = bard.toBuilder()
+        .addFeathers("")
+        .build();
+    assertThat(bird.beak().size(), is(0));
+    assertThat(bird.eyes().size(), is(0));
+    assertThat(bird.feathers().size(), is(0));
+    assertThat(bird.feet().size(), is(0));
+    assertThat(bird.tail().size(), is(0));
+    assertThat(bird.wings().size(), is(0));
+    assertThat(bard.beak().size(), is(0));
+    assertThat(bard.eyes().size(), is(1));
+    assertThat(bard.feathers().size(), is(1));
+    assertThat(bard.feet().size(), is(1));
+    assertThat(bard.tail().size(), is(0));
+    assertThat(bard.wings().size(), is(0));
+    assertThat(bord.beak().size(), is(0));
+    assertThat(bord.eyes().size(), is(1));
+    assertThat(bord.feathers().size(), is(2));
+    assertThat(bord.feet().size(), is(1));
+    assertThat(bord.tail().size(), is(0));
+    assertThat(bord.wings().size(), is(0));
+  }
+
+  @Test
+  public void testBirdNoCache() throws Exception {
+    Map<String, String> map1 = new HashMap<>();
+    HashSet<String> set1 = new HashSet<>();
+    set1.add("");
+    map1.put("", "");
+    Bird bird = Bird_Builder.builder().build();
+    Bird bard = Bird_Builder.builder(bird)
+        .beak(Collections.singletonList(""))
+        .eyes(ImmutableMap.of("", ""))
+        .feathers(ImmutableList.of(""))
+        .feet(ImmutableSet.of(""))
+        .tail(map1)
+        .wings(set1)
+        .build();
+    Bird bord = Bird_Builder.builder(bard).build();
+    assertThat(bird.beak().size(), is(0));
+    assertThat(bird.eyes().size(), is(0));
+    assertThat(bird.feathers().size(), is(0));
+    assertThat(bird.feet().size(), is(0));
+    assertThat(bird.tail().size(), is(0));
+    assertThat(bird.wings().size(), is(0));
+    assertThat(bard.beak().size(), is(1));
+    assertThat(bard.eyes().size(), is(1));
+    assertThat(bard.feathers().size(), is(1));
+    assertThat(bard.feet().size(), is(1));
+    assertThat(bard.tail().size(), is(1));
+    assertThat(bard.wings().size(), is(1));
+    assertThat(bord.beak().size(), is(1));
+    assertThat(bord.eyes().size(), is(1));
+    assertThat(bord.feathers().size(), is(1));
+    assertThat(bord.feet().size(), is(1));
+    assertThat(bord.tail().size(), is(1));
+    assertThat(bord.wings().size(), is(1));
+  }
+
+  @Test
+  public void testAggregateNoCache() {
+    Bird bird = Bird_Builder.builder().build();
+    Bird bard = Bird_Builder.builder(bird)
+        .putEyes("", "")
+        .addFeathers("")
+        .addFeet("")
+        .build();
+    Bird bord = Bird_Builder.builder(bard)
+        .addFeathers("")
+        .build();
+    assertThat(bird.beak().size(), is(0));
+    assertThat(bird.eyes().size(), is(0));
+    assertThat(bird.feathers().size(), is(0));
+    assertThat(bird.feet().size(), is(0));
+    assertThat(bird.tail().size(), is(0));
+    assertThat(bird.wings().size(), is(0));
+    assertThat(bard.beak().size(), is(0));
+    assertThat(bard.eyes().size(), is(1));
+    assertThat(bard.feathers().size(), is(1));
+    assertThat(bard.feet().size(), is(1));
+    assertThat(bard.tail().size(), is(0));
+    assertThat(bard.wings().size(), is(0));
+    assertThat(bord.beak().size(), is(0));
+    assertThat(bord.eyes().size(), is(1));
+    assertThat(bord.feathers().size(), is(2));
+    assertThat(bord.feet().size(), is(1));
+    assertThat(bord.tail().size(), is(0));
+    assertThat(bord.wings().size(), is(0));
+  }
+
+  @Test
   public void testNest() throws Exception {
-    Bird.Nest test = Bird_Nest_Builder.builder()
-        .name("test")
+    Bird.Nest nest = Bird_Nest_Builder.builder().addFeathers("").build();
+    Bird.Nest test = Bird_Nest_Builder.builder(nest)
+        .feathers(ImmutableList.of(""))
         .build();
     Bird.Nest best = Bird_Nest_Builder.builder(test)
-        .name("best")
+        .addFeathers("best")
         .build();
-    assertThat(test.name(), is("test"));
-    assertThat(best.name(), is("best"));
+    assertThat(test.feathers(), is(ImmutableList.of("")));
+    assertThat(best.feathers(), is(ImmutableList.of("")));
+    assertThat(best.addFeathers(), is("best"));
   }
 }

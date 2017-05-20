@@ -32,10 +32,7 @@ abstract class Bird {
   @AutoBuilder
   @AutoValue
   static abstract class Nest {
-    abstract String name();
-
-    abstract int weightInGrams();
+    abstract ImmutableList<String> feathers();
+    abstract String addFeathers();
   }
-
-
 }

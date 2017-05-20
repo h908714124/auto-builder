@@ -2,6 +2,7 @@ package net.autobuilder.core;
 
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.element.ExecutableElement;
@@ -12,14 +13,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 import static net.autobuilder.core.Optionalish.OPTIONAL_CLASS;
+import static net.autobuilder.core.Util.downcase;
+import static net.autobuilder.core.Util.isDistinct;
+import static net.autobuilder.core.Util.upcase;
 
 final class Parameter {
 
@@ -28,7 +34,7 @@ final class Parameter {
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
 
-  private final String name;
+  private final VariableElement variableElement;
   final String setterName;
   final String getterName;
   final TypeName type;
@@ -36,16 +42,19 @@ final class Parameter {
   private final Optionalish optionalish;
   private final Collectionish collectionish;
 
-  private Parameter(String name,
-                    String setterName,
-                    String getterName,
-                    TypeName type) {
-    this.name = name;
+  private Parameter(
+      VariableElement variableElement,
+      String setterName,
+      String getterName,
+      TypeName type,
+      Optionalish optionalish,
+      Collectionish collectionish) {
+    this.variableElement = variableElement;
     this.setterName = setterName;
     this.getterName = getterName;
     this.type = type;
-    this.optionalish = Optionalish.create(type);
-    this.collectionish = Collectionish.create(type);
+    this.optionalish = optionalish;
+    this.collectionish = collectionish;
   }
 
   static List<Parameter> scan(ExecutableElement constructor,
@@ -55,16 +64,31 @@ final class Parameter {
     for (VariableElement variableElement : constructor.getParameters()) {
       String name = variableElement.getSimpleName().toString();
       TypeName type = TypeName.get(variableElement.asType());
-      String accessorName = matchingAccessor(methodNames, variableElement);
+      String getterName = matchingAccessor(methodNames, variableElement);
       String setterName = setterName(name, type);
-      parameters.add(new Parameter(name, setterName, accessorName, type));
+      Optionalish optionalish = Optionalish.create(type);
+      Collectionish collectionish = Collectionish.create(type);
+      parameters.add(new Parameter(variableElement, setterName, getterName, type,
+          optionalish, collectionish));
     }
-    Set<String> duplicateCheck = parameters.stream()
-        .map(p -> p.setterName)
-        .collect(toSet());
-    if (duplicateCheck.size() < parameters.size()) {
-      return parameters.stream()
-          .map(p -> new Parameter(p.name, p.name, p.getterName, p.type))
+    if (!parameters.stream()
+        .map(p -> p.fieldNames().stream())
+        .flatMap(Function.identity())
+        .collect(isDistinct()) ||
+        !parameters.stream()
+            .map(p -> p.setterNames().stream())
+            .flatMap(Function.identity())
+            .collect(isDistinct())) {
+      parameters = parameters.stream()
+          .map(Parameter::noBuilder)
+          .collect(toList());
+    }
+    if (!parameters.stream()
+        .map(p -> p.setterNames().stream())
+        .flatMap(Function.identity())
+        .collect(isDistinct())) {
+      parameters = parameters.stream()
+          .map(Parameter::originalSetter)
           .collect(toList());
     }
     return parameters;
@@ -72,11 +96,11 @@ final class Parameter {
 
   static String setterName(String name, TypeName type) {
     if (GETTER_PATTERN.matcher(name).matches()) {
-      return Character.toLowerCase(name.charAt(3)) + name.substring(4);
+      return downcase(name.substring(3));
     }
     if (type.equals(TypeName.BOOLEAN) &&
         IS_PATTERN.matcher(name).matches()) {
-      return Character.toLowerCase(name.charAt(2)) + name.substring(3);
+      return downcase(name.substring(2));
     }
     return name;
   }
@@ -99,12 +123,12 @@ final class Parameter {
       return name;
     }
     if (type.equals(TypeName.BOOLEAN)) {
-      String getter = "is" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+      String getter = "is" + upcase(name);
       if (methodNames.contains(getter)) {
         return getter;
       }
     }
-    String getter = "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    String getter = "get" + upcase(name);
     if (!methodNames.contains(getter)) {
       throw new ValidationException("no matching accessor: " + name, constructorArgument);
     }
@@ -128,6 +152,17 @@ final class Parameter {
     return fieldBuilder.build();
   }
 
+  FieldSpec asBuilderField() {
+    return FieldSpec.builder(builderType(),
+        builderFieldName()).addModifiers(PRIVATE).build();
+  }
+
+  ParameterizedTypeName builderType() {
+    ParameterizedTypeName typeName = (ParameterizedTypeName) TypeName.get(variableElement.asType());
+    return ParameterizedTypeName.get(collectionish.className.nestedClass("Builder"),
+        typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
+  }
+
   ParameterSpec asParameter() {
     return ParameterSpec.builder(type, setterName).build();
   }
@@ -138,5 +173,44 @@ final class Parameter {
 
   Optional<Collectionish> collectionish() {
     return Optional.ofNullable(collectionish);
+  }
+
+  private List<String> setterNames() {
+    if (collectionish == null || !collectionish.hasBuilder()) {
+      return singletonList(setterName);
+    }
+    return asList(setterName, adderName());
+  }
+
+  String adderName() {
+    String addMethod = collectionish == null ?
+        "add" :
+        collectionish.addMethod;
+    return addMethod + upcase(setterName);
+  }
+
+  private List<String> fieldNames() {
+    if (collectionish == null || !collectionish.hasBuilder()) {
+      return singletonList(setterName);
+    }
+    return asList(setterName, builderFieldName());
+  }
+
+  private String builderFieldName() {
+    return downcase(setterName) + "Builder";
+  }
+
+  private Parameter originalSetter() {
+    return new Parameter(variableElement, variableElement.getSimpleName().toString(),
+        getterName, type,
+        optionalish, collectionish);
+  }
+
+  private Parameter noBuilder() {
+    if (collectionish == null || !collectionish.hasBuilder()) {
+      return this;
+    }
+    return new Parameter(variableElement, setterName, getterName, type,
+        optionalish, collectionish.noBuilder());
   }
 }
