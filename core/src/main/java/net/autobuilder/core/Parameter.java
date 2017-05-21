@@ -1,5 +1,6 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
@@ -13,6 +14,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.ElementFilter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -44,13 +46,17 @@ final class Parameter {
   private final Optionalish optionalish;
   private final Collectionish collectionish;
 
+  private final Util util;
+
   private Parameter(
+      Util util,
       VariableElement variableElement,
       String setterName,
       String getterName,
       TypeName type,
       Optionalish optionalish,
       Collectionish collectionish) {
+    this.util = util;
     this.variableElement = variableElement;
     this.setterName = setterName;
     this.getterName = getterName;
@@ -59,8 +65,10 @@ final class Parameter {
     this.collectionish = collectionish;
   }
 
-  static List<Parameter> scan(ExecutableElement constructor,
-                              TypeElement avType) {
+  static List<Parameter> scan(
+      Util util,
+      ExecutableElement constructor,
+      TypeElement avType) {
     Set<String> methodNames = methodNames(avType);
     List<Parameter> parameters = new ArrayList<>();
     for (VariableElement variableElement : constructor.getParameters()) {
@@ -70,7 +78,7 @@ final class Parameter {
       String setterName = setterName(name, type);
       Optionalish optionalish = Optionalish.create(type);
       Collectionish collectionish = Collectionish.create(type);
-      parameters.add(new Parameter(variableElement, setterName, getterName, type,
+      parameters.add(new Parameter(util, variableElement, setterName, getterName, type,
           optionalish, collectionish));
     }
     if (!parameters.stream()
@@ -168,14 +176,13 @@ final class Parameter {
 
   ParameterSpec asParameter() {
     TypeName type = this.type;
-    if (collectionish != null) {
+    if (collectionish != null && collectionish.wildTyping) {
       ParameterizedTypeName typeName = (ParameterizedTypeName) TypeName.get(
           variableElement.asType());
-      TypeName[] typeArguments = collectionish.wildTyping ?
+      TypeName[] typeArguments =
           typeName.typeArguments.stream()
-              .map(WildcardTypeName::subtypeOf)
-              .toArray(TypeName[]::new) :
-          typeName.typeArguments.toArray(new TypeName[0]);
+              .map(util::subtypeOf)
+              .toArray(TypeName[]::new);
       type = ParameterizedTypeName.get(collectionish.setterParameterClassName,
           typeArguments);
     }
@@ -213,7 +220,7 @@ final class Parameter {
   }
 
   private Parameter originalSetter() {
-    return new Parameter(variableElement, variableElement.getSimpleName().toString(),
+    return new Parameter(util, variableElement, variableElement.getSimpleName().toString(),
         getterName, type,
         optionalish, collectionish);
   }
@@ -222,7 +229,7 @@ final class Parameter {
     if (collectionish == null || !collectionish.hasBuilder()) {
       return this;
     }
-    return new Parameter(variableElement, setterName, getterName, type,
+    return new Parameter(util, variableElement, setterName, getterName, type,
         optionalish, collectionish.noBuilder());
   }
 
@@ -237,21 +244,27 @@ final class Parameter {
   }
 
   Optional<ParameterizedTypeName> addAllType() {
-    if (collectionish == null || !collectionish.hasBuilder()) {
+    if (collectionish == null || !collectionish.hasBuilder() || !collectionish.wildTyping) {
       return Optional.empty();
     }
     ParameterizedTypeName typeName = (ParameterizedTypeName) type;
+    ClassName iterableClass = ClassName.get(Iterable.class);
     if (collectionish.type.typeParams == 1 &&
-        typeName.rawType.equals(collectionish.setterParameterClassName)) {
+        typeName.rawType.equals(iterableClass)) {
       return Optional.empty();
     }
-    TypeName[] typeArguments = collectionish.wildTyping ?
+    TypeName[] typeArguments =
         typeName.typeArguments.stream()
-            .map(WildcardTypeName::subtypeOf)
-            .toArray(TypeName[]::new) :
-        typeName.typeArguments.toArray(new TypeName[0]);
-    return Optional.of(ParameterizedTypeName.get(
-        collectionish.setterParameterClassName, typeArguments));
+            .map(util::subtypeOf)
+            .toArray(TypeName[]::new);
+    if (collectionish.type == Collectionish.CollectionType.LIST) {
+      return Optional.of(ParameterizedTypeName.get(
+          iterableClass, typeArguments));
+    }
+    return Optional.of(
+        ParameterizedTypeName.get(iterableClass,
+            WildcardTypeName.subtypeOf(ParameterizedTypeName.get(
+                ClassName.get(Map.Entry.class), typeArguments))));
   }
 
 }

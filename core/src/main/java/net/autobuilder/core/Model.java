@@ -5,6 +5,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -34,22 +35,27 @@ final class Model {
   final TypeElement avType;
   final List<Parameter> parameters;
   final TypeName sourceClass;
+  final Util util;
 
-  private Model(TypeElement sourceClassElement,
-                TypeName generatedClass, TypeElement avType,
-                ExecutableElement avConstructor,
+  private Model(Util util, TypeElement sourceClassElement,
+                TypeName generatedClass,
+                TypeElement avType,
+                List<Parameter> parameters,
                 TypeName simpleBuilderClass,
                 ClassName optionalRefTrackingBuilderClass) {
+    this.util = util;
     this.sourceClassElement = sourceClassElement;
     this.generatedClass = generatedClass;
     this.avType = avType;
     this.simpleBuilderClass = simpleBuilderClass;
     this.optionalRefTrackingBuilderClass = optionalRefTrackingBuilderClass;
-    this.parameters = Parameter.scan(avConstructor, avType);
+    this.parameters = parameters;
     this.sourceClass = TypeName.get(sourceClassElement.asType());
   }
 
-  static Model create(TypeElement sourceClassElement, TypeElement avType) {
+  static Model create(
+      ProcessingEnvironment processingEnv,
+      TypeElement sourceClassElement, TypeElement avType) {
     TypeName sourceClass = TypeName.get(sourceClassElement.asType());
     List<ExecutableElement> constructors = ElementFilter.constructorsIn(
         avType.getEnclosedElements());
@@ -82,9 +88,10 @@ final class Model {
         typeArguments(generatedClass).isEmpty() ?
             rawType(generatedClass).nestedClass("RefTrackingBuilder") :
             null;
-
-    return new Model(sourceClassElement, generatedClass, avType,
-        constructor, simpleBuilderClass, optionalRefTrackingBuilderClass);
+    Util util = new Util(processingEnv);
+    return new Model(util, sourceClassElement, generatedClass, avType,
+        Parameter.scan(util, constructor, avType), simpleBuilderClass,
+        optionalRefTrackingBuilderClass);
   }
 
   static TypeName abPeer(TypeName type) {

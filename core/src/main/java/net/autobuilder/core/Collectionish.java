@@ -125,7 +125,8 @@ final class Collectionish {
     if (!hasBuilder()) {
       return this;
     }
-    return new Collectionish(className, factoryClassName, emptyMethod, null, addAllMethod, type, setterParameterClassName, setterAssignment, wildTyping);
+    return new Collectionish(className, factoryClassName, emptyMethod, null, addAllMethod, type,
+        setterParameterClassName, setterAssignment, wildTyping);
   }
 
   boolean hasBuilder() {

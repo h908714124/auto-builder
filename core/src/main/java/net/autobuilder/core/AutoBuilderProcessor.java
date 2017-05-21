@@ -85,7 +85,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         continue;
       }
       try {
-        Model model = Model.create(sourceClassElement, avType);
+        Model model = Model.create(processingEnv, sourceClassElement, avType);
         TypeSpec typeSpec = Analyser.create(model).analyse();
         write(rawType(model.generatedClass), typeSpec);
         done.add(key);

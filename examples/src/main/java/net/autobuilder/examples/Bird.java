@@ -32,7 +32,8 @@ abstract class Bird {
   @AutoBuilder
   @AutoValue
   static abstract class Nest {
-    abstract ImmutableList<Iterable<String>> feathers();
-    abstract String addToFeathers();
+    abstract ImmutableList<? extends Iterable<? extends String>> feathers();
+    abstract ImmutableList<String> sticks();
+    abstract String addToSticks();
   }
 }

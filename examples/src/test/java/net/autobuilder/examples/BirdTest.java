@@ -61,7 +61,7 @@ public class BirdTest {
         .build();
     Bird bord = bard.toBuilder()
         .putInEyes(" ", "")
-        .putInEyes(ImmutableMap.of("  ", "", "   ", ""))
+        .putInEyes(ImmutableMap.of("  ", "", "   ", "").entrySet())
         .addToFeathers("")
         .build();
     Bird burd = bord.toBuilder()
@@ -160,15 +160,15 @@ public class BirdTest {
 
   @Test
   public void testNest() throws Exception {
-    Bird.Nest nest = Bird_Nest_Builder.builder().addToFeathers("").build();
+    Bird.Nest nest = Bird_Nest_Builder.builder().addToSticks("").build();
     Bird.Nest test = Bird_Nest_Builder.builder(nest)
         .feathers(ImmutableList.of(ImmutableList.of("")))
         .build();
     Bird.Nest best = Bird_Nest_Builder.builder(test)
-        .addToFeathers("best")
+        .addToSticks("best")
         .build();
     assertThat(test.feathers().size(), is(1));
     assertThat(best.feathers().size(), is(1));
-    assertThat(best.addToFeathers(), is("best"));
+    assertThat(best.addToSticks(), is("best"));
   }
 }

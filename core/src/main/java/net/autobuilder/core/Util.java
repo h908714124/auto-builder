@@ -1,7 +1,14 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.WildcardTypeName;
 
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,10 +24,39 @@ import static java.lang.Character.isUpperCase;
 import static java.lang.Character.toLowerCase;
 import static java.lang.Character.toUpperCase;
 import static java.util.Collections.emptySet;
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 final class Util {
 
   private static final CodeBlock emptyCodeBlock = CodeBlock.of("");
+
+  private final ProcessingEnvironment processingEnv;
+
+  Util(ProcessingEnvironment processingEnv) {
+    this.processingEnv = processingEnv;
+  }
+
+  TypeName subtypeOf(TypeName typeName) {
+    if (typeName.isPrimitive()) {
+      return typeName;
+    }
+    if (typeName instanceof WildcardTypeName) {
+      return typeName;
+    }
+    if (!(typeName instanceof ClassName || typeName instanceof ParameterizedTypeName)) {
+      return WildcardTypeName.subtypeOf(typeName);
+    }
+    ClassName className = rawType(typeName);
+    TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(
+        className.packageName() + '.' + String.join(".", className.simpleNames()));
+    if (typeElement == null) {
+      return WildcardTypeName.subtypeOf(typeName);
+    }
+    if (typeElement.getModifiers().contains(Modifier.FINAL)) {
+      return typeName;
+    }
+    return WildcardTypeName.subtypeOf(typeName);
+  }
 
   static String upcase(String s) {
     if (s.isEmpty() || isUpperCase(s.charAt(0))) {
