@@ -162,13 +162,13 @@ public class BirdTest {
   public void testNest() throws Exception {
     Bird.Nest nest = Bird_Nest_Builder.builder().addToFeathers("").build();
     Bird.Nest test = Bird_Nest_Builder.builder(nest)
-        .feathers(ImmutableList.of(""))
+        .feathers(ImmutableList.of(ImmutableList.of("")))
         .build();
     Bird.Nest best = Bird_Nest_Builder.builder(test)
         .addToFeathers("best")
         .build();
-    assertThat(test.feathers(), is(ImmutableList.of("")));
-    assertThat(best.feathers(), is(ImmutableList.of("")));
+    assertThat(test.feathers().size(), is(1));
+    assertThat(best.feathers().size(), is(1));
     assertThat(best.addToFeathers(), is("best"));
   }
 }
