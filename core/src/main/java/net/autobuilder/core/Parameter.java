@@ -194,11 +194,11 @@ final class Parameter {
     if (collectionish == null || !collectionish.hasBuilder()) {
       return singletonList(setterName);
     }
-    return asList(setterName, aggregatorName(collectionish));
+    return asList(setterName, accumulatorName(collectionish));
   }
 
-  String aggregatorName(Collectionish collectionish) {
-    return collectionish.type.aggregatorPrefix + upcase(setterName);
+  String accumulatorName(Collectionish collectionish) {
+    return collectionish.type.accumulatorPrefix + upcase(setterName);
   }
 
   private List<String> fieldNames() {
@@ -227,12 +227,31 @@ final class Parameter {
   }
 
   CodeBlock setterAssignment() {
-    if (collectionish != null && collectionish.setterAssignment != null) {
-      return collectionish.setterAssignment.apply(this);
+    if (collectionish == null || collectionish.setterAssignment == null) {
+      FieldSpec field = asField().build();
+      ParameterSpec p = asParameter();
+      return CodeBlock.builder()
+          .addStatement("this.$N = $N", field, p).build();
     }
-    FieldSpec field = asField().build();
-    ParameterSpec p = asParameter();
-    return CodeBlock.builder()
-        .addStatement("this.$N = $N", field, p).build();
+    return collectionish.setterAssignment.apply(this);
   }
+
+  Optional<ParameterizedTypeName> addAllType() {
+    if (collectionish == null || !collectionish.hasBuilder()) {
+      return Optional.empty();
+    }
+    ParameterizedTypeName typeName = (ParameterizedTypeName) type;
+    if (collectionish.type.typeParams == 1 &&
+        typeName.rawType.equals(collectionish.setterParameterClassName)) {
+      return Optional.empty();
+    }
+    TypeName[] typeArguments = collectionish.wildTyping ?
+        typeName.typeArguments.stream()
+            .map(WildcardTypeName::subtypeOf)
+            .toArray(TypeName[]::new) :
+        typeName.typeArguments.toArray(new TypeName[0]);
+    return Optional.of(ParameterizedTypeName.get(
+        collectionish.setterParameterClassName, typeArguments));
+  }
+
 }

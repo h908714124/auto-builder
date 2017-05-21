@@ -70,8 +70,11 @@ final class Analyser {
                   parameter.asBuilderField()));
       parameter.collectionish()
           .filter(Collectionish::hasBuilder)
-          .map(collectionish -> aggregatorMethod(parameter, collectionish))
-          .ifPresent(builder::addMethod);
+          .ifPresent(collectionish -> {
+            builder.addMethod(collectorMethod(parameter, collectionish));
+            parameter.addAllType().ifPresent(addAllType ->
+                builder.addMethod(collectorMethodAddAll(parameter, collectionish, addAllType)));
+          });
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(ABSTRACT)
@@ -83,11 +86,19 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec aggregatorMethod(Parameter parameter, Collectionish collectionish) {
+  private MethodSpec collectorMethod(Parameter parameter, Collectionish collectionish) {
     if (collectionish.type == Collectionish.CollectionType.MAP) {
       return putInMethod(parameter, collectionish);
     }
     return addToMethod(parameter, collectionish);
+  }
+
+  private MethodSpec collectorMethodAddAll(
+      Parameter parameter, Collectionish collectionish, ParameterizedTypeName addAllType) {
+    if (collectionish.type == Collectionish.CollectionType.MAP) {
+      return putAllInMethod(parameter, collectionish, addAllType);
+    }
+    return addAllToMethod(parameter, collectionish, addAllType);
   }
 
   private MethodSpec addToMethod(Parameter parameter, Collectionish collectionish) {
@@ -109,10 +120,39 @@ final class Analyser {
     block.addStatement("this.$N.$L($N)",
         builderField, collectionish.addMethod, key);
     return MethodSpec.methodBuilder(
-        parameter.aggregatorName(collectionish))
+        parameter.accumulatorName(collectionish))
         .addCode(block.build())
         .addStatement("return this")
         .addParameter(key)
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
+        .returns(model.generatedClass)
+        .build();
+  }
+
+  private MethodSpec addAllToMethod(
+      Parameter parameter, Collectionish collectionish, ParameterizedTypeName addAllType) {
+    FieldSpec field = parameter.asField().build();
+    FieldSpec builderField = parameter.asBuilderField();
+    ParameterSpec values =
+        ParameterSpec.builder(addAllType, "values").build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.beginControlFlow("if (this.$N == null)", builderField)
+        .addStatement("this.$N = $T.builder()",
+            builderField, collectionish.factoryClassName)
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N != null)", field)
+        .addStatement("this.$N.$L(this.$N)",
+            builderField, collectionish.addAllMethod, field)
+        .addStatement("this.$N = null", field)
+        .endControlFlow();
+    block.addStatement("this.$N.$L($N)",
+        builderField, collectionish.addAllMethod, values);
+    return MethodSpec.methodBuilder(
+        parameter.accumulatorName(collectionish))
+        .addCode(block.build())
+        .addStatement("return this")
+        .addParameter(values)
         .addModifiers(FINAL)
         .addModifiers(model.maybePublic())
         .returns(model.generatedClass)
@@ -140,10 +180,39 @@ final class Analyser {
     block.addStatement("this.$N.$L($N, $N)",
         builderField, collectionish.addMethod, key, value);
     return MethodSpec.methodBuilder(
-        parameter.aggregatorName(collectionish))
+        parameter.accumulatorName(collectionish))
         .addCode(block.build())
         .addStatement("return this")
         .addParameters(asList(key, value))
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
+        .returns(model.generatedClass)
+        .build();
+  }
+
+  private MethodSpec putAllInMethod(
+      Parameter parameter, Collectionish collectionish, ParameterizedTypeName addAllType) {
+    FieldSpec field = parameter.asField().build();
+    FieldSpec builderField = parameter.asBuilderField();
+    ParameterSpec map =
+        ParameterSpec.builder(addAllType, "map").build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.beginControlFlow("if (this.$N == null)", builderField)
+        .addStatement("this.$N = $T.builder()",
+            builderField, collectionish.factoryClassName)
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N != null)", field)
+        .addStatement("this.$N.$L(this.$N)",
+            builderField, collectionish.addAllMethod, field)
+        .addStatement("this.$N = null", field)
+        .endControlFlow();
+    block.addStatement("this.$N.$L($N)",
+        builderField, collectionish.addAllMethod, map);
+    return MethodSpec.methodBuilder(
+        parameter.accumulatorName(collectionish))
+        .addCode(block.build())
+        .addStatement("return this")
+        .addParameter(map)
         .addModifiers(FINAL)
         .addModifiers(model.maybePublic())
         .returns(model.generatedClass)
@@ -268,7 +337,7 @@ final class Analyser {
     }
     return MethodSpec.methodBuilder("build")
         .addCode("return new $T(\n    ", model.avType)
-        .addCode(block.stream().collect(joinCodeBlocks(",    \n")))
+        .addCode(block.stream().collect(joinCodeBlocks(",\n    ")))
         .addCode(");\n")
         .addTypeVariables(model.typevars())
         .returns(model.sourceClass)

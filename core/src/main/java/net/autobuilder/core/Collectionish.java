@@ -24,10 +24,10 @@ final class Collectionish {
   enum CollectionType {
     LIST(1, "addTo"), MAP(2, "putIn");
     final int typeParams;
-    final String aggregatorPrefix;
-    CollectionType(int typeParams, String aggregatorPrefix) {
+    final String accumulatorPrefix;
+    CollectionType(int typeParams, String accumulatorPrefix) {
       this.typeParams = typeParams;
-      this.aggregatorPrefix = aggregatorPrefix;
+      this.accumulatorPrefix = accumulatorPrefix;
     }
   }
 
@@ -57,7 +57,8 @@ final class Collectionish {
       String addAllMethod,
       CollectionType type,
       ClassName setterParameterClassName,
-      Function<Parameter, CodeBlock> setterAssignment, boolean wildTyping) {
+      Function<Parameter, CodeBlock> setterAssignment,
+      boolean wildTyping) {
     this.className = className;
     this.factoryClassName = factoryClassName;
     this.emptyMethod = emptyMethod;

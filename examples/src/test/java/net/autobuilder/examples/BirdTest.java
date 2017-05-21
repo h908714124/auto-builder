@@ -5,11 +5,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -23,9 +23,9 @@ public class BirdTest {
     map1.put("", "");
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
-        .beak(Collections.singletonList(""))
+        .beak(singletonList(""))
         .eyes(ImmutableMap.of("", ""))
-        .feathers(ImmutableList.of(""))
+        .feathers(singletonList(""))
         .feet(ImmutableSet.of(""))
         .tail(map1)
         .wings(set1)
@@ -52,7 +52,7 @@ public class BirdTest {
   }
 
   @Test
-  public void testAggregate() {
+  public void testAccumulate() {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
         .putInEyes("", "")
@@ -61,6 +61,7 @@ public class BirdTest {
         .build();
     Bird bord = bard.toBuilder()
         .putInEyes(" ", "")
+        .putInEyes(ImmutableMap.of("  ", "", "   ", ""))
         .addToFeathers("")
         .build();
     Bird burd = bord.toBuilder()
@@ -82,7 +83,7 @@ public class BirdTest {
     assertThat(bard.tail().size(), is(0));
     assertThat(bard.wings().size(), is(0));
     assertThat(bord.beak().size(), is(0));
-    assertThat(bord.eyes().size(), is(2));
+    assertThat(bord.eyes().size(), is(4));
     assertThat(bord.feathers().size(), is(2));
     assertThat(bord.feet().size(), is(1));
     assertThat(bord.tail().size(), is(0));
@@ -98,7 +99,7 @@ public class BirdTest {
     map1.put("", "");
     Bird bird = Bird_Builder.builder().build();
     Bird bard = Bird_Builder.builder(bird)
-        .beak(Collections.singletonList(""))
+        .beak(singletonList(""))
         .eyes(ImmutableMap.of("", ""))
         .feathers(ImmutableList.of(""))
         .feet(ImmutableSet.of(""))
@@ -127,7 +128,7 @@ public class BirdTest {
   }
 
   @Test
-  public void testAggregateNoCache() {
+  public void testAccumulateNoCache() {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = Bird_Builder.builder(bird)
         .putInEyes("", "")
