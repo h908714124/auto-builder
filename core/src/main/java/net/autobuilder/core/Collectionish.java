@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
@@ -32,9 +33,9 @@ final class Collectionish {
   }
 
   private static final Map<ClassName, Collectionish> KNOWN = map(
-      of(List.class, Collections.class, "emptyList", LIST),
-      of(Set.class, Collections.class, "emptySet", LIST),
-      of(Map.class, Collections.class, "emptyMap", MAP),
+      ofUtil(List.class, Collections.class, "emptyList", LIST),
+      ofUtil(Set.class, Collections.class, "emptySet", LIST),
+      ofUtil(Map.class, Collections.class, "emptyMap", MAP),
       ofGuava("ImmutableList", Iterable.class, LIST),
       ofGuava("ImmutableSet", Iterable.class, LIST),
       ofGuava("ImmutableMap", Map.class, MAP));
@@ -43,10 +44,11 @@ final class Collectionish {
   final ClassName factoryClassName;
   final String emptyMethod;
   final String addMethod;
-  final String addAllMethod;
   final CollectionType type;
   final ClassName setterParameterClassName;
   final Function<Parameter, CodeBlock> setterAssignment;
+  final BiFunction<Parameter, CodeBlock, CodeBlock> addAllBlock;
+
   final boolean wildTyping;
 
   private Collectionish(
@@ -54,28 +56,27 @@ final class Collectionish {
       ClassName factoryClassName,
       String emptyMethod,
       String addMethod,
-      String addAllMethod,
       CollectionType type,
       ClassName setterParameterClassName,
       Function<Parameter, CodeBlock> setterAssignment,
-      boolean wildTyping) {
+      BiFunction<Parameter, CodeBlock, CodeBlock> addAllBlock, boolean wildTyping) {
     this.className = className;
     this.factoryClassName = factoryClassName;
     this.emptyMethod = emptyMethod;
     this.addMethod = addMethod;
-    this.addAllMethod = addAllMethod;
     this.type = type;
     this.setterParameterClassName = setterParameterClassName;
     this.setterAssignment = setterAssignment;
+    this.addAllBlock = addAllBlock;
     this.wildTyping = wildTyping;
   }
 
-  private static Collectionish of(
+  private static Collectionish ofUtil(
       Class<?> className, Class<?> factoryClassName, String emptyMethod, CollectionType type) {
     return new Collectionish(
         ClassName.get(className),
         ClassName.get(factoryClassName),
-        emptyMethod, null, null, type, ClassName.get(className), null, false);
+        emptyMethod, null, type, ClassName.get(className), null, normalAddAll(), false);
   }
 
   private static Collectionish ofGuava(
@@ -86,7 +87,6 @@ final class Collectionish {
     return new Collectionish(className,
         className, "of",
         type == LIST ? "add" : "put",
-        type == LIST ? "addAll" : "putAll",
         type, ClassName.get(setterParameterClass),
         parameter -> {
           FieldSpec field = parameter.asField().build();
@@ -95,7 +95,9 @@ final class Collectionish {
               .addStatement("this.$N = $N != null ? $T.copyOf($N) : null",
                   field, p, className, p)
               .build();
-        }, true);
+        },
+        type == LIST ? normalAddAll() : guavaPutAll(),
+        true);
   }
 
   static Collectionish create(TypeName typeName) {
@@ -125,8 +127,28 @@ final class Collectionish {
     if (!hasBuilder()) {
       return this;
     }
-    return new Collectionish(className, factoryClassName, emptyMethod, null, addAllMethod, type,
-        setterParameterClassName, setterAssignment, wildTyping);
+    return new Collectionish(className, factoryClassName, emptyMethod, null, type,
+        setterParameterClassName, setterAssignment, addAllBlock, wildTyping);
+  }
+
+  private static BiFunction<Parameter, CodeBlock, CodeBlock> normalAddAll() {
+    return (parameter, what) -> {
+      FieldSpec builderField = parameter.asBuilderField();
+      return CodeBlock.builder()
+          .addStatement("this.$N.addAll($L)",
+              builderField, what)
+          .build();
+    };
+  }
+
+  private static BiFunction<Parameter, CodeBlock, CodeBlock> guavaPutAll() {
+    return (parameter, what) -> {
+      FieldSpec builderField = parameter.asBuilderField();
+      return CodeBlock.builder()
+          .addStatement("this.$N.putAll($L)",
+              builderField, what)
+          .build();
+    };
   }
 
   boolean hasBuilder() {

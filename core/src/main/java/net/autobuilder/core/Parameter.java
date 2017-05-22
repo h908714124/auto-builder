@@ -261,4 +261,7 @@ final class Parameter {
                 ENTRY_CLASS, typeArguments))));
   }
 
+  CodeBlock addAllBlock(CodeBlock what) {
+    return collectionish.addAllBlock.apply(this, what);
+  }
 }

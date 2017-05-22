@@ -113,8 +113,7 @@ final class Analyser {
             builderField, collectionish.factoryClassName)
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
-        .addStatement("this.$N.$L(this.$N)",
-            builderField, collectionish.addAllMethod, field)
+        .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
         .addStatement("this.$N = null", field)
         .endControlFlow();
     block.addStatement("this.$N.$L($N)",
@@ -142,12 +141,11 @@ final class Analyser {
             builderField, collectionish.factoryClassName)
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
-        .addStatement("this.$N.$L(this.$N)",
-            builderField, collectionish.addAllMethod, field)
+        .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
         .addStatement("this.$N = null", field)
         .endControlFlow();
-    block.addStatement("this.$N.$L($N)",
-        builderField, collectionish.addAllMethod, values);
+    block.add(parameter.addAllBlock(CodeBlock.of("$N", values)));
+
     return MethodSpec.methodBuilder(
         parameter.accumulatorName(collectionish))
         .addCode(block.build())
@@ -173,8 +171,7 @@ final class Analyser {
             builderField, collectionish.factoryClassName)
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
-        .addStatement("this.$N.$L(this.$N)",
-            builderField, collectionish.addAllMethod, field)
+        .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
         .addStatement("this.$N = null", field)
         .endControlFlow();
     block.addStatement("this.$N.$L($N, $N)",
@@ -202,12 +199,11 @@ final class Analyser {
             builderField, collectionish.factoryClassName)
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
-        .addStatement("this.$N.$L(this.$N)",
-            builderField, collectionish.addAllMethod, field)
+        .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
         .addStatement("this.$N = null", field)
         .endControlFlow();
-    block.addStatement("this.$N.$L($N)",
-        builderField, collectionish.addAllMethod, map);
+    block.add(parameter.addAllBlock(CodeBlock.of("$N", map)));
+
     return MethodSpec.methodBuilder(
         parameter.accumulatorName(collectionish))
         .addCode(block.build())
