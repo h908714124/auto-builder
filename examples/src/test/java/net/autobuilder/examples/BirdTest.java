@@ -5,6 +5,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -25,7 +27,7 @@ public class BirdTest {
     Bird bard = bird.toBuilder()
         .beak(singletonList(""))
         .eyes(ImmutableMap.of("", ""))
-        .feathers(singletonList(""))
+        .feathers(singletonList(new Date()))
         .feet(ImmutableSet.of(""))
         .tail(map1)
         .wings(set1)
@@ -56,13 +58,13 @@ public class BirdTest {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
         .putInEyes("", "")
-        .addToFeathers("")
+        .addToFeathers(new Date())
         .addToFeet("")
         .build();
     Bird bord = bard.toBuilder()
         .putInEyes(" ", "")
         .putInEyes(ImmutableMap.of("  ", "", "   ", "").entrySet())
-        .addToFeathers("")
+        .addToFeathers(new Date())
         .build();
     Bird burd = bord.toBuilder()
         .eyes(null)
@@ -101,7 +103,7 @@ public class BirdTest {
     Bird bard = Bird_Builder.builder(bird)
         .beak(singletonList(""))
         .eyes(ImmutableMap.of("", ""))
-        .feathers(ImmutableList.of(""))
+        .feathers(ImmutableList.of(new Date()))
         .feet(ImmutableSet.of(""))
         .tail(map1)
         .wings(set1)
@@ -132,11 +134,11 @@ public class BirdTest {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = Bird_Builder.builder(bird)
         .putInEyes("", "")
-        .addToFeathers("")
+        .addToFeathers(singletonList(new Date()))
         .addToFeet("")
         .build();
     Bird bord = Bird_Builder.builder(bard)
-        .addToFeathers("")
+        .addToFeathers(new Date())
         .build();
     assertThat(bird.beak().size(), is(0));
     assertThat(bird.eyes().size(), is(0));

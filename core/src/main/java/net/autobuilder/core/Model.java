@@ -5,7 +5,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
 
-import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -54,7 +53,7 @@ final class Model {
   }
 
   static Model create(
-      ProcessingEnvironment processingEnv,
+      Util util,
       TypeElement sourceClassElement, TypeElement avType) {
     TypeName sourceClass = TypeName.get(sourceClassElement.asType());
     List<ExecutableElement> constructors = ElementFilter.constructorsIn(
@@ -88,7 +87,6 @@ final class Model {
         typeArguments(generatedClass).isEmpty() ?
             rawType(generatedClass).nestedClass("RefTrackingBuilder") :
             null;
-    Util util = new Util(processingEnv);
     return new Model(util, sourceClassElement, generatedClass, avType,
         Parameter.scan(util, constructor, avType), simpleBuilderClass,
         optionalRefTrackingBuilderClass);

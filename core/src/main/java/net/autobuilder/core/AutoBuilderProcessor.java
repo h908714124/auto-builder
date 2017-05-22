@@ -69,6 +69,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         .flatMap(Function.identity())
         .collect(toList());
     deferredTypeNames.clear();
+    Util util = new Util(processingEnv);
 
     for (TypeElement sourceClassElement : types) {
       String key = sourceClassElement.getQualifiedName().toString();
@@ -76,8 +77,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         continue;
       }
       ClassName generatedByAutoValue = avPeer(sourceClassElement);
-      TypeElement avType = processingEnv.getElementUtils().getTypeElement(
-          generatedByAutoValue.toString());
+      TypeElement avType = util.typeElement(generatedByAutoValue);
       if (avType == null) {
         // Auto-value hasn't written its class yet.
         // Remember this, so we can notify the user later on.
@@ -85,7 +85,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         continue;
       }
       try {
-        Model model = Model.create(processingEnv, sourceClassElement, avType);
+        Model model = Model.create(util, sourceClassElement, avType);
         TypeSpec typeSpec = Analyser.create(model).analyse();
         write(rawType(model.generatedClass), typeSpec);
         done.add(key);

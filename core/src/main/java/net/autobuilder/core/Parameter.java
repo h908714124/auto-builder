@@ -38,6 +38,9 @@ final class Parameter {
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
 
+  private static final ClassName ITERABLE_CLASS = ClassName.get(Iterable.class);
+  private static final ClassName ENTRY_CLASS = ClassName.get(Map.Entry.class);
+
   private final VariableElement variableElement;
   final String setterName;
   final String getterName;
@@ -177,12 +180,7 @@ final class Parameter {
   ParameterSpec asParameter() {
     TypeName type = this.type;
     if (collectionish != null && collectionish.wildTyping) {
-      ParameterizedTypeName typeName = (ParameterizedTypeName) TypeName.get(
-          variableElement.asType());
-      TypeName[] typeArguments =
-          typeName.typeArguments.stream()
-              .map(util::subtypeOf)
-              .toArray(TypeName[]::new);
+      TypeName[] typeArguments = Util.typeArgumentSubtypes(variableElement);
       type = ParameterizedTypeName.get(collectionish.setterParameterClassName,
           typeArguments);
     }
@@ -248,23 +246,19 @@ final class Parameter {
       return Optional.empty();
     }
     ParameterizedTypeName typeName = (ParameterizedTypeName) type;
-    ClassName iterableClass = ClassName.get(Iterable.class);
     if (collectionish.type.typeParams == 1 &&
-        typeName.rawType.equals(iterableClass)) {
+        typeName.rawType.equals(ITERABLE_CLASS)) {
       return Optional.empty();
     }
-    TypeName[] typeArguments =
-        typeName.typeArguments.stream()
-            .map(util::subtypeOf)
-            .toArray(TypeName[]::new);
+    TypeName[] typeArguments = Util.typeArgumentSubtypes(variableElement);
     if (collectionish.type == Collectionish.CollectionType.LIST) {
       return Optional.of(ParameterizedTypeName.get(
-          iterableClass, typeArguments));
+          ITERABLE_CLASS, typeArguments));
     }
     return Optional.of(
-        ParameterizedTypeName.get(iterableClass,
+        ParameterizedTypeName.get(ITERABLE_CLASS,
             WildcardTypeName.subtypeOf(ParameterizedTypeName.get(
-                ClassName.get(Map.Entry.class), typeArguments))));
+                ENTRY_CLASS, typeArguments))));
   }
 
 }
