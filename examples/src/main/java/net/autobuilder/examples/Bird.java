@@ -22,9 +22,9 @@ abstract class Bird {
   abstract ImmutableSet<String> feet();
   abstract ImmutableMap<String, String> eyes();
 
-  abstract List<String> beak();
+  abstract List<Date> beak();
   abstract Set<String> wings();
-  abstract Map<String, String> tail();
+  abstract Map<Date, String> tail();
 
   final Bird_Builder toBuilder() {
     return FACTORY.get().builder(this);

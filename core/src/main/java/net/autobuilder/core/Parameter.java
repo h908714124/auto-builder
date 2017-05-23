@@ -1,5 +1,23 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.ElementFilter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -8,35 +26,12 @@ import static net.autobuilder.core.Util.downcase;
 import static net.autobuilder.core.Util.isDistinct;
 import static net.autobuilder.core.Util.upcase;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.WildcardTypeName;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
-
 final class Parameter {
 
   private static final Pattern GETTER_PATTERN =
       Pattern.compile("^get[A-Z].*$");
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
-
-  private static final ClassName ITERABLE_CLASS = ClassName.get(Iterable.class);
-  private static final ClassName ENTRY_CLASS = ClassName.get(Map.Entry.class);
 
   final VariableElement variableElement;
   final String setterName;
@@ -223,23 +218,11 @@ final class Parameter {
   }
 
   Optional<ParameterizedTypeName> addAllType() {
-    if (collectionish == null || !collectionish.hasBuilder()) {
+    if (collectionish == null ||
+        !collectionish.hasBuilder()) {
       return Optional.empty();
     }
-    ParameterizedTypeName typeName = (ParameterizedTypeName) type;
-    if (collectionish.type.typeParams == 1 &&
-        typeName.rawType.equals(ITERABLE_CLASS)) {
-      return Optional.empty();
-    }
-    TypeName[] typeArguments = Util.typeArgumentSubtypes(variableElement);
-    if (collectionish.type == Collectionish.CollectionType.LIST) {
-      return Optional.of(ParameterizedTypeName.get(
-          ITERABLE_CLASS, typeArguments));
-    }
-    return Optional.of(
-        ParameterizedTypeName.get(ITERABLE_CLASS,
-            WildcardTypeName.subtypeOf(ParameterizedTypeName.get(
-                ENTRY_CLASS, typeArguments))));
+    return collectionish.addAllType.apply(this);
   }
 
   CodeBlock addAllBlock(CodeBlock what) {
@@ -256,9 +239,9 @@ final class Parameter {
           .build();
       if (collectionish.hasBuilder()) {
         FieldSpec builderField = asBuilderField();
-        return CodeBlock.builder().add("$N.$N != null ? $N.$N.build() :\n        ",
-            builder, builderField,
-            builder, builderField)
+        return CodeBlock.builder().add("$N.$N != null ? ", builder, builderField)
+            .add(collectionish.buildBlock.apply(builder, builderField))
+            .add(" :\n        ")
             .add(getCollection)
             .build();
       } else {

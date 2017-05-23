@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,13 +18,13 @@ public class BirdTest {
 
   @Test
   public void testBird() throws Exception {
-    Map<String, String> map1 = new HashMap<>();
+    Map<Date, String> map1 = new HashMap<>();
     HashSet<String> set1 = new HashSet<>();
     set1.add("");
-    map1.put("", "");
+    map1.put(new Date(), "");
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
-        .beak(singletonList(""))
+        .beak(singletonList(new Date()))
         .eyes(ImmutableMap.of("", ""))
         .feathers(singletonList(new Date()))
         .feet(ImmutableSet.of(""))
@@ -95,13 +94,13 @@ public class BirdTest {
 
   @Test
   public void testBirdNoCache() throws Exception {
-    Map<String, String> map1 = new HashMap<>();
+    Map<Date, String> map1 = new HashMap<>();
     HashSet<String> set1 = new HashSet<>();
     set1.add("");
-    map1.put("", "");
+    map1.put(new Date(), "");
     Bird bird = Bird_Builder.builder().build();
     Bird bard = Bird_Builder.builder(bird)
-        .beak(singletonList(""))
+        .beak(singletonList(new Date()))
         .eyes(ImmutableMap.of("", ""))
         .feathers(ImmutableList.of(new Date()))
         .feet(ImmutableSet.of(""))
