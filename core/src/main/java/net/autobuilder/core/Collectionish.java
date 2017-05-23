@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 final class Collectionish {
 
@@ -34,16 +35,16 @@ final class Collectionish {
   }
 
   private static final Map<ClassName, Collectionish> KNOWN = map(
-      ofUtil(List.class, Collections.class, "emptyList", LIST),
-      ofUtil(Set.class, Collections.class, "emptySet", LIST),
-      ofUtil(Map.class, Collections.class, "emptyMap", MAP),
+      ofUtil(List.class, "emptyList", LIST),
+      ofUtil(Set.class, "emptySet", LIST),
+      ofUtil(Map.class, "emptyMap", MAP),
       ofGuava("ImmutableList", Iterable.class, LIST),
       ofGuava("ImmutableSet", Iterable.class, LIST),
       ofGuava("ImmutableMap", Map.class, MAP));
 
   final ClassName className;
-  final ClassName factoryClassName;
-  final String emptyMethod;
+  final Function<FieldSpec, CodeBlock> builderInitBlock;
+  final Supplier<CodeBlock> emptyBlock;
   final CollectionType type;
   final ClassName setterParameterClassName;
   final Function<Parameter, CodeBlock> setterAssignment;
@@ -56,8 +57,8 @@ final class Collectionish {
   private Collectionish(
       boolean hasBuilder,
       ClassName className,
-      ClassName factoryClassName,
-      String emptyMethod,
+      Function<FieldSpec, CodeBlock> builderInitBlock,
+      Supplier<CodeBlock> emptyBlock,
       CollectionType type,
       ClassName setterParameterClassName,
       Function<Parameter, CodeBlock> setterAssignment,
@@ -66,8 +67,8 @@ final class Collectionish {
       boolean wildTyping) {
     this.hasBuilder = hasBuilder;
     this.className = className;
-    this.factoryClassName = factoryClassName;
-    this.emptyMethod = emptyMethod;
+    this.builderInitBlock = builderInitBlock;
+    this.emptyBlock = emptyBlock;
     this.type = type;
     this.setterParameterClassName = setterParameterClassName;
     this.setterAssignment = setterAssignment;
@@ -77,22 +78,30 @@ final class Collectionish {
   }
 
   private static Collectionish ofUtil(
-      Class<?> className, Class<?> factoryClassName, String emptyMethod, CollectionType type) {
+      Class<?> className, String emptyMethod, CollectionType type) {
+    ClassName builderClass = type == LIST ?
+        ClassName.get(ArrayList.class) :
+        ClassName.get(HashMap.class);
     return new Collectionish(
-        false,
+        true,
         ClassName.get(className),
-        ClassName.get(factoryClassName),
-        emptyMethod,
+        builderField ->
+            CodeBlock.builder().addStatement("this.$N = new $T()",
+                builderField, builderClass).build(),
+        () -> CodeBlock.of("$T.$L()", Collections.class, emptyMethod),
         type,
         ClassName.get(className),
-        null,
         parameter -> {
-          ParameterizedTypeName typeName =
-              (ParameterizedTypeName) TypeName.get(parameter.variableElement.asType());
-          return ParameterizedTypeName.get(type == LIST ?
-                  ClassName.get(ArrayList.class) :
-                  ClassName.get(HashMap.class),
-              typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
+          FieldSpec field = parameter.asField();
+          ParameterSpec p = parameter.asParameter();
+          return CodeBlock.builder()
+              .addStatement("this.$N = $N", field, p)
+              .build();
+        },
+        parameter -> {
+          ParameterizedTypeName typeName = (ParameterizedTypeName) parameter.type;
+          return ParameterizedTypeName.get(builderClass,
+              typeName.typeArguments.toArray(new TypeName[0]));
         },
         normalAddAll(),
         false);
@@ -106,7 +115,10 @@ final class Collectionish {
     return new Collectionish(
         true,
         className,
-        className, "of",
+        builderField ->
+            CodeBlock.builder().addStatement("this.$N = $T.builder()",
+                builderField, className).build(),
+        () -> CodeBlock.of("$T.of()", className),
         type,
         ClassName.get(setterParameterClass),
         parameter -> {
@@ -154,7 +166,7 @@ final class Collectionish {
     if (!hasBuilder) {
       return this;
     }
-    return new Collectionish(false, className, factoryClassName, emptyMethod, type,
+    return new Collectionish(false, className, builderInitBlock, emptyBlock, type,
         setterParameterClassName, setterAssignment, builderType, addAllBlock, wildTyping);
   }
 

@@ -249,9 +249,11 @@ final class Parameter {
   CodeBlock getFieldValueBlock(ParameterSpec builder) {
     FieldSpec field = asField();
     if (collectionish != null) {
-      CodeBlock getCollection = CodeBlock.of("$N.$N != null ? $N.$N : $T.$L()",
-          builder, field, builder, field,
-          collectionish.factoryClassName, collectionish.emptyMethod);
+      CodeBlock getCollection = CodeBlock.builder()
+          .add("$N.$N != null ? $N.$N : ",
+              builder, field, builder, field)
+          .add(collectionish.emptyBlock.get())
+          .build();
       if (collectionish.hasBuilder()) {
         FieldSpec builderField = asBuilderField();
         return CodeBlock.builder().add("$N.$N != null ? $N.$N.build() :\n        ",

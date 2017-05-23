@@ -110,8 +110,7 @@ final class Analyser {
         ParameterSpec.builder(builderType.typeArguments.get(0), "value").build();
     CodeBlock.Builder block = CodeBlock.builder();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .addStatement("this.$N = $T.builder()",
-            builderField, collectionish.factoryClassName)
+        .add(collectionish.builderInitBlock.apply(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
@@ -138,8 +137,7 @@ final class Analyser {
         ParameterSpec.builder(addAllType, "values").build();
     CodeBlock.Builder block = CodeBlock.builder();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .addStatement("this.$N = $T.builder()",
-            builderField, collectionish.factoryClassName)
+        .add(collectionish.builderInitBlock.apply(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
@@ -168,8 +166,7 @@ final class Analyser {
         ParameterSpec.builder(builderType.typeArguments.get(1), "value").build();
     CodeBlock.Builder block = CodeBlock.builder();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .addStatement("this.$N = $T.builder()",
-            builderField, collectionish.factoryClassName)
+        .add(collectionish.builderInitBlock.apply(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
@@ -196,8 +193,7 @@ final class Analyser {
         ParameterSpec.builder(addAllType, "map").build();
     CodeBlock.Builder block = CodeBlock.builder();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .addStatement("this.$N = $T.builder()",
-            builderField, collectionish.factoryClassName)
+        .add(collectionish.builderInitBlock.apply(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(parameter.addAllBlock(CodeBlock.of("this.$N", field)))
