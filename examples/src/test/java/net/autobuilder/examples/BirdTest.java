@@ -19,17 +19,25 @@ public class BirdTest {
   @Test
   public void testBird() throws Exception {
     Map<Date, String> map1 = new HashMap<>();
+    Map<Date, String> map2 = new HashMap<>();
     HashSet<String> set1 = new HashSet<>();
     set1.add("");
-    map1.put(new Date(), "");
+    map1.put(new Date(1), "");
+    map2.put(new Date(2), "");
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
         .beak(singletonList(new Date()))
+        .wings(set1)
+        .addToBeak(singletonList(new Date()))
+        .addToBeak(new Date())
+        .addToWings("ふぐ")
+        .addToWings(singletonList("魚"))
         .eyes(ImmutableMap.of("", ""))
         .feathers(singletonList(new Date()))
         .feet(ImmutableSet.of(""))
         .tail(map1)
-        .wings(set1)
+        .putInTail(new Date(0), "")
+        .putInTail(map2)
         .build();
     Bird bord = bard.toBuilder().build();
     assertThat(bird.beak().size(), is(0));
@@ -38,18 +46,18 @@ public class BirdTest {
     assertThat(bird.feet().size(), is(0));
     assertThat(bird.tail().size(), is(0));
     assertThat(bird.wings().size(), is(0));
-    assertThat(bard.beak().size(), is(1));
+    assertThat(bard.beak().size(), is(3));
     assertThat(bard.eyes().size(), is(1));
     assertThat(bard.feathers().size(), is(1));
     assertThat(bard.feet().size(), is(1));
-    assertThat(bard.tail().size(), is(1));
-    assertThat(bard.wings().size(), is(1));
-    assertThat(bord.beak().size(), is(1));
+    assertThat(bard.tail().size(), is(3));
+    assertThat(bard.wings().size(), is(3));
+    assertThat(bord.beak().size(), is(3));
     assertThat(bord.eyes().size(), is(1));
     assertThat(bord.feathers().size(), is(1));
     assertThat(bord.feet().size(), is(1));
-    assertThat(bord.tail().size(), is(1));
-    assertThat(bord.wings().size(), is(1));
+    assertThat(bord.tail().size(), is(3));
+    assertThat(bord.wings().size(), is(3));
   }
 
   @Test
@@ -70,6 +78,8 @@ public class BirdTest {
         .putInEyes("", "")
         .eyes(ImmutableMap.of())
         .putInEyes("", "")
+        .tail(null)
+        .putInTail(new Date(1), "")
         .build();
     assertThat(bird.beak().size(), is(0));
     assertThat(bird.eyes().size(), is(0));
@@ -90,6 +100,7 @@ public class BirdTest {
     assertThat(bord.tail().size(), is(0));
     assertThat(bord.wings().size(), is(0));
     assertThat(burd.eyes().size(), is(1));
+    assertThat(burd.tail().size(), is(1));
   }
 
   @Test

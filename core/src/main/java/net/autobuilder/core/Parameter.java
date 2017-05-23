@@ -150,7 +150,7 @@ final class Parameter {
   }
 
   ParameterizedTypeName builderType() {
-    return collectionish.builderType.apply(this);
+    return collectionish.accumulatorType.apply(this);
   }
 
   ParameterSpec asParameter() {
@@ -172,7 +172,7 @@ final class Parameter {
   }
 
   private List<String> setterNames() {
-    if (collectionish == null || !collectionish.hasBuilder()) {
+    if (collectionish == null || !collectionish.hasAccumulator()) {
       return singletonList(setterName);
     }
     return asList(setterName, accumulatorName(collectionish));
@@ -183,7 +183,7 @@ final class Parameter {
   }
 
   private List<String> fieldNames() {
-    if (collectionish == null || !collectionish.hasBuilder()) {
+    if (collectionish == null || !collectionish.hasAccumulator()) {
       return singletonList(setterName);
     }
     return asList(setterName, builderFieldName());
@@ -200,7 +200,7 @@ final class Parameter {
   }
 
   private Parameter noBuilder() {
-    if (collectionish == null || !collectionish.hasBuilder()) {
+    if (collectionish == null || !collectionish.hasAccumulator()) {
       return this;
     }
     return new Parameter(util, variableElement, setterName, getterName, type,
@@ -219,7 +219,7 @@ final class Parameter {
 
   Optional<ParameterizedTypeName> addAllType() {
     if (collectionish == null ||
-        !collectionish.hasBuilder()) {
+        !collectionish.hasAccumulator()) {
       return Optional.empty();
     }
     return collectionish.addAllType.apply(this);
@@ -237,7 +237,7 @@ final class Parameter {
               builder, field, builder, field)
           .add(collectionish.emptyBlock.get())
           .build();
-      if (collectionish.hasBuilder()) {
+      if (collectionish.hasAccumulator()) {
         FieldSpec builderField = asBuilderField();
         return CodeBlock.builder().add("$N.$N != null ? ", builder, builderField)
             .add(collectionish.buildBlock.apply(builder, builderField))

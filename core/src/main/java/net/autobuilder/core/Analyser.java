@@ -65,12 +65,12 @@ final class Analyser {
               optionalish))
           .ifPresent(builder::addMethod);
       parameter.collectionish()
-          .filter(Collectionish::hasBuilder)
+          .filter(Collectionish::hasAccumulator)
           .ifPresent(collectionish ->
               builder.addField(
                   parameter.asBuilderField()));
       parameter.collectionish()
-          .filter(Collectionish::hasBuilder)
+          .filter(Collectionish::hasAccumulator)
           .ifPresent(collectionish -> {
             builder.addMethod(collectorMethod(parameter, collectionish));
             parameter.addAllType().ifPresent(addAllType ->
@@ -250,7 +250,7 @@ final class Analyser {
     CodeBlock.Builder block = CodeBlock.builder();
     block.add(parameter.setterAssignment());
     parameter.collectionish()
-        .filter(Collectionish::hasBuilder)
+        .filter(Collectionish::hasAccumulator)
         .ifPresent(collectionish ->
             block.addStatement("this.$N = null",
                 parameter.asBuilderField()));

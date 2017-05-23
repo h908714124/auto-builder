@@ -51,6 +51,9 @@
         <configuration>
           <source>8</source>
           <target>8</target>
+          <compilerArgs>
+            <compilerArgument>-Xlint:unchecked</compilerArgument>
+          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>
