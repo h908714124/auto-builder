@@ -1,17 +1,16 @@
 package net.autobuilder.core;
 
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
+
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
-
-import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 final class Optionalish {
 
@@ -20,16 +19,25 @@ final class Optionalish {
 
   private static final List<Optionalish> OPTIONAL_PRIMITIVES =
       Arrays.asList(
-          new Optionalish(ClassName.get(OptionalInt.class), TypeName.INT),
-          new Optionalish(ClassName.get(OptionalDouble.class), TypeName.DOUBLE),
-          new Optionalish(ClassName.get(OptionalLong.class), TypeName.LONG));
+          new Optionalish(ClassName.get(OptionalInt.class), TypeName.INT, "of"),
+          new Optionalish(ClassName.get(OptionalDouble.class), TypeName.DOUBLE, "of"),
+          new Optionalish(ClassName.get(OptionalLong.class), TypeName.LONG, "of"));
+  private static final String OF_NULLABLE = "ofNullable";
 
   final ClassName wrapper;
   final TypeName wrapped;
+  private final boolean convenienceOverload;
+  final String of;
 
-  private Optionalish(ClassName wrapper, TypeName wrapped) {
+  private Optionalish(ClassName wrapper, TypeName wrapped, String of, boolean convenienceOverload) {
     this.wrapper = wrapper;
     this.wrapped = wrapped;
+    this.convenienceOverload = convenienceOverload;
+    this.of = of;
+  }
+
+  private Optionalish(ClassName wrapper, TypeName wrapped, String of) {
+    this(wrapper, wrapped, of, true);
   }
 
   static Optionalish create(TypeName typeName) {
@@ -50,12 +58,16 @@ final class Optionalish {
     }
     TypeName wrapped = type.typeArguments.get(0);
     if (rawType(wrapped).equals(OPTIONAL_CLASS)) {
-      return null;
+      return new Optionalish(OPTIONAL_CLASS, wrapped, OF_NULLABLE, false);
     }
-    return new Optionalish(OPTIONAL_CLASS, wrapped);
+    return new Optionalish(OPTIONAL_CLASS, wrapped, OF_NULLABLE);
   }
 
   boolean isOptional() {
     return wrapper.equals(OPTIONAL_CLASS);
+  }
+
+  boolean convenienceOverload() {
+    return convenienceOverload;
   }
 }

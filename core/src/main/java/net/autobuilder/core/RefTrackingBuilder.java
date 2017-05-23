@@ -61,19 +61,6 @@ final class RefTrackingBuilder {
     CodeBlock.Builder builder = CodeBlock.builder()
         .addStatement("$T $N = $T.$N(this)", model.sourceClass, result,
             rawType(model.generatedClass), staticBuildMethod);
-    for (Parameter parameter : model.parameters) {
-      if (parameter.optionalish().isPresent()) {
-        parameter.optionalish()
-            .filter(Optionalish::isOptional)
-            .ifPresent(optionalish ->
-                builder.addStatement("this.$L($T.empty())",
-                    parameter.setterName, Optional.class));
-      } else if (parameter.type instanceof ClassName ||
-          parameter.type instanceof ParameterizedTypeName) {
-        builder.addStatement("this.$L(null)",
-            parameter.setterName);
-      }
-    }
     builder.addStatement("this.$N = $L", inUse, false)
         .addStatement("return $N", result);
     return MethodSpec.methodBuilder("build")

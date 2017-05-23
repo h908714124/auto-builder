@@ -1,5 +1,13 @@
 package net.autobuilder.core;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static net.autobuilder.core.Util.downcase;
+import static net.autobuilder.core.Util.isDistinct;
+import static net.autobuilder.core.Util.upcase;
+
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -7,11 +15,6 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.WildcardTypeName;
-
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,16 +23,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-import static javax.lang.model.element.Modifier.PRIVATE;
-import static net.autobuilder.core.AutoBuilderProcessor.rawType;
-import static net.autobuilder.core.Optionalish.OPTIONAL_CLASS;
-import static net.autobuilder.core.Util.downcase;
-import static net.autobuilder.core.Util.isDistinct;
-import static net.autobuilder.core.Util.upcase;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.ElementFilter;
 
 final class Parameter {
 
@@ -41,7 +38,7 @@ final class Parameter {
   private static final ClassName ITERABLE_CLASS = ClassName.get(Iterable.class);
   private static final ClassName ENTRY_CLASS = ClassName.get(Map.Entry.class);
 
-  private final VariableElement variableElement;
+  final VariableElement variableElement;
   final String setterName;
   final String getterName;
   final TypeName type;
@@ -148,21 +145,8 @@ final class Parameter {
     return getter;
   }
 
-  FieldSpec.Builder asField() {
-    return FieldSpec.builder(type, setterName).addModifiers(PRIVATE);
-  }
-
-  FieldSpec asInitializedField() {
-    FieldSpec.Builder fieldBuilder = asField();
-    if (optionalish != null) {
-      fieldBuilder.initializer("$T.empty()", optionalish.wrapper);
-    } else if (rawType(type).equals(OPTIONAL_CLASS)) {
-      fieldBuilder.initializer("$T.empty()", OPTIONAL_CLASS);
-    } else if (collectionish != null) {
-      fieldBuilder.initializer("$T.$L()",
-          collectionish.factoryClassName, collectionish.emptyMethod);
-    }
-    return fieldBuilder.build();
+  FieldSpec asField() {
+    return FieldSpec.builder(type, setterName).addModifiers(PRIVATE).build();
   }
 
   FieldSpec asBuilderField() {
@@ -171,10 +155,7 @@ final class Parameter {
   }
 
   ParameterizedTypeName builderType() {
-    ParameterizedTypeName typeName =
-        (ParameterizedTypeName) TypeName.get(variableElement.asType());
-    return ParameterizedTypeName.get(collectionish.className.nestedClass("Builder"),
-        typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
+    return collectionish.builderType.apply(this);
   }
 
   ParameterSpec asParameter() {
@@ -233,7 +214,7 @@ final class Parameter {
 
   CodeBlock setterAssignment() {
     if (collectionish == null || collectionish.setterAssignment == null) {
-      FieldSpec field = asField().build();
+      FieldSpec field = asField();
       ParameterSpec p = asParameter();
       return CodeBlock.builder()
           .addStatement("this.$N = $N", field, p).build();
@@ -242,7 +223,7 @@ final class Parameter {
   }
 
   Optional<ParameterizedTypeName> addAllType() {
-    if (collectionish == null || !collectionish.hasBuilder() || !collectionish.wildTyping) {
+    if (collectionish == null || !collectionish.hasBuilder()) {
       return Optional.empty();
     }
     ParameterizedTypeName typeName = (ParameterizedTypeName) type;
@@ -263,5 +244,31 @@ final class Parameter {
 
   CodeBlock addAllBlock(CodeBlock what) {
     return collectionish.addAllBlock.apply(this, what);
+  }
+
+  CodeBlock getFieldValueBlock(ParameterSpec builder) {
+    FieldSpec field = asField();
+    if (collectionish != null) {
+      CodeBlock getCollection = CodeBlock.of("$N.$N != null ? $N.$N : $T.$L()",
+          builder, field, builder, field,
+          collectionish.factoryClassName, collectionish.emptyMethod);
+      if (collectionish.hasBuilder()) {
+        FieldSpec builderField = asBuilderField();
+        return CodeBlock.builder().add("$N.$N != null ? $N.$N.build() :\n        ",
+            builder, builderField,
+            builder, builderField)
+            .add(getCollection)
+            .build();
+      } else {
+        return getCollection;
+      }
+    }
+    if (optionalish != null) {
+      return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
+          builder, field,
+          builder, field,
+          optionalish.wrapper);
+    }
+    return CodeBlock.of("$N.$N", builder, field);
   }
 }
