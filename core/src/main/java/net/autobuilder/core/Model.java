@@ -1,23 +1,22 @@
 package net.autobuilder.core;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeVariableName;
-
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.util.ElementFilter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
+
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeVariableName;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.util.ElementFilter;
 
 final class Model {
 
@@ -32,14 +31,14 @@ final class Model {
   final TypeName generatedClass;
   final TypeName simpleBuilderClass;
   final TypeElement avType;
-  final List<Parameter> parameters;
+  final List<ParaParameter> parameters;
   final TypeName sourceClass;
   final Util util;
 
   private Model(Util util, TypeElement sourceClassElement,
                 TypeName generatedClass,
                 TypeElement avType,
-                List<Parameter> parameters,
+                List<ParaParameter> parameters,
                 TypeName simpleBuilderClass,
                 ClassName optionalRefTrackingBuilderClass) {
     this.util = util;

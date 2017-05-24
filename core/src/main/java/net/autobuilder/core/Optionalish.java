@@ -78,7 +78,7 @@ final class Optionalish extends ParaParameter {
   }
 
   @Override
-  <R> R accept(Cases<R> cases) {
-    return cases.optionalish(this);
+  <R, P> R accept(Cases<R, P> cases, P p) {
+    return cases.optionalish(this, p);
   }
 }
