@@ -19,48 +19,50 @@ final class Optionalish extends ParaParameter {
 
   private static final List<Optionalish> OPTIONAL_PRIMITIVES =
       Arrays.asList(
-          new Optionalish(ClassName.get(OptionalInt.class), TypeName.INT, "of"),
-          new Optionalish(ClassName.get(OptionalDouble.class), TypeName.DOUBLE, "of"),
-          new Optionalish(ClassName.get(OptionalLong.class), TypeName.LONG, "of"));
+          new Optionalish(null, ClassName.get(OptionalInt.class), TypeName.INT, "of", true),
+          new Optionalish(null, ClassName.get(OptionalDouble.class), TypeName.DOUBLE, "of", true),
+          new Optionalish(null, ClassName.get(OptionalLong.class), TypeName.LONG, "of", true));
   private static final String OF_NULLABLE = "ofNullable";
 
+  final Parameter parameter;
   final ClassName wrapper;
   final TypeName wrapped;
-  private final boolean convenienceOverload;
   final String of;
+  private final boolean convenienceOverload;
 
-  private Optionalish(ClassName wrapper, TypeName wrapped, String of, boolean convenienceOverload) {
+  private Optionalish(
+      Parameter parameter,
+      ClassName wrapper,
+      TypeName wrapped,
+      String of,
+      boolean convenienceOverload) {
+    this.parameter = parameter;
     this.wrapper = wrapper;
     this.wrapped = wrapped;
-    this.convenienceOverload = convenienceOverload;
     this.of = of;
+    this.convenienceOverload = convenienceOverload;
   }
 
-  private Optionalish(ClassName wrapper, TypeName wrapped, String of) {
-    this(wrapper, wrapped, of, true);
-  }
-
-  static Optionalish create(TypeName typeName) {
-    if (typeName instanceof ClassName) {
+  static Optional<ParaParameter> create(Parameter parameter) {
+    if (parameter.type instanceof ClassName) {
       for (Optionalish optionalPrimitive : OPTIONAL_PRIMITIVES) {
-        if (optionalPrimitive.wrapper.equals(typeName)) {
-          return optionalPrimitive;
+        if (optionalPrimitive.wrapper.equals(parameter.type)) {
+          return Optional.of(optionalPrimitive.withParameter(parameter));
         }
       }
-      return null;
+      return Optional.empty();
     }
-    if (!(typeName instanceof ParameterizedTypeName)) {
-      return null;
+    if (!(parameter.type instanceof ParameterizedTypeName)) {
+      return Optional.empty();
     }
-    ParameterizedTypeName type = (ParameterizedTypeName) typeName;
+    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
     if (!type.rawType.equals(OPTIONAL_CLASS)) {
-      return null;
+      return Optional.empty();
     }
     TypeName wrapped = type.typeArguments.get(0);
-    if (rawType(wrapped).equals(OPTIONAL_CLASS)) {
-      return new Optionalish(OPTIONAL_CLASS, wrapped, OF_NULLABLE, false);
-    }
-    return new Optionalish(OPTIONAL_CLASS, wrapped, OF_NULLABLE);
+    boolean dangerous = rawType(wrapped).equals(OPTIONAL_CLASS);
+    return Optional.of(new Optionalish(parameter, type.rawType, wrapped,
+        OF_NULLABLE, !dangerous));
   }
 
   boolean isOptional() {
@@ -69,6 +71,10 @@ final class Optionalish extends ParaParameter {
 
   boolean convenienceOverload() {
     return convenienceOverload;
+  }
+
+  Optionalish withParameter(Parameter parameter) {
+    return new Optionalish(parameter, wrapper, wrapped, of, convenienceOverload);
   }
 
   @Override

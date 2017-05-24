@@ -2,6 +2,8 @@ package net.autobuilder.core;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.Collectionish.CollectionType.MAP;
+import static net.autobuilder.core.Util.downcase;
+import static net.autobuilder.core.Util.upcase;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -170,19 +172,19 @@ final class Collectionish extends ParaParameter {
         true);
   }
 
-  static Collectionish create(Parameter parameter) {
+  static Optional<ParaParameter> create(Parameter parameter) {
     if (!(parameter.type instanceof ParameterizedTypeName)) {
-      return null;
+      return Optional.empty();
     }
     ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
     Collectionish collectionish = KNOWN.get(type.rawType);
     if (collectionish == null) {
-      return null;
+      return Optional.empty();
     }
     if (collectionish.type.typeParams != type.typeArguments.size()) {
-      return null;
+      return Optional.empty();
     }
-    return collectionish.withParameter(parameter);
+    return Optional.of(collectionish.withParameter(parameter));
   }
 
   private static Map<ClassName, Collectionish> map(Collectionish... collectionishes) {
@@ -193,7 +195,7 @@ final class Collectionish extends ParaParameter {
     return map;
   }
 
-  Collectionish noBuilder() {
+  Collectionish noAccumulator() {
     if (!hasAccumulator()) {
       return this;
     }
@@ -251,6 +253,17 @@ final class Collectionish extends ParaParameter {
               WildcardTypeName.subtypeOf(ParameterizedTypeName.get(
                   ENTRY_CLASS, typeArguments))));
     };
+  }
+
+  String builderFieldName() {
+    if (!hasAccumulator()) {
+      throw new AssertionError();
+    }
+    return downcase(parameter.setterName) + "Builder";
+  }
+
+  String accumulatorName() {
+    return type.accumulatorPrefix + upcase(parameter.setterName);
   }
 
   @Override

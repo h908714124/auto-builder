@@ -13,7 +13,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -37,9 +36,6 @@ final class Parameter extends ParaParameter {
   final String getterName;
   final TypeName type;
 
-  private final Optionalish optionalish;
-  private final Collectionish collectionish;
-
   private final Util util;
 
   private Parameter(
@@ -47,52 +43,51 @@ final class Parameter extends ParaParameter {
       VariableElement variableElement,
       String setterName,
       String getterName,
-      TypeName type,
-      Optionalish optionalish,
-      Collectionish collectionish) {
+      TypeName type) {
     this.util = util;
     this.variableElement = variableElement;
     this.setterName = setterName;
     this.getterName = getterName;
     this.type = type;
-    this.optionalish = optionalish;
-    this.collectionish = collectionish;
   }
 
-  static List<Parameter> scan(
+  static List<ParaParameter> scan(
       Util util,
       ExecutableElement constructor,
       TypeElement avType) {
     Set<String> methodNames = methodNames(avType);
-    List<Parameter> parameters = new ArrayList<>();
-    for (VariableElement variableElement : constructor.getParameters()) {
-      String name = variableElement.getSimpleName().toString();
-      TypeName type = TypeName.get(variableElement.asType());
-      String getterName = matchingAccessor(methodNames, variableElement);
-      String setterName = setterName(name, type);
-      Optionalish optionalish = Optionalish.create(type);
-      Collectionish collectionish = Collectionish.create(type);
-      parameters.add(new Parameter(util, variableElement, setterName, getterName, type,
-          optionalish, collectionish));
-    }
+    List<ParaParameter> parameters = constructor.getParameters().stream()
+        .map(variableElement -> {
+          String name = variableElement.getSimpleName().toString();
+          TypeName type = TypeName.get(variableElement.asType());
+          String getterName = matchingAccessor(methodNames, variableElement);
+          String setterName = setterName(name, type);
+          Parameter parameter = new Parameter(util, variableElement, setterName, getterName, type);
+          return Collectionish.create(parameter)
+              .orElse(Optionalish.create(parameter).orElse(parameter));
+        })
+        .collect(toList());
     if (!parameters.stream()
-        .map(p -> p.fieldNames().stream())
+        .map(ParaParameter.FIELD_NAMES)
+        .map(List::stream)
         .flatMap(Function.identity())
         .collect(isDistinct()) ||
         !parameters.stream()
-            .map(p -> p.setterNames().stream())
+            .map(ParaParameter.METHOD_NAMES)
+            .map(List::stream)
             .flatMap(Function.identity())
             .collect(isDistinct())) {
       parameters = parameters.stream()
-          .map(Parameter::noBuilder)
+          .map(ParaParameter.NO_ACCUMULATOR)
           .collect(toList());
     }
     if (!parameters.stream()
-        .map(p -> p.setterNames().stream())
+        .map(ParaParameter.METHOD_NAMES)
+        .map(List::stream)
         .flatMap(Function.identity())
         .collect(isDistinct())) {
       parameters = parameters.stream()
-          .map(Parameter::originalSetter)
+          .map(ParaParameter.ORIGINAL_SETTER)
           .collect(toList());
     }
     return parameters;
@@ -177,10 +172,6 @@ final class Parameter extends ParaParameter {
     return asList(setterName, accumulatorName(collectionish));
   }
 
-  String accumulatorName(Collectionish collectionish) {
-    return collectionish.type.accumulatorPrefix + upcase(setterName);
-  }
-
   private List<String> fieldNames() {
     if (collectionish == null || !collectionish.hasAccumulator()) {
       return singletonList(setterName);
@@ -192,10 +183,9 @@ final class Parameter extends ParaParameter {
     return downcase(setterName) + "Builder";
   }
 
-  private Parameter originalSetter() {
+  Parameter originalSetter() {
     return new Parameter(util, variableElement, variableElement.getSimpleName().toString(),
-        getterName, type,
-        optionalish, collectionish);
+        getterName, type);
   }
 
   private Parameter noBuilder() {
