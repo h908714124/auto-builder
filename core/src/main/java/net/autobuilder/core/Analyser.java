@@ -56,8 +56,8 @@ final class Analyser {
     } else {
       builder.addType(PerThreadFactory.createStub(model));
     }
-    for (Parameter parameter : model.parameters) {
-      builder.addField(parameter.asField());
+    for (ParaParameter parameter : model.parameters) {
+      builder.addField(ParaParameter.GET_PARAMETER.apply(parameter).asField());
       builder.addMethod(setterMethod(parameter));
       parameter.optionalish()
           .filter(Optionalish::convenienceOverload)
@@ -245,18 +245,14 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec setterMethod(Parameter parameter) {
-    ParameterSpec p = parameter.asParameter();
+  private MethodSpec setterMethod(ParaParameter parameter) {
+    ParameterSpec p = ParaParameter.AS_PARAMETER.apply(parameter);
     CodeBlock.Builder block = CodeBlock.builder();
-    block.add(parameter.setterAssignment());
-    parameter.collectionish()
-        .filter(Collectionish::hasAccumulator)
-        .ifPresent(collectionish ->
-            block.addStatement("this.$N = null",
-                parameter.asBuilderField()));
+    block.add(ParaParameter.SETTER_ASSIGNMENT.apply(parameter));
+    ParaParameter.CLEAR_ACCUMULATOR.apply(parameter, block);
     block.addStatement("return this");
     return MethodSpec.methodBuilder(
-        parameter.setterName)
+        ParaParameter.GET_PARAMETER.apply(parameter).setterName)
         .addCode(block.build())
         .addParameter(p)
         .addModifiers(FINAL)

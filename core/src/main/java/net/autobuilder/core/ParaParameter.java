@@ -211,5 +211,26 @@ abstract class ParaParameter {
         }
       });
 
+  static final BiFunction<ParaParameter, CodeBlock.Builder, Void> CLEAR_ACCUMULATOR =
+      biFunction(new Cases<Void, CodeBlock.Builder>() {
+        @Override
+        Void parameter(Parameter parameter, CodeBlock.Builder builder) {
+          return null;
+        }
+
+        @Override
+        Void collectionish(Collectionish collectionish, CodeBlock.Builder block) {
+          block.addStatement("this.$N = null",
+              collectionish.asBuilderField());
+          return null;
+        }
+
+        @Override
+        Void optionalish(Optionalish optionalish, CodeBlock.Builder builder) {
+          return null;
+        }
+      });
+
+
   abstract <R, P> R accept(Cases<R, P> cases, P p);
 }
