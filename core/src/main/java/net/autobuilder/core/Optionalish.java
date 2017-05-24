@@ -3,8 +3,6 @@ package net.autobuilder.core;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import java.util.Arrays;
@@ -14,7 +12,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
-final class Optionalish {
+final class Optionalish extends ParaParameter {
 
   static final ClassName OPTIONAL_CLASS =
       ClassName.get(Optional.class);
@@ -71,5 +69,10 @@ final class Optionalish {
 
   boolean convenienceOverload() {
     return convenienceOverload;
+  }
+
+  @Override
+  <R> R accept(Cases<R> cases) {
+    return cases.optionalish(this);
   }
 }

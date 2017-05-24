@@ -1,23 +1,5 @@
 package net.autobuilder.core;
 
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -26,7 +8,24 @@ import static net.autobuilder.core.Util.downcase;
 import static net.autobuilder.core.Util.isDistinct;
 import static net.autobuilder.core.Util.upcase;
 
-final class Parameter {
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.ElementFilter;
+
+final class Parameter extends ParaParameter {
 
   private static final Pattern GETTER_PATTERN =
       Pattern.compile("^get[A-Z].*$");
@@ -255,5 +254,10 @@ final class Parameter {
           optionalish.wrapper);
     }
     return CodeBlock.of("$N.$N", builder, field);
+  }
+
+  @Override
+  <R> R accept(Cases<R> cases) {
+    return cases.parameter(this);
   }
 }

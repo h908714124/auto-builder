@@ -1,5 +1,8 @@
 package net.autobuilder.core;
 
+import static net.autobuilder.core.Collectionish.CollectionType.LIST;
+import static net.autobuilder.core.Collectionish.CollectionType.MAP;
+
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -7,7 +10,6 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.WildcardTypeName;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,10 +23,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static net.autobuilder.core.Collectionish.CollectionType.LIST;
-import static net.autobuilder.core.Collectionish.CollectionType.MAP;
-
-final class Collectionish {
+final class Collectionish extends ParaParameter {
 
   private static final String GCC = "com.google.common.collect";
   private static final ClassName ENTRY_CLASS = ClassName.get(Map.Entry.class);
@@ -51,6 +50,7 @@ final class Collectionish {
   private final ClassName className;
   private final ClassName accumulatorAddAllType;
 
+  final Parameter parameter;
   final Function<FieldSpec, CodeBlock> builderInitBlock;
   final Supplier<CodeBlock> emptyBlock;
   final CollectionType type;
@@ -65,11 +65,12 @@ final class Collectionish {
 
   private Collectionish(
       ClassName className,
+      Parameter parameter,
       Function<FieldSpec, CodeBlock> builderInitBlock,
       Supplier<CodeBlock> emptyBlock,
       CollectionType type,
       ClassName setterParameterClassName,
-      ClassName builderAddAllType,
+      ClassName accumulatorAddAllType,
       Function<Parameter, CodeBlock> setterAssignment,
       Function<Parameter, ParameterizedTypeName> accumulatorType,
       Function<Parameter, Optional<ParameterizedTypeName>> addAllType,
@@ -77,11 +78,12 @@ final class Collectionish {
       BiFunction<ParameterSpec, FieldSpec, CodeBlock> buildBlock,
       boolean wildTyping) {
     this.className = className;
+    this.parameter = parameter;
     this.builderInitBlock = builderInitBlock;
     this.emptyBlock = emptyBlock;
     this.type = type;
     this.setterParameterClassName = setterParameterClassName;
-    this.accumulatorAddAllType = builderAddAllType;
+    this.accumulatorAddAllType = accumulatorAddAllType;
     this.setterAssignment = setterAssignment;
     this.accumulatorType = accumulatorType;
     this.addAllType = addAllType;
@@ -95,6 +97,7 @@ final class Collectionish {
     ClassName accumulatorAddAllType = type == LIST ? ClassName.get(Collection.class) : ClassName.get(Map.class);
     return new Collectionish(
         ClassName.get(className),
+        null,
         builderField ->
             CodeBlock.builder().addStatement("this.$N = new $T<>()",
                 builderField, builderClass).build(),
@@ -137,6 +140,7 @@ final class Collectionish {
     ClassName builderAddAllType = ClassName.get(Iterable.class);
     return new Collectionish(
         className,
+        null,
         builderField ->
             CodeBlock.builder().addStatement("this.$N = $T.builder()",
                 builderField, className).build(),
@@ -166,11 +170,11 @@ final class Collectionish {
         true);
   }
 
-  static Collectionish create(TypeName typeName) {
-    if (!(typeName instanceof ParameterizedTypeName)) {
+  static Collectionish create(Parameter parameter) {
+    if (!(parameter.type instanceof ParameterizedTypeName)) {
       return null;
     }
-    ParameterizedTypeName type = (ParameterizedTypeName) typeName;
+    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
     Collectionish collectionish = KNOWN.get(type.rawType);
     if (collectionish == null) {
       return null;
@@ -178,7 +182,7 @@ final class Collectionish {
     if (collectionish.type.typeParams != type.typeArguments.size()) {
       return null;
     }
-    return collectionish;
+    return collectionish.withParameter(parameter);
   }
 
   private static Map<ClassName, Collectionish> map(Collectionish... collectionishes) {
@@ -193,8 +197,14 @@ final class Collectionish {
     if (!hasAccumulator()) {
       return this;
     }
-    return new Collectionish(className, builderInitBlock, emptyBlock, type,
+    return new Collectionish(className, parameter, builderInitBlock, emptyBlock, type,
         setterParameterClassName, null, setterAssignment, accumulatorType, addAllType, addAllBlock, buildBlock,
+        wildTyping);
+  }
+
+  Collectionish withParameter(Parameter parameter) {
+    return new Collectionish(className, parameter, builderInitBlock, emptyBlock, type,
+        setterParameterClassName, accumulatorAddAllType, setterAssignment, accumulatorType, addAllType, addAllBlock, buildBlock,
         wildTyping);
   }
 
@@ -205,6 +215,7 @@ final class Collectionish {
             builderField, what)
         .build();
   }
+
   private static CodeBlock normalPutAll(Parameter parameter, CodeBlock what) {
     FieldSpec builderField = parameter.asBuilderField();
     return CodeBlock.builder()
@@ -240,5 +251,10 @@ final class Collectionish {
               WildcardTypeName.subtypeOf(ParameterizedTypeName.get(
                   ENTRY_CLASS, typeArguments))));
     };
+  }
+
+  @Override
+  <R> R accept(Cases<R> cases) {
+    return cases.collectionish(this);
   }
 }
