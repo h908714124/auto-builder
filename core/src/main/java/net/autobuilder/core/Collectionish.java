@@ -1,19 +1,14 @@
 package net.autobuilder.core;
 
-import static javax.lang.model.element.Modifier.PRIVATE;
-import static net.autobuilder.core.Collectionish.CollectionType.LIST;
-import static net.autobuilder.core.Collectionish.CollectionType.MAP;
-import static net.autobuilder.core.Util.downcase;
-import static net.autobuilder.core.Util.typeArgumentSubtypes;
-import static net.autobuilder.core.Util.upcase;
-
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.WildcardTypeName;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,6 +21,15 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static java.util.Arrays.asList;
+import static javax.lang.model.element.Modifier.FINAL;
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static net.autobuilder.core.Collectionish.CollectionType.LIST;
+import static net.autobuilder.core.Collectionish.CollectionType.MAP;
+import static net.autobuilder.core.Util.downcase;
+import static net.autobuilder.core.Util.typeArgumentSubtypes;
+import static net.autobuilder.core.Util.upcase;
 
 final class Collectionish extends ParaParameter {
 
@@ -54,15 +58,16 @@ final class Collectionish extends ParaParameter {
   private final ClassName className;
   private final ClassName accumulatorAddAllType;
 
+  private final Function<Collectionish, ParameterizedTypeName> accumulatorType;
+  private final BiFunction<Collectionish, CodeBlock, CodeBlock> addAllBlock;
+  private final Function<FieldSpec, CodeBlock> builderInitBlock;
+
   final Parameter parameter;
-  final Function<FieldSpec, CodeBlock> builderInitBlock;
   final Supplier<CodeBlock> emptyBlock;
   final CollectionType type;
   final ClassName setterParameterClassName;
   final Function<Collectionish, CodeBlock> setterAssignment;
-  final Function<Parameter, ParameterizedTypeName> accumulatorType;
   final Function<Collectionish, Optional<ParameterizedTypeName>> addAllType;
-  final BiFunction<Collectionish, CodeBlock, CodeBlock> addAllBlock;
   final BiFunction<ParameterSpec, FieldSpec, CodeBlock> buildBlock;
 
   final boolean wildTyping;
@@ -76,7 +81,7 @@ final class Collectionish extends ParaParameter {
       ClassName setterParameterClassName,
       ClassName accumulatorAddAllType,
       Function<Collectionish, CodeBlock> setterAssignment,
-      Function<Parameter, ParameterizedTypeName> accumulatorType,
+      Function<Collectionish, ParameterizedTypeName> accumulatorType,
       Function<Collectionish, Optional<ParameterizedTypeName>> addAllType,
       BiFunction<Collectionish, CodeBlock, CodeBlock> addAllBlock,
       BiFunction<ParameterSpec, FieldSpec, CodeBlock> buildBlock,
@@ -111,13 +116,14 @@ final class Collectionish extends ParaParameter {
         accumulatorAddAllType,
         collectionish -> {
           FieldSpec field = collectionish.parameter.asField();
-          ParameterSpec p = ParaParameter.AS_PARAMETER.apply(collectionish);
+          ParameterSpec p = collectionish.parameter.model.asParameter.apply(collectionish);
           return CodeBlock.builder()
               .addStatement("this.$N = $N", field, p)
               .build();
         },
-        parameter -> {
-          ParameterizedTypeName typeName = (ParameterizedTypeName) parameter.type;
+        collectionish -> {
+          ParameterizedTypeName typeName =
+              (ParameterizedTypeName) collectionish.parameter.type;
           return ParameterizedTypeName.get(ClassName.get(builderClass),
               typeName.typeArguments.toArray(new TypeName[0]));
         },
@@ -155,15 +161,15 @@ final class Collectionish extends ParaParameter {
         builderAddAllType,
         collectionish -> {
           FieldSpec field = collectionish.parameter.asField();
-          ParameterSpec p = ParaParameter.AS_PARAMETER.apply(collectionish);
+          ParameterSpec p = collectionish.parameter.model.asParameter.apply(collectionish);
           return CodeBlock.builder()
               .addStatement("this.$N = $N != null ? $T.copyOf($N) : null",
                   field, p, className, p)
               .build();
         },
-        parameter -> {
+        collectionish -> {
           ParameterizedTypeName typeName =
-              (ParameterizedTypeName) TypeName.get(parameter.variableElement.asType());
+              (ParameterizedTypeName) TypeName.get(collectionish.parameter.variableElement.asType());
           return ParameterizedTypeName.get(className.nestedClass("Builder"),
               typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
         },
@@ -274,7 +280,7 @@ final class Collectionish extends ParaParameter {
 
 
   ParameterizedTypeName builderType() {
-    return accumulatorType.apply(parameter);
+    return accumulatorType.apply(this);
   }
 
   CodeBlock addAllBlock(CodeBlock what) {
@@ -283,6 +289,122 @@ final class Collectionish extends ParaParameter {
 
   String accumulatorName() {
     return type.accumulatorPrefix + upcase(parameter.setterName);
+  }
+
+  MethodSpec addAllToMethod(
+      Model model, ParameterizedTypeName addAllType) {
+    FieldSpec field = parameter.asField();
+    FieldSpec builderField = asBuilderField();
+    ParameterSpec values =
+        ParameterSpec.builder(addAllType, "values").build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.beginControlFlow("if ($N == null)", values)
+        .addStatement("return this")
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N == null)", builderField)
+        .add(builderInitBlock.apply(builderField))
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N != null)", field)
+        .add(addAllBlock(CodeBlock.of("this.$N", field)))
+        .addStatement("this.$N = null", field)
+        .endControlFlow();
+    block.add(addAllBlock(CodeBlock.of("$N", values)));
+
+    return MethodSpec.methodBuilder(
+        accumulatorName())
+        .addCode(block.build())
+        .addStatement("return this")
+        .addParameter(values)
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
+        .returns(model.generatedClass)
+        .build();
+  }
+
+  MethodSpec putAllInMethod(
+      Model model, ParameterizedTypeName addAllType) {
+    FieldSpec field = parameter.asField();
+    FieldSpec builderField = asBuilderField();
+    ParameterSpec map =
+        ParameterSpec.builder(addAllType, "map").build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.beginControlFlow("if ($N == null)", map)
+        .addStatement("return this")
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N == null)", builderField)
+        .add(builderInitBlock.apply(builderField))
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N != null)", field)
+        .add(addAllBlock(CodeBlock.of("this.$N", field)))
+        .addStatement("this.$N = null", field)
+        .endControlFlow();
+    block.add(addAllBlock(CodeBlock.of("$N", map)));
+
+    return MethodSpec.methodBuilder(
+        accumulatorName())
+        .addCode(block.build())
+        .addStatement("return this")
+        .addParameter(map)
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
+        .returns(model.generatedClass)
+        .build();
+  }
+
+  MethodSpec addToMethod(Model model) {
+    FieldSpec field = parameter.asField();
+    FieldSpec builderField = asBuilderField();
+    ParameterizedTypeName builderType = builderType();
+    ParameterSpec key =
+        ParameterSpec.builder(builderType.typeArguments.get(0), "value").build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.beginControlFlow("if (this.$N == null)", builderField)
+        .add(builderInitBlock.apply(builderField))
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N != null)", field)
+        .add(addAllBlock(CodeBlock.of("this.$N", field)))
+        .addStatement("this.$N = null", field)
+        .endControlFlow();
+    block.addStatement("this.$N.$L($N)",
+        builderField, addMethod(), key);
+    return MethodSpec.methodBuilder(
+        accumulatorName())
+        .addCode(block.build())
+        .addStatement("return this")
+        .addParameter(key)
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
+        .returns(model.generatedClass)
+        .build();
+  }
+
+  MethodSpec putInMethod(Model model) {
+    FieldSpec field = parameter.asField();
+    FieldSpec builderField = asBuilderField();
+    ParameterizedTypeName builderType = builderType();
+    ParameterSpec key =
+        ParameterSpec.builder(builderType.typeArguments.get(0), "key").build();
+    ParameterSpec value =
+        ParameterSpec.builder(builderType.typeArguments.get(1), "value").build();
+    CodeBlock.Builder block = CodeBlock.builder();
+    block.beginControlFlow("if (this.$N == null)", builderField)
+        .add(builderInitBlock.apply(builderField))
+        .endControlFlow();
+    block.beginControlFlow("if (this.$N != null)", field)
+        .add(addAllBlock(CodeBlock.of("this.$N", field)))
+        .addStatement("this.$N = null", field)
+        .endControlFlow();
+    block.addStatement("this.$N.$L($N, $N)",
+        builderField, addMethod(), key, value);
+    return MethodSpec.methodBuilder(
+        accumulatorName())
+        .addCode(block.build())
+        .addStatement("return this")
+        .addParameters(asList(key, value))
+        .addModifiers(FINAL)
+        .addModifiers(model.maybePublic())
+        .returns(model.generatedClass)
+        .build();
   }
 
   @Override

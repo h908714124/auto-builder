@@ -1,22 +1,23 @@
 package net.autobuilder.core;
 
-import static java.util.stream.Collectors.toList;
-import static javax.lang.model.element.Modifier.PRIVATE;
-import static net.autobuilder.core.Util.downcase;
-import static net.autobuilder.core.Util.isDistinct;
-import static net.autobuilder.core.Util.upcase;
-
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
+
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.ElementFilter;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
+
+import static java.util.stream.Collectors.toList;
+import static javax.lang.model.element.Modifier.PRIVATE;
+import static net.autobuilder.core.Util.downcase;
+import static net.autobuilder.core.Util.isDistinct;
+import static net.autobuilder.core.Util.upcase;
 
 final class Parameter extends ParaParameter {
 
@@ -30,6 +31,8 @@ final class Parameter extends ParaParameter {
   final String getterName;
   final TypeName type;
 
+  final Model model;
+
   private final Util util;
 
   private Parameter(
@@ -37,15 +40,18 @@ final class Parameter extends ParaParameter {
       VariableElement variableElement,
       String setterName,
       String getterName,
-      TypeName type) {
+      TypeName type,
+      Model model) {
     this.util = util;
     this.variableElement = variableElement;
     this.setterName = setterName;
     this.getterName = getterName;
     this.type = type;
+    this.model = model;
   }
 
   static List<ParaParameter> scan(
+      Model model,
       Util util,
       ExecutableElement constructor,
       TypeElement avType) {
@@ -56,32 +62,33 @@ final class Parameter extends ParaParameter {
           TypeName type = TypeName.get(variableElement.asType());
           String getterName = matchingAccessor(methodNames, variableElement);
           String setterName = setterName(name, type);
-          Parameter parameter = new Parameter(util, variableElement, setterName, getterName, type);
+          Parameter parameter = new Parameter(
+              util, variableElement, setterName, getterName, type, model);
           return Collectionish.create(parameter)
               .orElse(Optionalish.create(parameter).orElse(parameter));
         })
         .collect(toList());
     if (!parameters.stream()
-        .map(ParaParameter.FIELD_NAMES)
+        .map(model.fieldNames)
         .map(List::stream)
         .flatMap(Function.identity())
         .collect(isDistinct()) ||
         !parameters.stream()
-            .map(ParaParameter.METHOD_NAMES)
+            .map(model.methodNames)
             .map(List::stream)
             .flatMap(Function.identity())
             .collect(isDistinct())) {
       parameters = parameters.stream()
-          .map(ParaParameter.NO_ACCUMULATOR)
+          .map(model.noAccumulator)
           .collect(toList());
     }
     if (!parameters.stream()
-        .map(ParaParameter.METHOD_NAMES)
+        .map(model.methodNames)
         .map(List::stream)
         .flatMap(Function.identity())
         .collect(isDistinct())) {
       parameters = parameters.stream()
-          .map(ParaParameter.ORIGINAL_SETTER)
+          .map(model.originalSetter)
           .collect(toList());
     }
     return parameters;
@@ -134,7 +141,7 @@ final class Parameter extends ParaParameter {
 
   Parameter originalSetter() {
     return new Parameter(util, variableElement, variableElement.getSimpleName().toString(),
-        getterName, type);
+        getterName, type, model);
   }
 
   @Override

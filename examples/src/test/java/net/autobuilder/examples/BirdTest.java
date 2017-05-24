@@ -8,6 +8,7 @@ import org.junit.Test;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
@@ -15,6 +16,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class BirdTest {
+
+  private final List<String> nothing = null;
 
   @Test
   public void testBird() throws Exception {
@@ -31,13 +34,17 @@ public class BirdTest {
         .addToBeak(singletonList(new Date()))
         .addToBeak(new Date())
         .addToWings("ふぐ")
+        .addToWings(nothing)
         .addToWings(singletonList("魚"))
         .eyes(ImmutableMap.of("", ""))
+        .putInEyes(null)
         .feathers(singletonList(new Date()))
         .feet(ImmutableSet.of(""))
+        .addToFeet(nothing)
         .tail(map1)
         .putInTail(new Date(0), "")
         .putInTail(map2)
+        .putInTail(null)
         .build();
     Bird bord = bard.toBuilder().build();
     assertThat(bird.beak().size(), is(0));
@@ -66,11 +73,13 @@ public class BirdTest {
     Bird bard = bird.toBuilder()
         .putInEyes("", "")
         .addToFeathers(new Date())
+        .addToFeet(nothing)
         .addToFeet("")
         .build();
     Bird bord = bard.toBuilder()
         .putInEyes(" ", "")
         .putInEyes(ImmutableMap.of("  ", "", "   ", "").entrySet())
+        .putInEyes(null)
         .addToFeathers(new Date())
         .build();
     Bird burd = bord.toBuilder()
