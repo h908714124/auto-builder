@@ -9,7 +9,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
-import net.autobuilder.core.Collectionish.CollectionType;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
@@ -33,7 +32,6 @@ import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 import static net.autobuilder.core.ParaParameter.asConsumer;
 import static net.autobuilder.core.ParaParameter.asFunction;
 import static net.autobuilder.core.ParaParameter.biFunction;
-import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
 final class Model {
 
@@ -272,12 +270,7 @@ final class Model {
 
         @Override
         ParameterSpec collectionish(Collectionish collectionish, Void _null) {
-          TypeName type = collectionish.wildTyping ?
-              ParameterizedTypeName.get(collectionish.setterParameterClassName,
-                  typeArgumentSubtypes(
-                      collectionish.parameter.variableElement)) :
-              collectionish.parameter.type;
-          return ParameterSpec.builder(type, collectionish.parameter.setterName).build();
+          return collectionish.asParameter();
         }
 
         @Override
@@ -299,7 +292,7 @@ final class Model {
 
         @Override
         CodeBlock collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.setterAssignment.apply(collectionish);
+          return collectionish.setterAssignment();
         }
 
         @Override
@@ -321,16 +314,7 @@ final class Model {
 
         @Override
         CodeBlock collectionish(Collectionish collectionish, ParameterSpec builder) {
-          FieldSpec field = collectionish.parameter.asField();
-          FieldSpec builderField = collectionish.asBuilderField();
-          return CodeBlock.builder()
-              .add("$N.$N != null ? ", builder, builderField)
-              .add(collectionish.buildBlock.apply(builder, builderField))
-              .add(" :\n        ")
-              .add("$N.$N != null ? $N.$N : ",
-                  builder, field, builder, field)
-              .add(collectionish.emptyBlock.get())
-              .build();
+          return collectionish.getFieldValue(builder);
         }
 
         @Override
@@ -430,9 +414,7 @@ final class Model {
 
         @Override
         Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          builder.addMethod(collectionish.type == CollectionType.MAP ?
-              collectionish.putInMethod(Model.this) :
-              collectionish.addToMethod(Model.this));
+          builder.addMethod(collectionish.accumulatorMethod());
           return null;
         }
 
@@ -451,10 +433,7 @@ final class Model {
 
         @Override
         Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          collectionish.addAllType.apply(collectionish).ifPresent(addAllType ->
-              builder.addMethod(collectionish.type == CollectionType.MAP ?
-                  collectionish.putAllInMethod(Model.this, addAllType) :
-                  collectionish.addAllToMethod(Model.this, addAllType)));
+          collectionish.accumulatorMethodOverload().ifPresent(builder::addMethod);
           return null;
         }
 

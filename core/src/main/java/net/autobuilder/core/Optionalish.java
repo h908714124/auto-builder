@@ -1,16 +1,17 @@
 package net.autobuilder.core;
 
-import static net.autobuilder.core.AutoBuilderProcessor.rawType;
-
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+
+import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
 final class Optionalish extends ParaParameter {
 
