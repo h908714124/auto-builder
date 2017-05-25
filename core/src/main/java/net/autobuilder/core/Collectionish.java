@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.FINAL;
@@ -54,10 +53,9 @@ final class Collectionish extends ParaParameter {
 
   static abstract class Base {
 
-    final ClassName className;
+    final ClassName collectionClassName;
 
-    private final Function<FieldSpec, CodeBlock> builderInitBlock;
-
+    abstract CodeBlock accumulatorInitBlock(FieldSpec builderField);
     abstract CodeBlock emptyBlock();
     abstract ParameterizedTypeName accumulatorType(Parameter parameter);
     abstract Optional<ParameterizedTypeName> addAllType(Parameter parameter);
@@ -67,18 +65,16 @@ final class Collectionish extends ParaParameter {
     final CollectionType collectionType;
 
     private final ClassName setterParameterClassName;
-    private final boolean wildTyping;
+    private final boolean setterParameterWildTyping;
 
-    Base(ClassName className,
-         Function<FieldSpec, CodeBlock> builderInitBlock,
+    Base(ClassName collectionClassName,
          CollectionType collectionType,
          ClassName setterParameterClassName,
-         boolean wildTyping) {
-      this.className = className;
-      this.builderInitBlock = builderInitBlock;
+         boolean setterParameterWildTyping) {
+      this.collectionClassName = collectionClassName;
       this.collectionType = collectionType;
       this.setterParameterClassName = setterParameterClassName;
-      this.wildTyping = wildTyping;
+      this.setterParameterWildTyping = setterParameterWildTyping;
     }
   }
 
@@ -126,7 +122,7 @@ final class Collectionish extends ParaParameter {
   private static Map<ClassName, Base> map(Base... bases) {
     Map<ClassName, Base> map = new HashMap<>(bases.length);
     for (Base base : bases) {
-      map.put(base.className, base);
+      map.put(base.collectionClassName, base);
     }
     return map;
   }
@@ -178,8 +174,8 @@ final class Collectionish extends ParaParameter {
     return base.collectionType.accumulatorPrefix + upcase(parameter.setterName);
   }
 
-  ParameterSpec asParameter() {
-    TypeName type = base.wildTyping ?
+  ParameterSpec asSetterParameter() {
+    TypeName type = base.setterParameterWildTyping ?
         ParameterizedTypeName.get(base.setterParameterClassName,
             typeArgumentSubtypes(
                 parameter.variableElement)) :
@@ -246,7 +242,7 @@ final class Collectionish extends ParaParameter {
         .addStatement("return this")
         .endControlFlow();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .add(base.builderInitBlock.apply(builderField))
+        .add(base.accumulatorInitBlock(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(addAllBlock(CodeBlock.of("this.$N", field)))
@@ -275,7 +271,7 @@ final class Collectionish extends ParaParameter {
         .addStatement("return this")
         .endControlFlow();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .add(base.builderInitBlock.apply(builderField))
+        .add(base.accumulatorInitBlock(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(addAllBlock(CodeBlock.of("this.$N", field)))
@@ -301,7 +297,7 @@ final class Collectionish extends ParaParameter {
         ParameterSpec.builder(accumulatorType.typeArguments.get(0), "value").build();
     CodeBlock.Builder block = CodeBlock.builder();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .add(base.builderInitBlock.apply(builderField))
+        .add(base.accumulatorInitBlock(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(addAllBlock(CodeBlock.of("this.$N", field)))
@@ -330,7 +326,7 @@ final class Collectionish extends ParaParameter {
         ParameterSpec.builder(accumulatorType.typeArguments.get(1), "value").build();
     CodeBlock.Builder block = CodeBlock.builder();
     block.beginControlFlow("if (this.$N == null)", builderField)
-        .add(base.builderInitBlock.apply(builderField))
+        .add(base.accumulatorInitBlock(builderField))
         .endControlFlow();
     block.beginControlFlow("if (this.$N != null)", field)
         .add(addAllBlock(CodeBlock.of("this.$N", field)))

@@ -17,6 +17,16 @@ import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
+import static net.autobuilder.core.ParaParameter.ADD_ACCUMULATOR_FIELD;
+import static net.autobuilder.core.ParaParameter.ADD_ACCUMULATOR_METHOD;
+import static net.autobuilder.core.ParaParameter.ADD_ACCUMULATOR_OVERLOAD;
+import static net.autobuilder.core.ParaParameter.ADD_OPTIONALISH_OVERLOAD;
+import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
+import static net.autobuilder.core.ParaParameter.CLEANUP_CODE;
+import static net.autobuilder.core.ParaParameter.CLEAR_ACCUMULATOR;
+import static net.autobuilder.core.ParaParameter.GET_FIELD_VALUE;
+import static net.autobuilder.core.ParaParameter.GET_PARAMETER;
+import static net.autobuilder.core.ParaParameter.SETTER_ASSIGNMENT;
 import static net.autobuilder.core.Util.joinCodeBlocks;
 
 final class Analyser {
@@ -57,12 +67,12 @@ final class Analyser {
       builder.addType(PerThreadFactory.createStub(model));
     }
     for (ParaParameter parameter : parameters) {
-      builder.addField(model.getParameter.apply(parameter).asField());
+      builder.addField(GET_PARAMETER.apply(parameter).asField());
       builder.addMethod(setterMethod(parameter));
-      model.addOptionalishOverload.accept(parameter, builder);
-      model.addAccumulatorField.accept(parameter, builder);
-      model.addAccumulatorMethod.accept(parameter, builder);
-      model.addAccumulatorOverload.accept(parameter, builder);
+      ADD_OPTIONALISH_OVERLOAD.accept(parameter, builder);
+      ADD_ACCUMULATOR_FIELD.accept(parameter, builder);
+      ADD_ACCUMULATOR_METHOD.accept(parameter, builder);
+      ADD_ACCUMULATOR_OVERLOAD.accept(parameter, builder);
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(ABSTRACT)
@@ -98,8 +108,8 @@ final class Analyser {
     CodeBlock.Builder block = CodeBlock.builder();
     for (ParaParameter parameter : parameters) {
       block.addStatement("$N.$N = $N.$L()",
-          builder, model.getParameter.apply(parameter).setterName, input,
-          model.getParameter.apply(parameter).getterName);
+          builder, GET_PARAMETER.apply(parameter).setterName, input,
+          GET_PARAMETER.apply(parameter).getterName);
     }
     return MethodSpec.methodBuilder("init")
         .addCode(block.build())
@@ -110,13 +120,13 @@ final class Analyser {
   }
 
   private MethodSpec setterMethod(ParaParameter parameter) {
-    ParameterSpec p = model.asParameter.apply(parameter);
+    ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
     CodeBlock.Builder block = CodeBlock.builder();
-    block.add(model.setterAssignment.apply(parameter));
-    model.clearAccumulator.accept(parameter, block);
+    block.add(SETTER_ASSIGNMENT.apply(parameter));
+    CLEAR_ACCUMULATOR.accept(parameter, block);
     block.addStatement("return this");
     return MethodSpec.methodBuilder(
-        model.getParameter.apply(parameter).setterName)
+        GET_PARAMETER.apply(parameter).setterName)
         .addCode(block.build())
         .addParameter(p)
         .addModifiers(FINAL)
@@ -157,11 +167,11 @@ final class Analyser {
         .build();
     List<CodeBlock> invocation = new ArrayList<>(parameters.size());
     for (ParaParameter parameter : parameters) {
-      invocation.add(model.getFieldValue.apply(parameter, builder));
+      invocation.add(GET_FIELD_VALUE.apply(parameter, builder));
     }
     CodeBlock.Builder cleanup = CodeBlock.builder();
     for (ParaParameter parameter : parameters) {
-      model.cleanupCode.apply(parameter, builder).ifPresent(cleanup::add);
+      CLEANUP_CODE.apply(parameter, builder).ifPresent(cleanup::add);
     }
     return MethodSpec.methodBuilder("build")
         .addCode("$T $N = new $T(\n    ", model.sourceClass, result, model.avType)

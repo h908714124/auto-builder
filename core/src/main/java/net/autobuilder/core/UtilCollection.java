@@ -11,10 +11,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.Collectionish.normalAddAllType;
+import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
 final class UtilCollection extends Collectionish.Base {
@@ -26,28 +26,32 @@ final class UtilCollection extends Collectionish.Base {
       ClassName accumulatorClass,
       String emptyMethod,
       ClassName className,
-      Function<FieldSpec, CodeBlock> builderInitBlock,
       Collectionish.CollectionType type,
       ClassName setterParameterClassName,
       boolean wildTyping) {
-    super(className, builderInitBlock, type, setterParameterClassName,
-        wildTyping);
+    super(className, type, setterParameterClassName, wildTyping);
     this.accumulatorClass = accumulatorClass;
     this.emptyMethod = emptyMethod;
   }
 
   static Collectionish.Base ofUtil(
-      Class<?> className, String emptyMethod, Class<?> builderClass, Collectionish.CollectionType type) {
+      Class<?> className,
+      String emptyMethod,
+      Class<?> builderClass,
+      Collectionish.CollectionType type) {
     return new UtilCollection(
         ClassName.get(builderClass),
         emptyMethod,
         ClassName.get(className),
-        builderField ->
-            CodeBlock.builder().addStatement("this.$N = new $T<>()",
-                builderField, builderClass).build(),
         type,
         ClassName.get(className),
         false);
+  }
+
+  @Override
+  CodeBlock accumulatorInitBlock(FieldSpec builderField) {
+    return CodeBlock.builder().addStatement("this.$N = new $T<>()",
+        builderField, accumulatorClass).build();
   }
 
   @Override
@@ -66,7 +70,7 @@ final class UtilCollection extends Collectionish.Base {
   @Override
   CodeBlock setterAssignment(Parameter parameter) {
     FieldSpec field = parameter.asField();
-    ParameterSpec p = parameter.model.asParameter.apply(parameter);
+    ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
     return CodeBlock.builder()
         .addStatement("this.$N = $N", field, p)
         .build();

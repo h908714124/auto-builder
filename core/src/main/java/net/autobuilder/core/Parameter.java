@@ -69,26 +69,26 @@ final class Parameter extends ParaParameter {
         })
         .collect(toList());
     if (!parameters.stream()
-        .map(model.fieldNames)
+        .map(ParaParameter.FIELD_NAMES)
         .map(List::stream)
         .flatMap(Function.identity())
         .collect(isDistinct()) ||
         !parameters.stream()
-            .map(model.methodNames)
+            .map(ParaParameter.METHOD_NAMES)
             .map(List::stream)
             .flatMap(Function.identity())
             .collect(isDistinct())) {
       parameters = parameters.stream()
-          .map(model.noAccumulator)
+          .map(ParaParameter.NO_ACCUMULATOR)
           .collect(toList());
     }
     if (!parameters.stream()
-        .map(model.methodNames)
+        .map(ParaParameter.METHOD_NAMES)
         .map(List::stream)
         .flatMap(Function.identity())
         .collect(isDistinct())) {
       parameters = parameters.stream()
-          .map(model.originalSetter)
+          .map(ParaParameter.ORIGINAL_SETTER)
           .collect(toList());
     }
     return parameters;

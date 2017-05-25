@@ -8,9 +8,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
 import java.util.Optional;
-import java.util.function.Function;
 
 import static net.autobuilder.core.Collectionish.normalAddAllType;
+import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
 
 final class GuavaCollection extends Collectionish.Base {
 
@@ -18,12 +18,10 @@ final class GuavaCollection extends Collectionish.Base {
 
   private GuavaCollection(
       ClassName className,
-      Function<FieldSpec, CodeBlock> builderInitBlock,
       Collectionish.CollectionType type,
       ClassName setterParameterClassName,
       boolean wildTyping) {
-    super(className, builderInitBlock, type, setterParameterClassName,
-        wildTyping);
+    super(className, type, setterParameterClassName, wildTyping);
   }
 
   static Collectionish.Base ofGuava(
@@ -31,36 +29,37 @@ final class GuavaCollection extends Collectionish.Base {
       Class<?> setterParameterClass,
       Collectionish.CollectionType type) {
     ClassName className = ClassName.get(GCC, simpleName);
-    return new GuavaCollection(
-        className,
-        builderField ->
-            CodeBlock.builder().addStatement("this.$N = $T.builder()",
-                builderField, className).build(),
-        type,
+    return new GuavaCollection(className, type,
         ClassName.get(setterParameterClass),
         true);
   }
 
   @Override
+  CodeBlock accumulatorInitBlock(FieldSpec builderField) {
+    return CodeBlock.builder().addStatement("this.$N = $T.builder()",
+        builderField, collectionClassName).build();
+  }
+
+  @Override
   CodeBlock emptyBlock() {
-    return CodeBlock.of("$T.of()", className);
+    return CodeBlock.of("$T.of()", collectionClassName);
   }
 
   @Override
   ParameterizedTypeName accumulatorType(Parameter parameter) {
     ParameterizedTypeName typeName =
         (ParameterizedTypeName) TypeName.get(parameter.variableElement.asType());
-    return ParameterizedTypeName.get(className.nestedClass("Builder"),
+    return ParameterizedTypeName.get(collectionClassName.nestedClass("Builder"),
         typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
   }
 
   @Override
   CodeBlock setterAssignment(Parameter parameter) {
     FieldSpec field = parameter.asField();
-    ParameterSpec p = parameter.model.asParameter.apply(parameter);
+    ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
     return CodeBlock.builder()
         .addStatement("this.$N = $N != null ? $T.copyOf($N) : null",
-            field, p, className, p)
+            field, p, collectionClassName, p)
         .build();
   }
 
