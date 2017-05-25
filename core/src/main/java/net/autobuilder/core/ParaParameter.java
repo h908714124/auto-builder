@@ -3,7 +3,6 @@ package net.autobuilder.core;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -16,7 +15,6 @@ import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static javax.lang.model.element.Modifier.FINAL;
 
 abstract class ParaParameter {
 
@@ -29,15 +27,15 @@ abstract class ParaParameter {
     abstract R optionalish(Optionalish optionalish, P p);
   }
 
-  static <R> Function<ParaParameter, R> asFunction(Cases<R, Void> cases) {
+  private static <R> Function<ParaParameter, R> asFunction(Cases<R, Void> cases) {
     return parameter -> parameter.accept(cases, null);
   }
 
-  static <P> BiConsumer<ParaParameter, P> asConsumer(Cases<Void, P> cases) {
+  private static <P> BiConsumer<ParaParameter, P> asConsumer(Cases<Void, P> cases) {
     return (parameter, p) -> parameter.accept(cases, p);
   }
 
-  static <R, P> BiFunction<ParaParameter, P, R> biFunction(Cases<R, P> cases) {
+  private static <R, P> BiFunction<ParaParameter, P, R> biFunction(Cases<R, P> cases) {
     return (parameter, p) -> parameter.accept(cases, p);
   }
 
@@ -193,11 +191,7 @@ abstract class ParaParameter {
 
         @Override
         CodeBlock optionalish(Optionalish optionalish, ParameterSpec builder) {
-          FieldSpec field = optionalish.parameter.asField();
-          return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
-              builder, field,
-              builder, field,
-              optionalish.wrapper);
+          return optionalish.getFieldValue(builder);
         }
       });
 
@@ -235,27 +229,7 @@ abstract class ParaParameter {
 
         @Override
         Void optionalish(Optionalish optionalish, TypeSpec.Builder builder) {
-          if (!optionalish.convenienceOverload()) {
-            return null;
-          }
-          FieldSpec f = optionalish.parameter.asField();
-          ParameterSpec p = ParameterSpec.builder(optionalish.wrapped,
-              optionalish.parameter.setterName).build();
-          CodeBlock.Builder block = CodeBlock.builder();
-          if (optionalish.isOptional()) {
-            block.addStatement("this.$N = $T.$L($N)", f, optionalish.wrapper, optionalish.of, p);
-          } else {
-            block.addStatement("this.$N = $T.of($N)", f, optionalish.wrapper, p);
-          }
-          builder.addMethod(MethodSpec.methodBuilder(
-              optionalish.parameter.setterName)
-              .addCode(block.build())
-              .addStatement("return this")
-              .addParameter(p)
-              .addModifiers(FINAL)
-              .addModifiers(optionalish.parameter.model.maybePublic())
-              .returns(optionalish.parameter.model.generatedClass)
-              .build());
+          builder.addMethod(optionalish.convenienceOverloadMethod());
           return null;
         }
       });
@@ -334,12 +308,9 @@ abstract class ParaParameter {
         }
         @Override
         Optional<CodeBlock> optionalish(Optionalish optionalish, ParameterSpec builder) {
-          if (optionalish.convenienceOverload()) {
-            return Optional.of(CodeBlock.builder().addStatement("$N.$L(($T) null)",
-                builder, optionalish.parameter.setterName,
-                optionalish.parameter.type).build());
-          }
-          return this.parameter(optionalish.parameter, builder);
+          return Optional.of(CodeBlock.builder().addStatement("$N.$L(($T) null)",
+              builder, optionalish.parameter.setterName,
+              optionalish.parameter.type).build());
         }
       });
 
