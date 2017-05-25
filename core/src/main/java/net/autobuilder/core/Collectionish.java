@@ -101,6 +101,38 @@ final class Collectionish extends ParaParameter {
     this.wildTyping = wildTyping;
   }
 
+  static Optional<ParaParameter> create(Parameter parameter) {
+    if (!(parameter.type instanceof ParameterizedTypeName)) {
+      return Optional.empty();
+    }
+    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
+    Collectionish collectionish = KNOWN.get(type.rawType);
+    if (collectionish == null) {
+      return Optional.empty();
+    }
+    if (collectionish.type.typeParams != type.typeArguments.size()) {
+      return Optional.empty();
+    }
+    return Optional.of(collectionish.withParameter(parameter));
+  }
+
+  static Optional<CodeBlock> emptyBlock(Parameter parameter, ParameterSpec builder) {
+    if (!(parameter.type instanceof ParameterizedTypeName)) {
+      return Optional.empty();
+    }
+    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
+    Collectionish collectionish = KNOWN.get(type.rawType);
+    if (collectionish == null) {
+      return Optional.empty();
+    }
+    FieldSpec field = parameter.asField();
+    return Optional.of(CodeBlock.builder()
+        .add("$N.$N != null ? $N.$N : ",
+            builder, field, builder, field)
+        .add(collectionish.emptyBlock.get())
+        .build());
+  }
+
   private static Collectionish ofUtil(
       Class<?> className, String emptyMethod, Class<?> builderClass, CollectionType type) {
     ClassName accumulatorAddAllType = type == LIST ? ClassName.get(Collection.class) : ClassName.get(Map.class);
@@ -181,42 +213,12 @@ final class Collectionish extends ParaParameter {
         true);
   }
 
-  static Optional<ParaParameter> create(Parameter parameter) {
-    if (!(parameter.type instanceof ParameterizedTypeName)) {
-      return Optional.empty();
-    }
-    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
-    Collectionish collectionish = KNOWN.get(type.rawType);
-    if (collectionish == null) {
-      return Optional.empty();
-    }
-    if (collectionish.type.typeParams != type.typeArguments.size()) {
-      return Optional.empty();
-    }
-    return Optional.of(collectionish.withParameter(parameter));
-  }
-
   private static Map<ClassName, Collectionish> map(Collectionish... collectionishes) {
     Map<ClassName, Collectionish> map = new HashMap<>(collectionishes.length);
     for (Collectionish collectionish : collectionishes) {
       map.put(collectionish.className, collectionish);
     }
     return map;
-  }
-
-  Collectionish noAccumulator() {
-    if (!hasAccumulator()) {
-      return this;
-    }
-    return new Collectionish(className, parameter, builderInitBlock, emptyBlock, type,
-        setterParameterClassName, null, setterAssignment, accumulatorType, addAllType, addAllBlock, buildBlock,
-        wildTyping);
-  }
-
-  Collectionish withParameter(Parameter parameter) {
-    return new Collectionish(className, parameter, builderInitBlock, emptyBlock, type,
-        setterParameterClassName, accumulatorAddAllType, setterAssignment, accumulatorType, addAllType, addAllBlock, buildBlock,
-        wildTyping);
   }
 
   private static CodeBlock normalAddAll(Collectionish collectionish, CodeBlock what) {
@@ -235,12 +237,16 @@ final class Collectionish extends ParaParameter {
         .build();
   }
 
-  String addMethod() {
+  private String addMethod() {
     return type == LIST ? "add" : "put";
   }
 
-  boolean hasAccumulator() {
-    return accumulatorAddAllType != null;
+  private ParameterizedTypeName builderType() {
+    return accumulatorType.apply(this);
+  }
+
+  private CodeBlock addAllBlock(CodeBlock what) {
+    return addAllBlock.apply(this, what);
   }
 
   private static Function<Collectionish, Optional<ParameterizedTypeName>> normalAddAllType(
@@ -267,24 +273,12 @@ final class Collectionish extends ParaParameter {
   }
 
   String builderFieldName() {
-    if (!hasAccumulator()) {
-      throw new AssertionError();
-    }
     return downcase(parameter.setterName) + "Builder";
   }
 
   FieldSpec asBuilderField() {
     return FieldSpec.builder(builderType(),
         builderFieldName()).addModifiers(PRIVATE).build();
-  }
-
-
-  ParameterizedTypeName builderType() {
-    return accumulatorType.apply(this);
-  }
-
-  CodeBlock addAllBlock(CodeBlock what) {
-    return addAllBlock.apply(this, what);
   }
 
   String accumulatorName() {
@@ -405,6 +399,12 @@ final class Collectionish extends ParaParameter {
         .addModifiers(model.maybePublic())
         .returns(model.generatedClass)
         .build();
+  }
+
+  Collectionish withParameter(Parameter parameter) {
+    return new Collectionish(className, parameter, builderInitBlock, emptyBlock, type,
+        setterParameterClassName, accumulatorAddAllType, setterAssignment,
+        accumulatorType, addAllType, addAllBlock, buildBlock, wildTyping);
   }
 
   @Override

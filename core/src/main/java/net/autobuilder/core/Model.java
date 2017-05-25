@@ -199,9 +199,7 @@ final class Model {
 
         @Override
         List<String> collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.hasAccumulator() ?
-              asList(collectionish.parameter.setterName, collectionish.accumulatorName()) :
-              singletonList(collectionish.parameter.setterName);
+          return asList(collectionish.parameter.setterName, collectionish.accumulatorName());
         }
 
         @Override
@@ -219,9 +217,8 @@ final class Model {
 
         @Override
         List<String> collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.hasAccumulator() ?
-              asList(collectionish.parameter.setterName, collectionish.builderFieldName()) :
-              singletonList(collectionish.parameter.setterName);
+          return asList(collectionish.parameter.setterName,
+              collectionish.builderFieldName());
         }
 
         @Override
@@ -239,7 +236,7 @@ final class Model {
 
         @Override
         ParaParameter collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.noAccumulator();
+          return collectionish.parameter;
         }
 
         @Override
@@ -318,26 +315,21 @@ final class Model {
       biFunction(new ParaParameter.Cases<CodeBlock, ParameterSpec>() {
         @Override
         CodeBlock parameter(Parameter parameter, ParameterSpec builder) {
-          return CodeBlock.of("$N.$N", builder, parameter.asField());
+          return Collectionish.emptyBlock(parameter, builder)
+              .orElse(CodeBlock.of("$N.$N", builder, parameter.asField()));
         }
 
         @Override
         CodeBlock collectionish(Collectionish collectionish, ParameterSpec builder) {
           FieldSpec field = collectionish.parameter.asField();
-          CodeBlock getCollection = CodeBlock.builder()
-              .add("$N.$N != null ? $N.$N : ",
-                  builder, field, builder, field)
-              .add(collectionish.emptyBlock.get())
-              .build();
-          if (!collectionish.hasAccumulator()) {
-            return getCollection;
-          }
           FieldSpec builderField = collectionish.asBuilderField();
           return CodeBlock.builder()
               .add("$N.$N != null ? ", builder, builderField)
               .add(collectionish.buildBlock.apply(builder, builderField))
               .add(" :\n        ")
-              .add(getCollection)
+              .add("$N.$N != null ? $N.$N : ",
+                  builder, field, builder, field)
+              .add(collectionish.emptyBlock.get())
               .build();
         }
 
@@ -360,10 +352,8 @@ final class Model {
 
         @Override
         Void collectionish(Collectionish collectionish, CodeBlock.Builder builder) {
-          if (collectionish.hasAccumulator()) {
-            builder.addStatement("this.$N = null",
-                collectionish.asBuilderField());
-          }
+          builder.addStatement("this.$N = null",
+              collectionish.asBuilderField());
           return null;
         }
 
@@ -421,9 +411,6 @@ final class Model {
 
         @Override
         Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          if (!collectionish.hasAccumulator()) {
-            return null;
-          }
           builder.addField(collectionish.asBuilderField());
           return null;
         }
@@ -443,9 +430,6 @@ final class Model {
 
         @Override
         Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          if (!collectionish.hasAccumulator()) {
-            return null;
-          }
           builder.addMethod(collectionish.type == CollectionType.MAP ?
               collectionish.putInMethod(Model.this) :
               collectionish.addToMethod(Model.this));
@@ -467,9 +451,6 @@ final class Model {
 
         @Override
         Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          if (!collectionish.hasAccumulator()) {
-            return null;
-          }
           collectionish.addAllType.apply(collectionish).ifPresent(addAllType ->
               builder.addMethod(collectionish.type == CollectionType.MAP ?
                   collectionish.putAllInMethod(Model.this, addAllType) :
