@@ -181,7 +181,8 @@ abstract class ParaParameter {
         @Override
         CodeBlock parameter(Parameter parameter, ParameterSpec builder) {
           return Collectionish.emptyBlock(parameter, builder)
-              .orElse(CodeBlock.of("$N.$N", builder, parameter.asField()));
+              .orElse(Optionalish.emptyBlock(parameter, builder)
+                  .orElse(CodeBlock.of("$N.$N", builder, parameter.asField())));
         }
 
         @Override

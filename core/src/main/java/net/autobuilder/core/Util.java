@@ -87,9 +87,18 @@ final class Util {
     if (declaredType == null) {
       throw new AssertionError();
     }
-    return declaredType.getTypeArguments()
-        .stream()
+    return declaredType.getTypeArguments().stream()
         .map(Util::subtypeOf)
+        .toArray(TypeName[]::new);
+  }
+
+  static TypeName[] typeArguments(VariableElement variableElement) {
+    DeclaredType declaredType = variableElement.asType().accept(AS_DECLARED, null);
+    if (declaredType == null) {
+      throw new AssertionError();
+    }
+    return declaredType.getTypeArguments().stream()
+        .map(TypeName::get)
         .toArray(TypeName[]::new);
   }
 

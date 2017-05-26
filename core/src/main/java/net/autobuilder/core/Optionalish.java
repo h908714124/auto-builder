@@ -54,7 +54,32 @@ final class Optionalish extends ParaParameter {
     this.of = of;
   }
 
+  private static final class CheckoutResult {
+    final DeclaredType declaredType;
+    final Optionalish optionalish;
+    CheckoutResult(DeclaredType declaredType, Optionalish optionalish) {
+      this.declaredType = declaredType;
+      this.optionalish = optionalish;
+    }
+  }
+
   static Optional<ParaParameter> create(Parameter parameter) {
+    return checkout(parameter)
+        .filter(checkoutResult -> checkoutResult.optionalish.wrapped.isPrimitive() ||
+            !equalsType(checkoutResult.declaredType.getTypeArguments().get(0),
+                JAVA_UTIL_OPTIONAL))
+        .map(checkoutResult -> checkoutResult.optionalish);
+  }
+
+  static Optional<CodeBlock> emptyBlock(Parameter parameter, ParameterSpec builder) {
+    FieldSpec field = parameter.asField();
+    return checkout(parameter)
+        .map(checkoutResult -> checkoutResult.optionalish)
+        .map(optionalish -> CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
+            builder, field, builder, field, optionalish.wrapper));
+  }
+
+  private static Optional<CheckoutResult> checkout(Parameter parameter) {
     TypeMirror type = parameter.variableElement.asType();
     DeclaredType declaredType = type.accept(AS_DECLARED, null);
     if (declaredType == null) {
@@ -70,18 +95,16 @@ final class Optionalish extends ParaParameter {
     if (declaredType.getTypeArguments().isEmpty()) {
       TypeName primitive = OPTIONAL_PRIMITIVES.get(typeElement.getQualifiedName().toString());
       return primitive != null ?
-          Optional.of(new Optionalish(parameter, ClassName.get(typeElement), primitive, "of")) :
+          Optional.of(new CheckoutResult(declaredType,
+              new Optionalish(parameter, ClassName.get(typeElement), primitive, "of"))) :
           Optional.empty();
     }
-    if (!equalsType(type, JAVA_UTIL_OPTIONAL)) {
-      return Optional.empty();
-    }
-    if (equalsType(declaredType.getTypeArguments().get(0), JAVA_UTIL_OPTIONAL)) {
-      return Optional.empty();
-    }
-    return Optional.of(new Optionalish(parameter, OPTIONAL_CLASS,
-        TypeName.get(declaredType.getTypeArguments().get(0)),
-        OF_NULLABLE));
+    return equalsType(type, JAVA_UTIL_OPTIONAL) ?
+        Optional.of(new CheckoutResult(declaredType,
+            new Optionalish(parameter, OPTIONAL_CLASS,
+                TypeName.get(declaredType.getTypeArguments().get(0)),
+                OF_NULLABLE))) :
+        Optional.empty();
   }
 
   MethodSpec convenienceOverloadMethod() {

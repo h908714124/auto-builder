@@ -11,13 +11,12 @@ import java.util.Map;
 
 import static com.squareup.javapoet.WildcardTypeName.subtypeOf;
 import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
-import static net.autobuilder.core.Util.className;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
 final class GuavaCollection extends Collectionish.Base {
 
   private static final ClassName MAP_ENTRY = ClassName.get(Map.Entry.class);
-  private static final String GCC = "com.google.common.collect";
+  private static final String GCC = "com.google.common.collect.";
 
   private final ClassName setterParameterClassName;
 
@@ -40,19 +39,19 @@ final class GuavaCollection extends Collectionish.Base {
   @Override
   CodeBlock accumulatorInitBlock(FieldSpec builderField) {
     return CodeBlock.builder().addStatement("this.$N = $T.builder()",
-        builderField, collectionClassName).build();
+        builderField, collectionClassName()).build();
   }
 
   @Override
   CodeBlock emptyBlock() {
-    return CodeBlock.of("$T.of()", collectionClassName);
+    return CodeBlock.of("$T.of()", collectionClassName());
   }
 
   @Override
   ParameterizedTypeName accumulatorType(Parameter parameter) {
     ParameterizedTypeName typeName =
         (ParameterizedTypeName) TypeName.get(parameter.variableElement.asType());
-    return ParameterizedTypeName.get(className(collectionClassName).nestedClass("Builder"),
+    return ParameterizedTypeName.get(collectionClassName().nestedClass("Builder"),
         typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
   }
 
@@ -61,8 +60,8 @@ final class GuavaCollection extends Collectionish.Base {
     TypeName[] typeArguments = typeArgumentSubtypes(
         parameter.variableElement);
     return collectionType == Collectionish.CollectionType.LIST ?
-        ParameterizedTypeName.get(className(overloadArgumentType), typeArguments) :
-        ParameterizedTypeName.get(className(overloadArgumentType),
+        ParameterizedTypeName.get(overloadArgumentType(), typeArguments) :
+        ParameterizedTypeName.get(overloadArgumentType(),
             subtypeOf(ParameterizedTypeName.get(MAP_ENTRY, typeArguments)));
   }
 
@@ -72,7 +71,7 @@ final class GuavaCollection extends Collectionish.Base {
     ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
     return CodeBlock.builder()
         .addStatement("this.$N = $N != null ? $T.copyOf($N) : null",
-            field, p, collectionClassName, p)
+            field, p, collectionClassName(), p)
         .build();
   }
 

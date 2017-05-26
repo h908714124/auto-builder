@@ -1,5 +1,6 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
@@ -23,6 +24,7 @@ import static net.autobuilder.core.Collectionish.CollectionType.MAP;
 import static net.autobuilder.core.GuavaCollection.ofGuava;
 import static net.autobuilder.core.Util.AS_DECLARED;
 import static net.autobuilder.core.Util.AS_TYPE_ELEMENT;
+import static net.autobuilder.core.Util.className;
 import static net.autobuilder.core.Util.downcase;
 import static net.autobuilder.core.Util.equalsType;
 import static net.autobuilder.core.Util.upcase;
@@ -43,8 +45,9 @@ final class Collectionish extends ParaParameter {
 
   static abstract class Base {
 
-    final String collectionClassName;
-    final String overloadArgumentType;
+    private final String collectionClassName;
+    private final String overloadArgumentType;
+
     final CollectionType collectionType;
 
     abstract CodeBlock accumulatorInitBlock(FieldSpec builderField);
@@ -61,6 +64,14 @@ final class Collectionish extends ParaParameter {
       this.collectionClassName = collectionClassName;
       this.overloadArgumentType = overloadArgumentType;
       this.collectionType = collectionType;
+    }
+
+    ClassName overloadArgumentType() {
+      return className(overloadArgumentType);
+    }
+
+    ClassName collectionClassName() {
+      return className(collectionClassName);
     }
   }
 

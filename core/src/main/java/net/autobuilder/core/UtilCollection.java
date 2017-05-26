@@ -11,8 +11,8 @@ import java.util.Collections;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
-import static net.autobuilder.core.Util.className;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
+import static net.autobuilder.core.Util.typeArguments;
 
 final class UtilCollection extends Collectionish.Base {
 
@@ -69,7 +69,7 @@ final class UtilCollection extends Collectionish.Base {
   ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter) {
     TypeName[] typeArguments = typeArgumentSubtypes(
         parameter.variableElement);
-    return ParameterizedTypeName.get(className(overloadArgumentType),
+    return ParameterizedTypeName.get(overloadArgumentType(),
         typeArguments);
   }
 
@@ -89,10 +89,9 @@ final class UtilCollection extends Collectionish.Base {
 
   @Override
   ParameterSpec setterParameter(Parameter parameter) {
-    TypeName type =
-        ParameterizedTypeName.get(className(collectionClassName),
-            typeArgumentSubtypes(
-                parameter.variableElement));
+    TypeName type = ParameterizedTypeName.get(
+        collectionClassName(),
+        typeArguments(parameter.variableElement));
     return ParameterSpec.builder(type, parameter.setterName).build();
   }
 }
