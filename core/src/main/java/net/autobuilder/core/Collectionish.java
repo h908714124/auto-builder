@@ -61,20 +61,14 @@ final class Collectionish extends ParaParameter {
     abstract Optional<ParameterizedTypeName> addAllType(Parameter parameter);
     abstract CodeBlock setterAssignment(Parameter parameter);
     abstract CodeBlock buildBlock(ParameterSpec builder, FieldSpec field);
+    abstract ParameterSpec setterParameter(Parameter parameter);
 
     final CollectionType collectionType;
 
-    private final ClassName setterParameterClassName;
-    private final boolean setterParameterWildTyping;
-
     Base(ClassName collectionClassName,
-         CollectionType collectionType,
-         ClassName setterParameterClassName,
-         boolean setterParameterWildTyping) {
+         CollectionType collectionType) {
       this.collectionClassName = collectionClassName;
       this.collectionType = collectionType;
-      this.setterParameterClassName = setterParameterClassName;
-      this.setterParameterWildTyping = setterParameterWildTyping;
     }
   }
 
@@ -175,12 +169,7 @@ final class Collectionish extends ParaParameter {
   }
 
   ParameterSpec asSetterParameter() {
-    TypeName type = base.setterParameterWildTyping ?
-        ParameterizedTypeName.get(base.setterParameterClassName,
-            typeArgumentSubtypes(
-                parameter.variableElement)) :
-        parameter.type;
-    return ParameterSpec.builder(type, parameter.setterName).build();
+    return base.setterParameter(parameter);
   }
 
   private CodeBlock normalAddAll(CodeBlock what) {

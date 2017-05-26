@@ -11,17 +11,20 @@ import java.util.Optional;
 
 import static net.autobuilder.core.Collectionish.normalAddAllType;
 import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
+import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
 final class GuavaCollection extends Collectionish.Base {
 
   private static final String GCC = "com.google.common.collect";
 
+  private final ClassName setterParameterClassName;
+
   private GuavaCollection(
       ClassName className,
       Collectionish.CollectionType type,
-      ClassName setterParameterClassName,
-      boolean wildTyping) {
-    super(className, type, setterParameterClassName, wildTyping);
+      ClassName setterParameterClassName) {
+    super(className, type);
+    this.setterParameterClassName = setterParameterClassName;
   }
 
   static Collectionish.Base ofGuava(
@@ -30,8 +33,7 @@ final class GuavaCollection extends Collectionish.Base {
       Collectionish.CollectionType type) {
     ClassName className = ClassName.get(GCC, simpleName);
     return new GuavaCollection(className, type,
-        ClassName.get(setterParameterClass),
-        true);
+        ClassName.get(setterParameterClass));
   }
 
   @Override
@@ -66,6 +68,15 @@ final class GuavaCollection extends Collectionish.Base {
   @Override
   CodeBlock buildBlock(ParameterSpec builder, FieldSpec field) {
     return CodeBlock.of("$N.$N.build()", builder, field);
+  }
+
+  @Override
+  ParameterSpec setterParameter(Parameter parameter) {
+    TypeName type =
+        ParameterizedTypeName.get(setterParameterClassName,
+            typeArgumentSubtypes(
+                parameter.variableElement));
+    return ParameterSpec.builder(type, parameter.setterName).build();
   }
 
   @Override

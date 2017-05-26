@@ -21,15 +21,16 @@ final class UtilCollection extends Collectionish.Base {
 
   private final String emptyMethod;
   private final ClassName accumulatorClass;
+  private final ClassName setterParameterClassName;
 
   private UtilCollection(
       ClassName accumulatorClass,
       String emptyMethod,
       ClassName className,
       Collectionish.CollectionType type,
-      ClassName setterParameterClassName,
-      boolean wildTyping) {
-    super(className, type, setterParameterClassName, wildTyping);
+      ClassName setterParameterClassName) {
+    super(className, type);
+    this.setterParameterClassName = setterParameterClassName;
     this.accumulatorClass = accumulatorClass;
     this.emptyMethod = emptyMethod;
   }
@@ -44,8 +45,7 @@ final class UtilCollection extends Collectionish.Base {
         emptyMethod,
         ClassName.get(className),
         type,
-        ClassName.get(className),
-        false);
+        ClassName.get(className));
   }
 
   @Override
@@ -79,6 +79,15 @@ final class UtilCollection extends Collectionish.Base {
   @Override
   CodeBlock buildBlock(ParameterSpec builder, FieldSpec field) {
     return CodeBlock.of("$N.$N", builder, field);
+  }
+
+  @Override
+  ParameterSpec setterParameter(Parameter parameter) {
+    TypeName type =
+        ParameterizedTypeName.get(setterParameterClassName,
+            typeArgumentSubtypes(
+                parameter.variableElement));
+    return ParameterSpec.builder(type, parameter.setterName).build();
   }
 
   @Override
