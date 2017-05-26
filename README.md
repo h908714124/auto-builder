@@ -1,7 +1,5 @@
 # auto-builder
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder)
-
 This ~~very~~ simple annotation processor relieves the 
 user of the repetitive drudgery that comes with `@AutoValue.Builder`.
 The repetition of property names is, by auto-value's design choice 
