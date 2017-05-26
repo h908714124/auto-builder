@@ -281,7 +281,7 @@ abstract class ParaParameter {
 
         @Override
         Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          collectionish.accumulatorMethodOverload().ifPresent(builder::addMethod);
+          builder.addMethod(collectionish.accumulatorMethodOverload());
           return null;
         }
 

@@ -1,21 +1,19 @@
 package net.autobuilder.core;
 
-import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.WildcardTypeName;
 
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.FINAL;
@@ -23,14 +21,14 @@ import static javax.lang.model.element.Modifier.PRIVATE;
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.Collectionish.CollectionType.MAP;
 import static net.autobuilder.core.GuavaCollection.ofGuava;
+import static net.autobuilder.core.Util.AS_DECLARED;
+import static net.autobuilder.core.Util.AS_TYPE_ELEMENT;
 import static net.autobuilder.core.Util.downcase;
-import static net.autobuilder.core.Util.typeArgumentSubtypes;
+import static net.autobuilder.core.Util.equalsType;
 import static net.autobuilder.core.Util.upcase;
 import static net.autobuilder.core.UtilCollection.ofUtil;
 
 final class Collectionish extends ParaParameter {
-
-  private static final ClassName ENTRY_CLASS = ClassName.get(Map.Entry.class);
 
   enum CollectionType {
     LIST(1, "addTo"), MAP(2, "putIn");
@@ -43,34 +41,45 @@ final class Collectionish extends ParaParameter {
     }
   }
 
-  private static final Map<ClassName, Base> KNOWN = map(
-      ofUtil(List.class, "emptyList", ArrayList.class, LIST),
-      ofUtil(Set.class, "emptySet", HashSet.class, LIST),
-      ofUtil(Map.class, "emptyMap", HashMap.class, MAP),
-      ofGuava("ImmutableList", Iterable.class, LIST),
-      ofGuava("ImmutableSet", Iterable.class, LIST),
-      ofGuava("ImmutableMap", Map.class, MAP));
-
   static abstract class Base {
 
-    final ClassName collectionClassName;
+    final String collectionClassName;
+    final String overloadArgumentType;
+    final CollectionType collectionType;
 
     abstract CodeBlock accumulatorInitBlock(FieldSpec builderField);
     abstract CodeBlock emptyBlock();
     abstract ParameterizedTypeName accumulatorType(Parameter parameter);
-    abstract Optional<ParameterizedTypeName> addAllType(Parameter parameter);
+    abstract ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter);
     abstract CodeBlock setterAssignment(Parameter parameter);
     abstract CodeBlock buildBlock(ParameterSpec builder, FieldSpec field);
     abstract ParameterSpec setterParameter(Parameter parameter);
 
-    final CollectionType collectionType;
-
-    Base(ClassName collectionClassName,
+    Base(String collectionClassName,
+         String overloadArgumentType,
          CollectionType collectionType) {
       this.collectionClassName = collectionClassName;
+      this.overloadArgumentType = overloadArgumentType;
       this.collectionType = collectionType;
     }
   }
+
+  private static final class LookupResult {
+    final Base base;
+    final DeclaredType declaredType;
+    LookupResult(Base base, DeclaredType declaredType) {
+      this.base = base;
+      this.declaredType = declaredType;
+    }
+  }
+
+  private static final Map<String, Base> LOOKUP = createLookup(
+      ofUtil("List", "emptyList", ArrayList.class, LIST),
+      ofUtil("Set", "emptySet", HashSet.class, LIST),
+      ofUtil("Map", "emptyMap", HashMap.class, MAP),
+      ofGuava("ImmutableList", Iterable.class, LIST),
+      ofGuava("ImmutableSet", Iterable.class, LIST),
+      ofGuava("ImmutableMap", Map.class, MAP));
 
   private final Base base;
 
@@ -82,39 +91,49 @@ final class Collectionish extends ParaParameter {
   }
 
   static Optional<ParaParameter> create(Parameter parameter) {
-    if (!(parameter.type instanceof ParameterizedTypeName)) {
-      return Optional.empty();
-    }
-    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
-    Base base = KNOWN.get(type.rawType);
-    if (base == null) {
-      return Optional.empty();
-    }
-    if (base.collectionType.typeParams != type.typeArguments.size()) {
-      return Optional.empty();
-    }
-    return Optional.of(new Collectionish(base, parameter));
+    return lookup(parameter).map(lookupResult ->
+        new Collectionish(lookupResult.base, parameter));
   }
 
   static Optional<CodeBlock> emptyBlock(Parameter parameter, ParameterSpec builder) {
-    if (!(parameter.type instanceof ParameterizedTypeName)) {
+    return lookup(parameter).map(lookupResult -> {
+      FieldSpec field = parameter.asField();
+      return CodeBlock.builder()
+          .add("$N.$N != null ? $N.$N : ",
+              builder, field, builder, field)
+          .add(lookupResult.base.emptyBlock())
+          .build();
+    });
+  }
+
+  private static Optional<LookupResult> lookup(Parameter parameter) {
+    TypeMirror type = parameter.variableElement.asType();
+    DeclaredType declaredType = type.accept(AS_DECLARED, null);
+    if (declaredType == null) {
       return Optional.empty();
     }
-    ParameterizedTypeName type = (ParameterizedTypeName) parameter.type;
-    Base base = KNOWN.get(type.rawType);
+    TypeElement typeElement = declaredType.asElement().accept(AS_TYPE_ELEMENT, null);
+    if (typeElement == null) {
+      return Optional.empty();
+    }
+    Base base = LOOKUP.get(typeElement.getQualifiedName().toString());
     if (base == null) {
       return Optional.empty();
     }
-    FieldSpec field = parameter.asField();
-    return Optional.of(CodeBlock.builder()
-        .add("$N.$N != null ? $N.$N : ",
-            builder, field, builder, field)
-        .add(base.emptyBlock())
-        .build());
+    if (base.collectionType.typeParams !=
+        declaredType.getTypeArguments().size()) {
+      return Optional.empty();
+    }
+    if (base.collectionType.typeParams == 1 &&
+        equalsType(declaredType.getTypeArguments().get(0),
+            base.overloadArgumentType)) {
+      return Optional.empty();
+    }
+    return Optional.of(new LookupResult(base, declaredType));
   }
 
-  private static Map<ClassName, Base> map(Base... bases) {
-    Map<ClassName, Base> map = new HashMap<>(bases.length);
+  private static Map<String, Base> createLookup(Base... bases) {
+    Map<String, Base> map = new HashMap<>(bases.length);
     for (Base base : bases) {
       map.put(base.collectionClassName, base);
     }
@@ -127,11 +146,11 @@ final class Collectionish extends ParaParameter {
         addToMethod();
   }
 
-  Optional<MethodSpec> accumulatorMethodOverload() {
-    return base.addAllType(parameter).map(addAllType ->
-        base.collectionType == CollectionType.MAP ?
-            putAllInMethod(addAllType) :
-            addAllToMethod(addAllType));
+  MethodSpec accumulatorMethodOverload() {
+    ParameterizedTypeName addAllType = base.accumulatorOverloadArgumentType(parameter);
+    return base.collectionType == CollectionType.MAP ?
+        putAllInMethod(addAllType) :
+        addAllToMethod(addAllType);
   }
 
   CodeBlock getFieldValue(ParameterSpec builder) {
@@ -186,28 +205,6 @@ final class Collectionish extends ParaParameter {
         .addStatement("this.$N.putAll($L)",
             builderField, what)
         .build();
-  }
-
-  static Optional<ParameterizedTypeName> normalAddAllType(
-      Parameter parameter,
-      CollectionType type,
-      ClassName accumulatorAddAllType) {
-    ParameterizedTypeName typeName =
-        (ParameterizedTypeName) parameter.type;
-    if (type.typeParams == 1 &&
-        typeName.rawType.equals(accumulatorAddAllType)) {
-      return Optional.empty();
-    }
-    TypeName[] typeArguments = typeArgumentSubtypes(
-        parameter.variableElement);
-    if (type == Collectionish.CollectionType.LIST) {
-      return Optional.of(ParameterizedTypeName.get(
-          accumulatorAddAllType, typeArguments));
-    }
-    return Optional.of(
-        ParameterizedTypeName.get(accumulatorAddAllType,
-            WildcardTypeName.subtypeOf(ParameterizedTypeName.get(
-                ENTRY_CLASS, typeArguments))));
   }
 
   private String addMethod() {

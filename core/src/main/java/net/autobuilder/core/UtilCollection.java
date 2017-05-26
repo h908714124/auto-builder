@@ -7,45 +7,43 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
-import static net.autobuilder.core.Collectionish.normalAddAllType;
 import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
+import static net.autobuilder.core.Util.className;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
 final class UtilCollection extends Collectionish.Base {
 
   private final String emptyMethod;
   private final ClassName accumulatorClass;
-  private final ClassName setterParameterClassName;
 
   private UtilCollection(
       ClassName accumulatorClass,
       String emptyMethod,
-      ClassName className,
+      String className,
       Collectionish.CollectionType type,
-      ClassName setterParameterClassName) {
-    super(className, type);
-    this.setterParameterClassName = setterParameterClassName;
+      String accumulatorAddAllType) {
+    super(className, accumulatorAddAllType, type);
     this.accumulatorClass = accumulatorClass;
     this.emptyMethod = emptyMethod;
   }
 
   static Collectionish.Base ofUtil(
-      Class<?> className,
+      String simpleName,
       String emptyMethod,
       Class<?> builderClass,
-      Collectionish.CollectionType type) {
+      Collectionish.CollectionType collectionType) {
+    String accumulatorAddAllType = collectionType == LIST ?
+        "java.util.Collection" :
+        "java.util.Map";
     return new UtilCollection(
         ClassName.get(builderClass),
         emptyMethod,
-        ClassName.get(className),
-        type,
-        ClassName.get(className));
+        "java.util." + simpleName,
+        collectionType,
+        accumulatorAddAllType);
   }
 
   @Override
@@ -68,6 +66,14 @@ final class UtilCollection extends Collectionish.Base {
   }
 
   @Override
+  ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter) {
+    TypeName[] typeArguments = typeArgumentSubtypes(
+        parameter.variableElement);
+    return ParameterizedTypeName.get(className(overloadArgumentType),
+        typeArguments);
+  }
+
+  @Override
   CodeBlock setterAssignment(Parameter parameter) {
     FieldSpec field = parameter.asField();
     ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
@@ -84,22 +90,9 @@ final class UtilCollection extends Collectionish.Base {
   @Override
   ParameterSpec setterParameter(Parameter parameter) {
     TypeName type =
-        ParameterizedTypeName.get(setterParameterClassName,
+        ParameterizedTypeName.get(className(collectionClassName),
             typeArgumentSubtypes(
                 parameter.variableElement));
     return ParameterSpec.builder(type, parameter.setterName).build();
-  }
-
-  @Override
-  Optional<ParameterizedTypeName> addAllType(Parameter parameter) {
-    ClassName accumulatorAddAllType = collectionType == LIST ?
-        ClassName.get(Collection.class) :
-        ClassName.get(Map.class);
-    return collectionType == LIST ?
-        normalAddAllType(parameter, collectionType, accumulatorAddAllType) :
-        Optional.of(
-            ParameterizedTypeName.get(accumulatorAddAllType,
-                typeArgumentSubtypes(parameter.variableElement)));
-
   }
 }

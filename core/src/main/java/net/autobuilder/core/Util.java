@@ -197,4 +197,10 @@ final class Util {
     return processingEnv.getElementUtils().getTypeElement(
         className.toString());
   }
+
+  static ClassName className(String className) {
+    int i = className.lastIndexOf('.');
+    return ClassName.get(className.substring(0, i),
+        className.substring(i + 1));
+  }
 }

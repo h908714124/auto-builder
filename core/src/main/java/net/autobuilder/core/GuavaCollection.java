@@ -7,23 +7,25 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
-import java.util.Optional;
+import java.util.Map;
 
-import static net.autobuilder.core.Collectionish.normalAddAllType;
+import static com.squareup.javapoet.WildcardTypeName.subtypeOf;
 import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
+import static net.autobuilder.core.Util.className;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
 final class GuavaCollection extends Collectionish.Base {
 
+  private static final ClassName MAP_ENTRY = ClassName.get(Map.Entry.class);
   private static final String GCC = "com.google.common.collect";
 
   private final ClassName setterParameterClassName;
 
   private GuavaCollection(
-      ClassName className,
+      String className,
       Collectionish.CollectionType type,
       ClassName setterParameterClassName) {
-    super(className, type);
+    super(className, "java.lang.Iterable", type);
     this.setterParameterClassName = setterParameterClassName;
   }
 
@@ -31,8 +33,7 @@ final class GuavaCollection extends Collectionish.Base {
       String simpleName,
       Class<?> setterParameterClass,
       Collectionish.CollectionType type) {
-    ClassName className = ClassName.get(GCC, simpleName);
-    return new GuavaCollection(className, type,
+    return new GuavaCollection(GCC + simpleName, type,
         ClassName.get(setterParameterClass));
   }
 
@@ -51,8 +52,18 @@ final class GuavaCollection extends Collectionish.Base {
   ParameterizedTypeName accumulatorType(Parameter parameter) {
     ParameterizedTypeName typeName =
         (ParameterizedTypeName) TypeName.get(parameter.variableElement.asType());
-    return ParameterizedTypeName.get(collectionClassName.nestedClass("Builder"),
+    return ParameterizedTypeName.get(className(collectionClassName).nestedClass("Builder"),
         typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
+  }
+
+  @Override
+  ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter) {
+    TypeName[] typeArguments = typeArgumentSubtypes(
+        parameter.variableElement);
+    return collectionType == Collectionish.CollectionType.LIST ?
+        ParameterizedTypeName.get(className(overloadArgumentType), typeArguments) :
+        ParameterizedTypeName.get(className(overloadArgumentType),
+            subtypeOf(ParameterizedTypeName.get(MAP_ENTRY, typeArguments)));
   }
 
   @Override
@@ -77,10 +88,5 @@ final class GuavaCollection extends Collectionish.Base {
             typeArgumentSubtypes(
                 parameter.variableElement));
     return ParameterSpec.builder(type, parameter.setterName).build();
-  }
-
-  @Override
-  Optional<ParameterizedTypeName> addAllType(Parameter parameter) {
-    return normalAddAllType(parameter, collectionType, ClassName.get(Iterable.class));
   }
 }
