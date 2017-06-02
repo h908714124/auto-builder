@@ -33,16 +33,12 @@ final class Parameter extends ParaParameter {
 
   final Model model;
 
-  private final Util util;
-
   private Parameter(
-      Util util,
       VariableElement variableElement,
       String setterName,
       String getterName,
       TypeName type,
       Model model) {
-    this.util = util;
     this.variableElement = variableElement;
     this.setterName = setterName;
     this.getterName = getterName;
@@ -52,7 +48,6 @@ final class Parameter extends ParaParameter {
 
   static List<ParaParameter> scan(
       Model model,
-      Util util,
       ExecutableElement constructor,
       TypeElement avType) {
     Set<String> methodNames = methodNames(avType);
@@ -63,7 +58,7 @@ final class Parameter extends ParaParameter {
           String getterName = matchingAccessor(methodNames, variableElement);
           String setterName = setterName(name, type);
           Parameter parameter = new Parameter(
-              util, variableElement, setterName, getterName, type, model);
+              variableElement, setterName, getterName, type, model);
           return Collectionish.create(parameter)
               .orElse(Optionalish.create(parameter).orElse(parameter));
         })
@@ -140,7 +135,7 @@ final class Parameter extends ParaParameter {
   }
 
   Parameter originalSetter() {
-    return new Parameter(util, variableElement, variableElement.getSimpleName().toString(),
+    return new Parameter(variableElement, variableElement.getSimpleName().toString(),
         getterName, type, model);
   }
 

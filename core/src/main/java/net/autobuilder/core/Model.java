@@ -96,7 +96,7 @@ final class Model {
   }
 
   List<ParaParameter> scan() {
-    return Parameter.scan(this, util, constructor, avType);
+    return Parameter.scan(this, constructor, avType);
   }
 
   private static TypeName generatedClass(TypeName type) {
