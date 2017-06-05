@@ -9,9 +9,9 @@ import com.squareup.javapoet.TypeSpec;
 import javax.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Arrays.asList;
-import static java.util.Objects.requireNonNull;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -35,14 +35,15 @@ final class Analyser {
   private final List<ParaParameter> parameters;
   private final MethodSpec initMethod;
   private final MethodSpec staticBuildMethod;
-  private final RefTrackingBuilder optionalRefTrackingBuilder;
+  private final Optional<RefTrackingBuilder> optionalRefTrackingBuilder;
 
   private Analyser(Model model) {
     this.model = model;
     this.parameters = model.scan();
     this.initMethod = initMethod(model, parameters);
     this.staticBuildMethod = staticBuildMethod(model, parameters);
-    this.optionalRefTrackingBuilder = RefTrackingBuilder.create(model, staticBuildMethod);
+    this.optionalRefTrackingBuilder =
+        RefTrackingBuilder.create(model, staticBuildMethod);
   }
 
   static Analyser create(Model model) {
@@ -54,18 +55,20 @@ final class Analyser {
     builder.addTypeVariables(model.typevars());
     builder.addMethod(builderMethod());
     builder.addMethod(builderMethodWithParam());
-    builder.addMethod(perThreadFactoryMethod(optionalRefTrackingBuilder));
+    builder.addMethod(perThreadFactoryMethod());
     builder.addMethod(initMethod);
     builder.addMethod(staticBuildMethod);
     builder.addMethod(abstractBuildMethod());
     builder.addType(SimpleBuilder.create(model, staticBuildMethod).define());
-    if (optionalRefTrackingBuilder != null) {
-      RefTrackingBuilder refTrackingBuilder = requireNonNull(optionalRefTrackingBuilder);
-      builder.addType(refTrackingBuilder.define());
-      builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder).define());
-    } else {
-      builder.addType(PerThreadFactory.createStub(model));
-    }
+    OptionalConsumer.of(optionalRefTrackingBuilder)
+        .ifPresent(refTrackingBuilder -> {
+          builder.addType(refTrackingBuilder.define());
+          builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder)
+              .define());
+        })
+        .otherwise(() -> {
+          builder.addType(PerThreadFactory.createStub(model));
+        });
     for (ParaParameter parameter : parameters) {
       builder.addField(GET_PARAMETER.apply(parameter).asField());
       builder.addMethod(setterMethod(parameter));
@@ -84,21 +87,17 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec perThreadFactoryMethod(RefTrackingBuilder optionalRefTrackingBuilder) {
+  private MethodSpec perThreadFactoryMethod() {
     MethodSpec.Builder builder = MethodSpec.methodBuilder("perThreadFactory")
         .returns(RefTrackingBuilder.perThreadFactoryClass(model))
         .addModifiers(STATIC);
-    if (optionalRefTrackingBuilder != null) {
-      RefTrackingBuilder refTrackingBuilder = requireNonNull(optionalRefTrackingBuilder);
-      return builder.addStatement("return new $T()",
-          refTrackingBuilder.perThreadFactoryClass)
-          .build();
-    } else {
-      return builder.addStatement("throw new $T(\n$S)",
-          UnsupportedOperationException.class, model.cacheWarning())
-          .addModifiers(PRIVATE)
-          .build();
-    }
+    OptionalConsumer.of(optionalRefTrackingBuilder)
+        .ifPresent(refTrackingBuilder -> builder.addStatement("return new $T()",
+            refTrackingBuilder.perThreadFactoryClass))
+        .otherwise(() -> builder.addStatement("throw new $T(\n$S)",
+            UnsupportedOperationException.class, model.cacheWarning())
+            .addModifiers(PRIVATE));
+    return builder.build();
   }
 
   private static MethodSpec initMethod(

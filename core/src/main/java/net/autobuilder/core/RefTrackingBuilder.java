@@ -8,6 +8,8 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
+import java.util.Optional;
+
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
@@ -36,12 +38,12 @@ final class RefTrackingBuilder {
         .nestedClass("PerThreadFactory");
   }
 
-  static RefTrackingBuilder create(Model model, MethodSpec staticBuildMethod) {
+  static Optional<RefTrackingBuilder> create(Model model, MethodSpec staticBuildMethod) {
     return model.optionalRefTrackingBuilderClass().map(refTrackingBuilderClass -> {
       ClassName perThreadFactoryClass = perThreadFactoryClass(model);
       return new RefTrackingBuilder(model, staticBuildMethod,
           refTrackingBuilderClass, perThreadFactoryClass);
-    }).orElse(null);
+    });
   }
 
   TypeSpec define() {

@@ -95,6 +95,8 @@ and shouldn't be stored in a field where other threads might see it.
 
 ### It's maven time
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder)
+
 ````xml
 <dependency>
   <groupId>com.github.h908714124</groupId>
