@@ -18,6 +18,7 @@ final class RefTrackingBuilder {
 
   private final Model model;
   private final MethodSpec staticBuildMethod;
+
   final FieldSpec inUse;
   final ClassName refTrackingBuilderClass;
   final ClassName perThreadFactoryClass;
@@ -38,7 +39,7 @@ final class RefTrackingBuilder {
   }
 
   static Optional<RefTrackingBuilder> create(Model model, MethodSpec staticBuildMethod) {
-    return model.optionalRefTrackingBuilderClass().map(refTrackingBuilderClass -> {
+    return model.optionalRefTrackingBuilderClass.map(refTrackingBuilderClass -> {
       ClassName perThreadFactoryClass = perThreadFactoryClass(model);
       return new RefTrackingBuilder(model, staticBuildMethod,
           refTrackingBuilderClass, perThreadFactoryClass);

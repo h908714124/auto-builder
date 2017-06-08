@@ -33,6 +33,7 @@ final class Optionalish extends ParaParameter {
     OPTIONAL_PRIMITIVES.put("java.util.OptionalLong", TypeName.LONG);
   }
 
+  private static final String OF = "of";
   private static final String OF_NULLABLE = "ofNullable";
 
   final Parameter parameter;
@@ -95,7 +96,7 @@ final class Optionalish extends ParaParameter {
       TypeName primitive = OPTIONAL_PRIMITIVES.get(typeElement.getQualifiedName().toString());
       return primitive != null ?
           Optional.of(new CheckoutResult(declaredType,
-              new Optionalish(parameter, ClassName.get(typeElement), primitive, "of"))) :
+              new Optionalish(parameter, ClassName.get(typeElement), primitive, OF))) :
           Optional.empty();
     }
     return equalsType(type, JAVA_UTIL_OPTIONAL) ?

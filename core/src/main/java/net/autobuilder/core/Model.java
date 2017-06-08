@@ -5,9 +5,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -17,6 +17,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
+import static net.autobuilder.core.Util.typeArguments;
 
 final class Model {
 
@@ -28,9 +29,9 @@ final class Model {
 
   private final TypeElement sourceClassElement;
 
-  private final ClassName optionalRefTrackingBuilderClass;
-
   private final ExecutableElement constructor;
+
+  final Optional<ClassName> optionalRefTrackingBuilderClass;
 
   final TypeName generatedClass;
   final TypeName simpleBuilderClass;
@@ -42,7 +43,7 @@ final class Model {
                 TypeName generatedClass,
                 TypeElement avType,
                 TypeName simpleBuilderClass,
-                ClassName optionalRefTrackingBuilderClass,
+                Optional<ClassName> optionalRefTrackingBuilderClass,
                 ExecutableElement constructor) {
     this.util = util;
     this.sourceClassElement = sourceClassElement;
@@ -57,7 +58,6 @@ final class Model {
   static Model create(
       Util util,
       TypeElement sourceClassElement, TypeElement avType) {
-    TypeName sourceClass = TypeName.get(sourceClassElement.asType());
     List<ExecutableElement> constructors = ElementFilter.constructorsIn(
         avType.getEnclosedElements());
     if (constructors.size() != 1) {
@@ -83,12 +83,12 @@ final class Model {
           avType + " has a private constructor.",
           sourceClassElement);
     }
-    TypeName generatedClass = generatedClass(sourceClass);
-    TypeName simpleBuilderClass = simpleBuilderClass(generatedClass);
-    ClassName optionalRefTrackingBuilderClass =
-        typeArguments(generatedClass).isEmpty() ?
-            rawType(generatedClass).nestedClass(REF_TRACKING_BUILDER) :
-            null;
+    TypeName generatedClass = generatedClass(sourceClassElement);
+    TypeName simpleBuilderClass = simpleBuilderClass(sourceClassElement, generatedClass);
+    Optional<ClassName> optionalRefTrackingBuilderClass =
+        sourceClassElement.getTypeParameters().isEmpty() ?
+            Optional.of(rawType(generatedClass).nestedClass(REF_TRACKING_BUILDER)) :
+            Optional.empty();
     return new Model(util, sourceClassElement, generatedClass, avType,
         simpleBuilderClass,
         optionalRefTrackingBuilderClass, constructor);
@@ -98,23 +98,27 @@ final class Model {
     return Parameter.scan(this, constructor, avType);
   }
 
-  private static TypeName generatedClass(TypeName type) {
+  private static TypeName generatedClass(TypeElement typeElement) {
+    TypeName type = TypeName.get(typeElement.asType());
     String name = String.join("_", rawType(type).simpleNames()) + SUFFIX;
     ClassName className = rawType(type).topLevelClassName().peerClass(name);
-    return withTypevars(className, typeArguments(type));
+    return withTypevars(className, typeArguments(typeElement));
   }
 
-  private static TypeName simpleBuilderClass(TypeName generatedClass) {
-    return withTypevars(rawType(generatedClass).nestedClass(SIMPLE_BUILDER),
-        typeArguments(generatedClass));
+  private static TypeName simpleBuilderClass(
+      TypeElement typeElement,
+      TypeName generatedClass) {
+    return withTypevars(
+        rawType(generatedClass)
+            .nestedClass(SIMPLE_BUILDER),
+        typeArguments(typeElement));
   }
 
-  private static TypeName withTypevars(ClassName className, List<TypeName> typevars) {
-    if (typevars.isEmpty()) {
+  static TypeName withTypevars(ClassName className, TypeName[] typevars) {
+    if (typevars.length == 0) {
       return className;
     }
-    return ParameterizedTypeName.get(className, typevars.toArray(
-        new TypeName[typevars.size()]));
+    return ParameterizedTypeName.get(className, typevars);
   }
 
   List<TypeVariableName> typevars() {
@@ -134,24 +138,12 @@ final class Model {
     return NO_MODIFIERS;
   }
 
-  Optional<ClassName> optionalRefTrackingBuilderClass() {
-    return Optional.ofNullable(optionalRefTrackingBuilderClass);
-  }
-
   String cacheWarning() {
-    return "Caching not implemented: " +
-        rawType(sourceClass).simpleName() +
-        "<" +
-        typevars().stream()
-            .map(TypeVariableName::toString)
-            .collect(joining(", ")) +
-        "> has type parameters";
-  }
-
-  private static List<TypeName> typeArguments(TypeName typeName) {
-    if (typeName instanceof ParameterizedTypeName) {
-      return ((ParameterizedTypeName) typeName).typeArguments;
-    }
-    return Collections.emptyList();
+    return String.format(
+        "Caching not implemented: %s has type parameters: <%s>",
+        sourceClassElement.getSimpleName(),
+        sourceClassElement.getTypeParameters().stream()
+            .map(Element::getSimpleName)
+            .collect(joining(", ")));
   }
 }
