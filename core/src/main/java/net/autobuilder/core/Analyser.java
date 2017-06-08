@@ -5,9 +5,9 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeSpec;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.annotation.Generated;
 
 import static java.util.Arrays.asList;
@@ -159,18 +159,14 @@ final class Analyser {
   }
 
   private static MethodSpec staticBuildMethod(Model model, List<ParaParameter> parameters) {
-    ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder")
-        .build();
+    ParameterSpec builder = model.builderParameter();
     ParameterSpec result = ParameterSpec.builder(model.sourceClass, "result")
         .build();
-    List<CodeBlock> invocation = new ArrayList<>(parameters.size());
-    for (ParaParameter parameter : parameters) {
-      invocation.add(GET_FIELD_VALUE.apply(parameter, builder));
-    }
+    List<CodeBlock> invocation = parameters.stream()
+        .map(GET_FIELD_VALUE)
+        .collect(Collectors.toList());
     CodeBlock.Builder cleanup = CodeBlock.builder();
-    for (ParaParameter parameter : parameters) {
-      CLEANUP_CODE.apply(parameter, builder).ifPresent(cleanup::add);
-    }
+    parameters.forEach(parameter -> CLEANUP_CODE.accept(parameter, cleanup));
     return MethodSpec.methodBuilder("build")
         .addCode("$T $N = new $T(\n    ", model.sourceClass, result, model.avType)
         .addCode(invocation.stream().collect(joinCodeBlocks(",\n    ")))

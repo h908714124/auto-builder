@@ -71,8 +71,9 @@ final class Optionalish extends ParaParameter {
         .map(checkoutResult -> checkoutResult.optionalish);
   }
 
-  static Optional<CodeBlock> emptyBlock(Parameter parameter, ParameterSpec builder) {
+  static Optional<CodeBlock> emptyBlock(Parameter parameter) {
     FieldSpec field = parameter.asField();
+    ParameterSpec builder = parameter.model.builderParameter();
     return checkout(parameter)
         .map(checkoutResult -> checkoutResult.optionalish)
         .map(optionalish -> CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
@@ -132,7 +133,8 @@ final class Optionalish extends ParaParameter {
     return new Optionalish(parameter, wrapper, wrapped, of);
   }
 
-  CodeBlock getFieldValue(ParameterSpec builder) {
+  CodeBlock getFieldValue() {
+    ParameterSpec builder = parameter.model.builderParameter();
     FieldSpec field = parameter.asField();
     return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
         builder, field, builder, field, wrapper);

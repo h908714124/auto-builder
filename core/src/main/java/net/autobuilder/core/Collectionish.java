@@ -105,7 +105,8 @@ final class Collectionish extends ParaParameter {
         new Collectionish(lookupResult.base, parameter));
   }
 
-  static Optional<CodeBlock> emptyBlock(Parameter parameter, ParameterSpec builder) {
+  static Optional<CodeBlock> emptyBlock(Parameter parameter) {
+    ParameterSpec builder = parameter.model.builderParameter();
     return lookup(parameter).map(lookupResult -> {
       FieldSpec field = parameter.asField();
       return CodeBlock.builder()
@@ -163,9 +164,10 @@ final class Collectionish extends ParaParameter {
         addAllToMethod(addAllType);
   }
 
-  CodeBlock getFieldValue(ParameterSpec builder) {
+  CodeBlock getFieldValue() {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
+    ParameterSpec builder = parameter.model.builderParameter();
     return CodeBlock.builder()
         .add("$N.$N != null ? ", builder, builderField)
         .add(base.buildBlock(builder, builderField))

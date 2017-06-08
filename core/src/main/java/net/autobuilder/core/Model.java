@@ -1,6 +1,7 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
@@ -31,6 +32,9 @@ final class Model {
 
   private final ExecutableElement constructor;
 
+  // caching this because it's used a lot
+  private final ParameterSpec builderParameter;
+
   final Optional<ClassName> optionalRefTrackingBuilderClass;
 
   final TypeName generatedClass;
@@ -38,6 +42,7 @@ final class Model {
   final TypeElement avType;
   final TypeName sourceClass;
   final Util util;
+
 
   private Model(Util util, TypeElement sourceClassElement,
                 TypeName generatedClass,
@@ -53,6 +58,7 @@ final class Model {
     this.optionalRefTrackingBuilderClass = optionalRefTrackingBuilderClass;
     this.sourceClass = TypeName.get(sourceClassElement.asType());
     this.constructor = constructor;
+    this.builderParameter = ParameterSpec.builder(generatedClass, "builder").build();
   }
 
   static Model create(
@@ -145,5 +151,9 @@ final class Model {
         sourceClassElement.getTypeParameters().stream()
             .map(Element::getSimpleName)
             .collect(joining(", ")));
+  }
+
+  ParameterSpec builderParameter() {
+    return builderParameter;
   }
 }

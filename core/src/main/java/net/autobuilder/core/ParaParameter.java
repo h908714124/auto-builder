@@ -1,15 +1,11 @@
 package net.autobuilder.core;
 
-import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -31,10 +27,6 @@ abstract class ParaParameter {
   }
 
   private static <P> BiConsumer<ParaParameter, P> asConsumer(Cases<Void, P> cases) {
-    return (parameter, p) -> parameter.accept(cases, p);
-  }
-
-  private static <R, P> BiFunction<ParaParameter, P, R> biFunction(Cases<R, P> cases) {
     return (parameter, p) -> parameter.accept(cases, p);
   }
 
@@ -175,23 +167,25 @@ abstract class ParaParameter {
         }
       });
 
-  static final BiFunction<ParaParameter, ParameterSpec, CodeBlock> GET_FIELD_VALUE =
-      biFunction(new ParaParameter.Cases<CodeBlock, ParameterSpec>() {
+  static final Function<ParaParameter, CodeBlock> GET_FIELD_VALUE =
+      asFunction(new ParaParameter.Cases<CodeBlock, Void>() {
         @Override
-        CodeBlock parameter(Parameter parameter, ParameterSpec builder) {
-          return Collectionish.emptyBlock(parameter, builder)
-              .orElse(Optionalish.emptyBlock(parameter, builder)
-                  .orElse(CodeBlock.of("$N.$N", builder, parameter.asField())));
+        CodeBlock parameter(Parameter parameter, Void _null) {
+          return Collectionish.emptyBlock(parameter)
+              .orElse(Optionalish.emptyBlock(parameter)
+                  .orElse(CodeBlock.of("$N.$N",
+                      parameter.model.builderParameter(),
+                      parameter.asField())));
         }
 
         @Override
-        CodeBlock collectionish(Collectionish collectionish, ParameterSpec builder) {
-          return collectionish.getFieldValue(builder);
+        CodeBlock collectionish(Collectionish collectionish, Void _null) {
+          return collectionish.getFieldValue();
         }
 
         @Override
-        CodeBlock optionalish(Optionalish optionalish, ParameterSpec builder) {
-          return optionalish.getFieldValue(builder);
+        CodeBlock optionalish(Optionalish optionalish, Void _null) {
+          return optionalish.getFieldValue();
         }
       });
 
@@ -291,27 +285,32 @@ abstract class ParaParameter {
         }
       });
 
-  static final BiFunction<ParaParameter, ParameterSpec, Optional<CodeBlock>> CLEANUP_CODE =
-      biFunction(new ParaParameter.Cases<Optional<CodeBlock>, ParameterSpec>() {
+  static final BiConsumer<ParaParameter, CodeBlock.Builder> CLEANUP_CODE =
+      asConsumer(new ParaParameter.Cases<Void, CodeBlock.Builder>() {
         @Override
-        Optional<CodeBlock> parameter(Parameter parameter, ParameterSpec builder) {
-          if (parameter.type instanceof ClassName ||
-              parameter.type instanceof ParameterizedTypeName) {
-            return Optional.of(CodeBlock.builder().addStatement("$N.$L(null)",
-                builder, parameter.setterName).build());
+        Void parameter(Parameter parameter, CodeBlock.Builder builder) {
+          if (!parameter.variableElement.asType().getKind().isPrimitive()) {
+            builder.addStatement("$N.$L(null)",
+                parameter.model.builderParameter(), parameter.setterName);
           }
-          return Optional.empty();
+          return null;
         }
+
         @Override
-        Optional<CodeBlock> collectionish(Collectionish collectionish, ParameterSpec builder) {
-          return this.parameter(collectionish.parameter, builder);
+        Void collectionish(Collectionish collectionish, CodeBlock.Builder builder) {
+          builder.addStatement("$N.$L(null)",
+              collectionish.parameter.model.builderParameter(),
+              collectionish.parameter.setterName);
+          return null;
         }
+
         @Override
-        Optional<CodeBlock> optionalish(Optionalish optionalish, ParameterSpec builder) {
-          return Optional.of(CodeBlock.builder().addStatement("$N.$L(($T) null)",
-              builder, optionalish.parameter.setterName,
-              optionalish.parameter.type).build());
+        Void optionalish(Optionalish optionalish, CodeBlock.Builder builder) {
+          builder.addStatement("$N.$L(($T) null)",
+              optionalish.parameter.model.builderParameter(),
+              optionalish.parameter.setterName,
+              optionalish.parameter.type);
+          return null;
         }
       });
-
 }
