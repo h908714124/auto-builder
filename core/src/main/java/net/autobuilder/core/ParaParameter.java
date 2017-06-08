@@ -6,7 +6,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;

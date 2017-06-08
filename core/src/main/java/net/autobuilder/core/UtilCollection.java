@@ -6,7 +6,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-
 import java.util.Collections;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;

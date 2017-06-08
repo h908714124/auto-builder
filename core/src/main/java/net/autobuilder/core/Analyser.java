@@ -5,11 +5,10 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeSpec;
-
-import javax.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import javax.annotation.Generated;
 
 import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.ABSTRACT;

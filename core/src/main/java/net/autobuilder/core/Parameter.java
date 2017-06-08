@@ -2,16 +2,15 @@ package net.autobuilder.core;
 
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
-
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.util.ElementFilter;
 
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PRIVATE;

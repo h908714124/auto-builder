@@ -7,7 +7,6 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-
 import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.FINAL;
