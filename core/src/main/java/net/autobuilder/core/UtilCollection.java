@@ -59,18 +59,15 @@ final class UtilCollection extends Collectionish.Base {
 
   @Override
   ParameterizedTypeName accumulatorType(Parameter parameter) {
-    ParameterizedTypeName typeName =
-        (ParameterizedTypeName) parameter.type;
     return ParameterizedTypeName.get(accumulatorClass,
-        typeName.typeArguments.toArray(new TypeName[0]));
+        typeArguments(parameter.variableElement.asType()));
   }
 
   @Override
   ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter) {
-    TypeName[] typeArguments = typeArgumentSubtypes(
-        parameter.variableElement);
     return ParameterizedTypeName.get(overloadArgumentType(),
-        typeArguments);
+        typeArgumentSubtypes(
+            parameter.variableElement));
   }
 
   @Override

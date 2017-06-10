@@ -109,6 +109,13 @@ final class Util {
         .toArray(TypeName[]::new);
   }
 
+  static TypeName[] typeArguments(TypeMirror typeMirror) {
+    DeclaredType type = typeMirror.accept(AS_DECLARED, null);
+    return type.getTypeArguments().stream()
+        .map(TypeName::get)
+        .toArray(TypeName[]::new);
+  }
+
   private static TypeName subtypeOf(TypeMirror typeMirror) {
     TypeName typeName = typeMirror.accept(SUBTYPE, null);
     return typeName != null ? typeName : TypeName.get(typeMirror);

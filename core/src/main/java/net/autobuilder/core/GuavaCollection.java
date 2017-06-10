@@ -11,6 +11,7 @@ import java.util.Map;
 import static com.squareup.javapoet.WildcardTypeName.subtypeOf;
 import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
+import static net.autobuilder.core.Util.typeArguments;
 
 final class GuavaCollection extends Collectionish.Base {
 
@@ -48,10 +49,8 @@ final class GuavaCollection extends Collectionish.Base {
 
   @Override
   ParameterizedTypeName accumulatorType(Parameter parameter) {
-    ParameterizedTypeName typeName =
-        (ParameterizedTypeName) TypeName.get(parameter.variableElement.asType());
     return ParameterizedTypeName.get(collectionClassName().nestedClass("Builder"),
-        typeName.typeArguments.toArray(new TypeName[typeName.typeArguments.size()]));
+        typeArguments(parameter.variableElement.asType()));
   }
 
   @Override
@@ -81,10 +80,8 @@ final class GuavaCollection extends Collectionish.Base {
 
   @Override
   ParameterSpec setterParameter(Parameter parameter) {
-    TypeName type =
-        ParameterizedTypeName.get(setterParameterClassName,
-            typeArgumentSubtypes(
-                parameter.variableElement));
+    TypeName type = ParameterizedTypeName.get(setterParameterClassName,
+        typeArgumentSubtypes(parameter.variableElement));
     return ParameterSpec.builder(type, parameter.setterName).build();
   }
 }
