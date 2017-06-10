@@ -22,7 +22,7 @@ abstract class ParaParameter {
     abstract R optionalish(Optionalish optionalish, P p);
   }
 
-  private static <R> Function<ParaParameter, R> asFunction(Cases<R, Void> cases) {
+  static <R> Function<ParaParameter, R> asFunction(Cases<R, Void> cases) {
     return parameter -> parameter.accept(cases, null);
   }
 
@@ -51,78 +51,7 @@ abstract class ParaParameter {
         }
       });
 
-  static final Function<ParaParameter, List<String>> METHOD_NAMES =
-      asFunction(new ParaParameter.Cases<List<String>, Void>() {
-        @Override
-        List<String> parameter(Parameter parameter, Void _null) {
-          return singletonList(parameter.setterName);
-        }
 
-        @Override
-        List<String> collectionish(Collectionish collectionish, Void _null) {
-          return asList(collectionish.parameter.setterName, collectionish.accumulatorName());
-        }
-
-        @Override
-        List<String> optionalish(Optionalish optionalish, Void _null) {
-          return singletonList(optionalish.parameter.setterName);
-        }
-      });
-
-  static final Function<ParaParameter, List<String>> FIELD_NAMES =
-      asFunction(new ParaParameter.Cases<List<String>, Void>() {
-        @Override
-        List<String> parameter(Parameter parameter, Void _null) {
-          return singletonList(parameter.setterName);
-        }
-
-        @Override
-        List<String> collectionish(Collectionish collectionish, Void _null) {
-          return asList(collectionish.parameter.setterName,
-              collectionish.builderFieldName());
-        }
-
-        @Override
-        List<String> optionalish(Optionalish optionalish, Void _null) {
-          return singletonList(optionalish.parameter.setterName);
-        }
-      });
-
-  static final Function<ParaParameter, ParaParameter> NO_ACCUMULATOR =
-      asFunction(new ParaParameter.Cases<ParaParameter, Void>() {
-        @Override
-        ParaParameter parameter(Parameter parameter, Void _null) {
-          return parameter;
-        }
-
-        @Override
-        ParaParameter collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.parameter;
-        }
-
-        @Override
-        ParaParameter optionalish(Optionalish optionalish, Void _null) {
-          return optionalish;
-        }
-      });
-
-  static final Function<ParaParameter, ParaParameter> ORIGINAL_SETTER =
-      asFunction(new ParaParameter.Cases<ParaParameter, Void>() {
-        @Override
-        ParaParameter parameter(Parameter parameter, Void _null) {
-          return parameter.originalSetter();
-        }
-
-        @Override
-        ParaParameter collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.withParameter(collectionish.parameter.originalSetter());
-        }
-
-        @Override
-        ParaParameter optionalish(Optionalish optionalish, Void _null) {
-          return optionalish.withParameter(optionalish.parameter.originalSetter());
-        }
-      });
 
   static final Function<ParaParameter, ParameterSpec> AS_SETTER_PARAMETER =
       asFunction(new ParaParameter.Cases<ParameterSpec, Void>() {

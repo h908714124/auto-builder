@@ -4,7 +4,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
@@ -14,8 +13,8 @@ import javax.lang.model.util.ElementFilter;
 
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PRIVATE;
+import static net.autobuilder.core.Cleanse.detox;
 import static net.autobuilder.core.Util.downcase;
-import static net.autobuilder.core.Util.isDistinct;
 import static net.autobuilder.core.Util.upcase;
 
 final class Parameter extends ParaParameter {
@@ -62,30 +61,7 @@ final class Parameter extends ParaParameter {
               .orElse(Optionalish.create(parameter).orElse(parameter));
         })
         .collect(toList());
-    if (!parameters.stream()
-        .map(ParaParameter.FIELD_NAMES)
-        .map(List::stream)
-        .flatMap(Function.identity())
-        .collect(isDistinct()) ||
-        !parameters.stream()
-            .map(ParaParameter.METHOD_NAMES)
-            .map(List::stream)
-            .flatMap(Function.identity())
-            .collect(isDistinct())) {
-      parameters = parameters.stream()
-          .map(ParaParameter.NO_ACCUMULATOR)
-          .collect(toList());
-    }
-    if (!parameters.stream()
-        .map(ParaParameter.METHOD_NAMES)
-        .map(List::stream)
-        .flatMap(Function.identity())
-        .collect(isDistinct())) {
-      parameters = parameters.stream()
-          .map(ParaParameter.ORIGINAL_SETTER)
-          .collect(toList());
-    }
-    return parameters;
+    return detox(parameters);
   }
 
   static String setterName(String name, TypeName type) {
