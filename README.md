@@ -1,15 +1,33 @@
 # auto-builder
 
-This ~~very~~ simple annotation processor relieves the 
-user of the repetitive drudgery that comes with `@AutoValue.Builder`.
-The repetition of property names is, by auto-value's design choice 
-not to generate any APIs, but only to extend user-defined classes, also present in
-[some auto-value extensions](https://github.com/gabrielittner/auto-value-with).
+Adding builder functionality to an [auto-value](https://github.com/google/auto/tree/master/value)
+class normally requires copying each property's name and type.
+For every property, you have to add a corresponding setter like this:
+
+````java
+@AutoValue
+abstract class Animal {
+  abstract String name(); // property "name" defined here
+  // [...] 
+  @AutoValue.Builder
+  abstract class Builder {
+    Builder name(String name); // ... and here!
+    // [...]
+  }
+}
+
+````
+
+So far, auto-value extensions like [auto-value-with](https://github.com/gabrielittner/auto-value-with)
+could not remove this redundancy.
+I believe that it can't be done because auto-value, and even its extensions,
+may only extend user-defined classes.
+Therefore, the user has to maintain a redundant blueprint for the builder.
 
 The purpose of [auto-builder](https://github.com/h908714124/auto-builder) is to make 
-[auto-value](https://github.com/google/auto/tree/master/value)
-more convenient (and more efficient, see <a href="#caching">caching</a>).
-If you're not using auto-value with builders, then auto-builder will not be helpful.
+auto-value more convenient, by getting rid of the blueprint.
+
+If you're not using auto-value, then auto-builder will not be helpful.
 Depending on your use case, you may want to have a look at
 [readable](https://github.com/h908714124/readable) instead.
 

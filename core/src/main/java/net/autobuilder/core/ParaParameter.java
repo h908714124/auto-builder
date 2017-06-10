@@ -4,12 +4,8 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeSpec;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 
 abstract class ParaParameter {
 
@@ -50,7 +46,6 @@ abstract class ParaParameter {
           return optionalish.parameter;
         }
       });
-
 
 
   static final Function<ParaParameter, ParameterSpec> AS_SETTER_PARAMETER =
