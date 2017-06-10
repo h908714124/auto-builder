@@ -32,7 +32,6 @@ final class Model {
 
   private final ExecutableElement constructor;
 
-  // caching this because it's used a lot
   private final ParameterSpec builderParameter;
 
   final Optional<ClassName> optionalRefTrackingBuilderClass;

@@ -101,17 +101,17 @@ final class Analyser {
 
   private static MethodSpec initMethod(
       Model model, List<ParaParameter> parameters) {
-    ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder").build();
     ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
     for (ParaParameter parameter : parameters) {
       block.addStatement("$N.$N = $N.$L()",
-          builder, GET_PARAMETER.apply(parameter).setterName, input,
+          model.builderParameter(),
+          GET_PARAMETER.apply(parameter).setterName, input,
           GET_PARAMETER.apply(parameter).getterName);
     }
     return MethodSpec.methodBuilder("init")
         .addCode(block.build())
-        .addParameters(asList(builder, input))
+        .addParameters(asList(model.builderParameter(), input))
         .addModifiers(PRIVATE, STATIC)
         .addTypeVariables(model.typevars())
         .build();
@@ -143,7 +143,7 @@ final class Analyser {
   }
 
   private MethodSpec builderMethodWithParam() {
-    ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder").build();
+    ParameterSpec builder = model.builderParameter();
     ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
         .addStatement("$T $N = new $T()", builder.type, builder, model.simpleBuilderClass)
