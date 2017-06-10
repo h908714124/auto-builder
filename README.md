@@ -25,7 +25,7 @@ may only extend user-defined classes.
 Therefore, the user has to maintain a redundant blueprint for the builder.
 
 The purpose of [auto-builder](https://github.com/h908714124/auto-builder) is to make 
-auto-value more convenient, by getting rid of the blueprint.
+auto-value more convenient, by getting rid of the builder blueprint.
 
 If you're not using auto-value, then auto-builder will not be helpful.
 Depending on your use case, you may want to have a look at
