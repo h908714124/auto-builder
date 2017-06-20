@@ -1,5 +1,10 @@
 package net.autobuilder.core;
 
+import static javax.lang.model.element.Modifier.FINAL;
+import static net.autobuilder.core.Util.AS_DECLARED;
+import static net.autobuilder.core.Util.AS_TYPE_ELEMENT;
+import static net.autobuilder.core.Util.equalsType;
+
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -12,11 +17,6 @@ import java.util.Optional;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-
-import static javax.lang.model.element.Modifier.FINAL;
-import static net.autobuilder.core.Util.AS_DECLARED;
-import static net.autobuilder.core.Util.AS_TYPE_ELEMENT;
-import static net.autobuilder.core.Util.equalsType;
 
 final class Optionalish extends ParaParameter {
 
@@ -57,6 +57,7 @@ final class Optionalish extends ParaParameter {
   private static final class CheckoutResult {
     final DeclaredType declaredType;
     final Optionalish optionalish;
+
     CheckoutResult(DeclaredType declaredType, Optionalish optionalish) {
       this.declaredType = declaredType;
       this.optionalish = optionalish;
@@ -72,12 +73,16 @@ final class Optionalish extends ParaParameter {
   }
 
   static Optional<CodeBlock> emptyBlock(Parameter parameter) {
-    FieldSpec field = parameter.asField();
-    ParameterSpec builder = parameter.model.builderParameter();
     return checkout(parameter)
         .map(checkoutResult -> checkoutResult.optionalish)
-        .map(optionalish -> CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
-            builder, field, builder, field, optionalish.wrapper));
+        .map(Optionalish::getFieldValue);
+  }
+
+  CodeBlock getFieldValue() {
+    ParameterSpec builder = parameter.model.builderParameter();
+    FieldSpec field = parameter.asField();
+    return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
+        builder, field, builder, field, wrapper);
   }
 
   private static Optional<CheckoutResult> checkout(Parameter parameter) {
@@ -131,13 +136,6 @@ final class Optionalish extends ParaParameter {
 
   Optionalish withParameter(Parameter parameter) {
     return new Optionalish(parameter, wrapper, wrapped, of);
-  }
-
-  CodeBlock getFieldValue() {
-    ParameterSpec builder = parameter.model.builderParameter();
-    FieldSpec field = parameter.asField();
-    return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
-        builder, field, builder, field, wrapper);
   }
 
   @Override
