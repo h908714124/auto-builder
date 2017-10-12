@@ -1,19 +1,8 @@
 package net.autobuilder.core;
 
-import com.google.auto.value.processor.AutoValueProcessor;
-import org.junit.Test;
-
-import javax.tools.JavaFileObject;
-import java.util.Arrays;
-import java.util.List;
-
-import static com.google.common.truth.Truth.assertAbout;
-import static com.google.testing.compile.JavaFileObjects.forSourceLines;
-import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
-import static java.util.Collections.singletonList;
-
 public class ProcessorTest {
 
+/*
   @Test
   public void autoBuilderFirst() throws Exception {
     List<String> sourceLines = Arrays.asList(
@@ -101,4 +90,5 @@ public class ProcessorTest {
         .withErrorContaining("@AutoBuilder and @AutoValue.Builder " +
             "cannot be used together.");
   }
+*/
 }
