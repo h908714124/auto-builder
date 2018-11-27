@@ -3,7 +3,7 @@ package net.autobuilder.examples;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -12,15 +12,14 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class BirdTest {
+class BirdTest {
 
   private final List<String> nothing = null;
 
   @Test
-  public void testBird() throws Exception {
+  void testBird() {
     Map<Date, String> map1 = new HashMap<>();
     Map<Date, String> map2 = new HashMap<>();
     HashSet<String> set1 = new HashSet<>();
@@ -47,28 +46,28 @@ public class BirdTest {
         .putInTail(null)
         .build();
     Bird bord = bard.toBuilder().build();
-    assertThat(bird.beak().size(), is(0));
-    assertThat(bird.eyes().size(), is(0));
-    assertThat(bird.feathers().size(), is(0));
-    assertThat(bird.feet().size(), is(0));
-    assertThat(bird.tail().size(), is(0));
-    assertThat(bird.wings().size(), is(0));
-    assertThat(bard.beak().size(), is(3));
-    assertThat(bard.eyes().size(), is(1));
-    assertThat(bard.feathers().size(), is(1));
-    assertThat(bard.feet().size(), is(1));
-    assertThat(bard.tail().size(), is(3));
-    assertThat(bard.wings().size(), is(3));
-    assertThat(bord.beak().size(), is(3));
-    assertThat(bord.eyes().size(), is(1));
-    assertThat(bord.feathers().size(), is(1));
-    assertThat(bord.feet().size(), is(1));
-    assertThat(bord.tail().size(), is(3));
-    assertThat(bord.wings().size(), is(3));
+    assertEquals(0, bird.beak().size());
+    assertEquals(0, bird.eyes().size());
+    assertEquals(0, bird.feathers().size());
+    assertEquals(0, bird.feet().size());
+    assertEquals(0, bird.tail().size());
+    assertEquals(0, bird.wings().size());
+    assertEquals(3, bard.beak().size());
+    assertEquals(1, bard.eyes().size());
+    assertEquals(1, bard.feathers().size());
+    assertEquals(1, bard.feet().size());
+    assertEquals(3, bard.tail().size());
+    assertEquals(3, bard.wings().size());
+    assertEquals(3, bord.beak().size());
+    assertEquals(1, bord.eyes().size());
+    assertEquals(1, bord.feathers().size());
+    assertEquals(1, bord.feet().size());
+    assertEquals(3, bord.tail().size());
+    assertEquals(3, bord.wings().size());
   }
 
   @Test
-  public void testAccumulate() {
+  void testAccumulate() {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = bird.toBuilder()
         .putInEyes("", "")
@@ -90,30 +89,30 @@ public class BirdTest {
         .tail(null)
         .putInTail(new Date(1), "")
         .build();
-    assertThat(bird.beak().size(), is(0));
-    assertThat(bird.eyes().size(), is(0));
-    assertThat(bird.feathers().size(), is(0));
-    assertThat(bird.feet().size(), is(0));
-    assertThat(bird.tail().size(), is(0));
-    assertThat(bird.wings().size(), is(0));
-    assertThat(bard.beak().size(), is(0));
-    assertThat(bard.eyes().size(), is(1));
-    assertThat(bard.feathers().size(), is(1));
-    assertThat(bard.feet().size(), is(1));
-    assertThat(bard.tail().size(), is(0));
-    assertThat(bard.wings().size(), is(0));
-    assertThat(bord.beak().size(), is(0));
-    assertThat(bord.eyes().size(), is(4));
-    assertThat(bord.feathers().size(), is(2));
-    assertThat(bord.feet().size(), is(1));
-    assertThat(bord.tail().size(), is(0));
-    assertThat(bord.wings().size(), is(0));
-    assertThat(burd.eyes().size(), is(1));
-    assertThat(burd.tail().size(), is(1));
+    assertEquals(0, bird.beak().size());
+    assertEquals(0, bird.eyes().size());
+    assertEquals(0, bird.feathers().size());
+    assertEquals(0, bird.feet().size());
+    assertEquals(0, bird.tail().size());
+    assertEquals(0, bird.wings().size());
+    assertEquals(0, bard.beak().size());
+    assertEquals(1, bard.eyes().size());
+    assertEquals(1, bard.feathers().size());
+    assertEquals(1, bard.feet().size());
+    assertEquals(0, bard.tail().size());
+    assertEquals(0, bard.wings().size());
+    assertEquals(0, bord.beak().size());
+    assertEquals(4, bord.eyes().size());
+    assertEquals(2, bord.feathers().size());
+    assertEquals(1, bord.feet().size());
+    assertEquals(0, bord.tail().size());
+    assertEquals(0, bord.wings().size());
+    assertEquals(1, burd.eyes().size());
+    assertEquals(1, burd.tail().size());
   }
 
   @Test
-  public void testBirdNoCache() throws Exception {
+  void testBirdNoCache() {
     Map<Date, String> map1 = new HashMap<>();
     HashSet<String> set1 = new HashSet<>();
     set1.add("");
@@ -128,28 +127,28 @@ public class BirdTest {
         .wings(set1)
         .build();
     Bird bord = Bird_Builder.builder(bard).build();
-    assertThat(bird.beak().size(), is(0));
-    assertThat(bird.eyes().size(), is(0));
-    assertThat(bird.feathers().size(), is(0));
-    assertThat(bird.feet().size(), is(0));
-    assertThat(bird.tail().size(), is(0));
-    assertThat(bird.wings().size(), is(0));
-    assertThat(bard.beak().size(), is(1));
-    assertThat(bard.eyes().size(), is(1));
-    assertThat(bard.feathers().size(), is(1));
-    assertThat(bard.feet().size(), is(1));
-    assertThat(bard.tail().size(), is(1));
-    assertThat(bard.wings().size(), is(1));
-    assertThat(bord.beak().size(), is(1));
-    assertThat(bord.eyes().size(), is(1));
-    assertThat(bord.feathers().size(), is(1));
-    assertThat(bord.feet().size(), is(1));
-    assertThat(bord.tail().size(), is(1));
-    assertThat(bord.wings().size(), is(1));
+    assertEquals(0, bird.beak().size());
+    assertEquals(0, bird.eyes().size());
+    assertEquals(0, bird.feathers().size());
+    assertEquals(0, bird.feet().size());
+    assertEquals(0, bird.tail().size());
+    assertEquals(0, bird.wings().size());
+    assertEquals(1, bard.beak().size());
+    assertEquals(1, bard.eyes().size());
+    assertEquals(1, bard.feathers().size());
+    assertEquals(1, bard.feet().size());
+    assertEquals(1, bard.tail().size());
+    assertEquals(1, bard.wings().size());
+    assertEquals(1, bord.beak().size());
+    assertEquals(1, bord.eyes().size());
+    assertEquals(1, bord.feathers().size());
+    assertEquals(1, bord.feet().size());
+    assertEquals(1, bord.tail().size());
+    assertEquals(1, bord.wings().size());
   }
 
   @Test
-  public void testAccumulateNoCache() {
+  void testAccumulateNoCache() {
     Bird bird = Bird_Builder.builder().build();
     Bird bard = Bird_Builder.builder(bird)
         .putInEyes("", "")
@@ -159,28 +158,28 @@ public class BirdTest {
     Bird bord = Bird_Builder.builder(bard)
         .addToFeathers(new Date())
         .build();
-    assertThat(bird.beak().size(), is(0));
-    assertThat(bird.eyes().size(), is(0));
-    assertThat(bird.feathers().size(), is(0));
-    assertThat(bird.feet().size(), is(0));
-    assertThat(bird.tail().size(), is(0));
-    assertThat(bird.wings().size(), is(0));
-    assertThat(bard.beak().size(), is(0));
-    assertThat(bard.eyes().size(), is(1));
-    assertThat(bard.feathers().size(), is(1));
-    assertThat(bard.feet().size(), is(1));
-    assertThat(bard.tail().size(), is(0));
-    assertThat(bard.wings().size(), is(0));
-    assertThat(bord.beak().size(), is(0));
-    assertThat(bord.eyes().size(), is(1));
-    assertThat(bord.feathers().size(), is(2));
-    assertThat(bord.feet().size(), is(1));
-    assertThat(bord.tail().size(), is(0));
-    assertThat(bord.wings().size(), is(0));
+    assertEquals(0, bird.beak().size());
+    assertEquals(0, bird.eyes().size());
+    assertEquals(0, bird.feathers().size());
+    assertEquals(0, bird.feet().size());
+    assertEquals(0, bird.tail().size());
+    assertEquals(0, bird.wings().size());
+    assertEquals(0, bard.beak().size());
+    assertEquals(1, bard.eyes().size());
+    assertEquals(1, bard.feathers().size());
+    assertEquals(1, bard.feet().size());
+    assertEquals(0, bard.tail().size());
+    assertEquals(0, bard.wings().size());
+    assertEquals(0, bord.beak().size());
+    assertEquals(1, bord.eyes().size());
+    assertEquals(2, bord.feathers().size());
+    assertEquals(1, bord.feet().size());
+    assertEquals(0, bord.tail().size());
+    assertEquals(0, bord.wings().size());
   }
 
   @Test
-  public void testNest() throws Exception {
+  void testNest() {
     Bird.Nest nest = Bird_Nest_Builder.builder().addToSticks("").build();
     Bird.Nest test = Bird_Nest_Builder.builder(nest)
         .feathers(ImmutableList.of(ImmutableList.of("")))
@@ -188,8 +187,8 @@ public class BirdTest {
     Bird.Nest best = Bird_Nest_Builder.builder(test)
         .addToSticks("best")
         .build();
-    assertThat(test.feathers().size(), is(1));
-    assertThat(best.feathers().size(), is(1));
-    assertThat(best.addToSticks(), is("best"));
+    assertEquals(1, test.feathers().size());
+    assertEquals(1, best.feathers().size());
+    assertEquals("best", best.addToSticks());
   }
 }

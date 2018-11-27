@@ -1,40 +1,39 @@
 package net.autobuilder.examples;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PackagePiranhaTest {
+class PackagePiranhaTest {
 
   @Test
-  public void testAccess() throws Exception {
+  void testAccess() throws Exception {
     String classModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getModifiers());
-    assertThat(classModifiers, not(containsString("public")));
-    assertThat(classModifiers, containsString("abstract"));
+    assertFalse(classModifiers.contains("public"));
+    assertTrue(classModifiers.contains("abstract"));
     String builderMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("builder").getModifiers());
-    assertThat(builderMethodModifiers, not(containsString("public")));
+    assertFalse(builderMethodModifiers.contains("public"));
     String toBuilderMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("builder", PackagePiranha.class)
             .getModifiers());
-    assertThat(toBuilderMethodModifiers, not(containsString("public")));
+    assertFalse(toBuilderMethodModifiers.contains("public"));
     String factoryMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("perThreadFactory")
             .getModifiers());
-    assertThat(factoryMethodModifiers, not(containsString("public")));
+    assertFalse(factoryMethodModifiers.contains("public"));
     String setterMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("foo", String.class)
             .getModifiers());
-    assertThat(setterMethodModifiers, not(containsString("public")));
-    assertThat(setterMethodModifiers, containsString("final"));
+    assertFalse(setterMethodModifiers.contains("public"));
+    assertTrue(setterMethodModifiers.contains("final"));
     String buildMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("build")
             .getModifiers());
-    assertThat(buildMethodModifiers, not(containsString("public")));
+    assertFalse(buildMethodModifiers.contains("public"));
   }
 }

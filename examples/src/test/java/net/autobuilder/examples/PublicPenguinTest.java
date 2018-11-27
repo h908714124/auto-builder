@@ -1,56 +1,55 @@
 package net.autobuilder.examples;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PublicPenguinTest {
+class PublicPenguinTest {
 
   @Test
-  public void testAccess() throws Exception {
+  void testAccess() throws Exception {
     String classModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getModifiers());
-    assertThat(classModifiers, containsString("public"));
-    assertThat(classModifiers, containsString("abstract"));
+    assertTrue(classModifiers.contains("public"));
+    assertTrue(classModifiers.contains("abstract"));
     String builderMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("builder").getModifiers());
-    assertThat(builderMethodModifiers, not(containsString("public")));
+    assertFalse(builderMethodModifiers.contains("public"));
     String toBuilderMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("builder", PublicPenguin.class)
             .getModifiers());
     // the static methods are never public
-    assertThat(toBuilderMethodModifiers, not(containsString("public")));
+    assertFalse(toBuilderMethodModifiers.contains("public"));
     String factoryMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("perThreadFactory")
             .getModifiers());
-    assertThat(factoryMethodModifiers, not(containsString("public")));
+    assertFalse(factoryMethodModifiers.contains("public"));
     String setterMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("foo", String.class)
             .getModifiers());
-    assertThat(setterMethodModifiers, containsString("public"));
-    assertThat(setterMethodModifiers, containsString("final"));
+    assertTrue(setterMethodModifiers.contains("public"));
+    assertTrue(setterMethodModifiers.contains("final"));
     String buildMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("build")
             .getModifiers());
-    assertThat(buildMethodModifiers, containsString("public"));
+    assertTrue(buildMethodModifiers.contains("public"));
   }
 
   @Test
-  public void testOptionalNull() {
+  void testOptionalNull() {
     String nobody = null;
     PublicPenguin p0 = PublicPenguin_Builder.builder().foo("").bar(1).build();
     PublicPenguin p1 = p0.toBuilder().friend("steven").build();
     PublicPenguin p2 = p1.toBuilder().friend(nobody).build();
-    assertThat(p0.friend(), is(Optional.empty()));
-    assertThat(p1.friend(), is(Optional.of("steven")));
-    assertThat(p2.friend(), is(Optional.empty()));
-    assertThat(p2.bar(), is(OptionalInt.of(1)));
+    assertEquals(Optional.empty(), p0.friend());
+    assertEquals(Optional.of("steven"), p1.friend());
+    assertEquals(Optional.empty(), p2.friend());
+    assertEquals(OptionalInt.of(1), p2.bar());
   }
 }

@@ -1,18 +1,19 @@
 package net.autobuilder.examples;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 import java.util.OptionalInt;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class GradleManTest {
+class GradleManTest {
 
   @Test
-  public void builderTest() throws Exception {
-    GradleMan<String> batman = GradleMan_Builder.<String>builder()
+  void builderTest() {
+    GradleMan<String> batman = GradleMan_Builder.builder()
         .good(true)
         .nice(true)
         .snake("snake")
@@ -25,16 +26,15 @@ public class GradleManTest {
         .snake("fake")
         .build();
 
-    assertThat(batman.getName(), is(Optional.empty()));
-    assertThat(batman.good(), is(true));
-    assertThat(batman.isNice(), is(true));
-    assertThat(batman.legs(), is(OptionalInt.empty()));
-    assertThat(batman.getSnake(), is("snake"));
-
-    assertThat(badman.getName(), is(Optional.of("Bad")));
-    assertThat(badman.good(), is(false));
-    assertThat(badman.isNice(), is(false));
-    assertThat(badman.legs(), is(OptionalInt.of(2)));
-    assertThat(badman.getSnake(), is("fake"));
+    assertEquals(Optional.empty(), batman.getName());
+    assertTrue(batman.good());
+    assertTrue(batman.isNice());
+    assertEquals(OptionalInt.empty(), batman.legs());
+    assertEquals("snake", batman.getSnake());
+    assertEquals(badman.getName(), Optional.of("Bad"));
+    assertFalse(badman.good());
+    assertFalse(badman.isNice());
+    assertEquals(OptionalInt.of(2), badman.legs());
+    assertEquals("fake", badman.getSnake());
   }
 }

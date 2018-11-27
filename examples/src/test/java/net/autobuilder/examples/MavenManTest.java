@@ -1,19 +1,18 @@
 package net.autobuilder.examples;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MavenManTest {
+class MavenManTest {
 
   @Test
-  public void builderTest() throws Exception {
+  void builderTest() {
     MavenMan batman = MavenMan.create("Batman", true);
     MavenMan robin = MavenMan_Builder.builder(batman)
         .name("Robin")
         .build();
-    assertThat(batman.name(), is("Batman"));
-    assertThat(robin.name(), is("Robin"));
+    assertEquals("Batman", batman.name());
+    assertEquals("Robin", robin.name());
   }
 }

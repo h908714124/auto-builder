@@ -1,17 +1,16 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.TypeName;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ParameterTest {
+class ParameterTest {
 
   @Test
-  public void setterName() throws Exception {
-    assertThat(Parameter.setterName("foo", TypeName.LONG), is("foo"));
-    assertThat(Parameter.setterName("getFoo", TypeName.LONG), is("foo"));
-    assertThat(Parameter.setterName("isBar", TypeName.BOOLEAN), is("bar"));
+  void setterName() {
+    assertEquals("foo", Parameter.setterName("foo", TypeName.LONG));
+    assertEquals("foo", Parameter.setterName("getFoo", TypeName.LONG));
+    assertEquals("bar", Parameter.setterName("isBar", TypeName.BOOLEAN));
   }
 }

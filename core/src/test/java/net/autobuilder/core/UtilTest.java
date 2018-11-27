@@ -1,19 +1,20 @@
 package net.autobuilder.core;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.stream.Stream;
 
 import static net.autobuilder.core.Util.isDistinct;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UtilTest {
+class UtilTest {
+
   @Test
-  public void distinct() throws Exception {
-    assertThat(Stream.empty().collect(isDistinct()), is(true));
-    assertThat(Stream.of(1).collect(isDistinct()), is(true));
-    assertThat(Stream.of(1, 2).collect(isDistinct()), is(true));
-    assertThat(Stream.of(1, 1).collect(isDistinct()), is(false));
+  void distinct() {
+    assertTrue(Stream.empty().collect(isDistinct()));
+    assertTrue(Stream.of(1).collect(isDistinct()));
+    assertTrue(Stream.of(1, 2).collect(isDistinct()));
+    assertFalse(Stream.of(1, 1).collect(isDistinct()));
   }
 }

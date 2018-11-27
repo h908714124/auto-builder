@@ -1,16 +1,15 @@
 package net.autobuilder.examples;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class EmptyTest {
+class EmptyTest {
 
   @Test
-  public void testEmpty() {
+  void testEmpty() {
     Empty e1 = Empty_Builder.builder().build();
     Empty e2 = Empty_Builder.builder(e1).build();
-    assertThat(e1, is(e2));
+    assertEquals(e2, e1);
   }
 }

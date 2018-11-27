@@ -1,10 +1,21 @@
 package net.autobuilder.core;
 
-public class ProcessorTest {
+import com.google.auto.value.processor.AutoValueProcessor;
+import org.junit.jupiter.api.Test;
 
-/*
+import javax.tools.JavaFileObject;
+import java.util.Arrays;
+import java.util.List;
+
+import static com.google.common.truth.Truth.assertAbout;
+import static com.google.testing.compile.JavaFileObjects.forSourceLines;
+import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
+import static java.util.Collections.singletonList;
+
+class ProcessorTest {
+
   @Test
-  public void autoBuilderFirst() throws Exception {
+  void autoBuilderFirst() {
     List<String> sourceLines = Arrays.asList(
         "package test;",
         "import net.autobuilder.AutoBuilder;",
@@ -25,7 +36,7 @@ public class ProcessorTest {
   }
 
   @Test
-  public void autoValueFirst() throws Exception {
+  void autoValueFirst() {
     List<String> sourceLines = Arrays.asList(
         "package test;",
         "import net.autobuilder.AutoBuilder;",
@@ -46,7 +57,7 @@ public class ProcessorTest {
   }
 
   @Test
-  public void autoValueMissing() throws Exception {
+  void autoValueMissing() {
     List<String> sourceLines = Arrays.asList(
         "package test;",
         "import net.autobuilder.AutoBuilder;",
@@ -66,7 +77,7 @@ public class ProcessorTest {
   }
 
   @Test
-  public void autoValueBuilder() throws Exception {
+  void autoValueBuilder() {
     List<String> sourceLines = Arrays.asList(
         "package test;",
         "import net.autobuilder.AutoBuilder;",
@@ -90,5 +101,4 @@ public class ProcessorTest {
         .withErrorContaining("@AutoBuilder and @AutoValue.Builder " +
             "cannot be used together.");
   }
-*/
 }

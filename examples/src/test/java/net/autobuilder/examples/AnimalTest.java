@@ -1,17 +1,18 @@
 package net.autobuilder.examples;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class AnimalTest {
+class AnimalTest {
 
   @Test
-  public void testBasic() throws Exception {
+  void testBasic() {
     Animal spiderPig = Animal_Builder.builder()
         .name("Spider-Pig")
         .maybe("yo")
@@ -22,18 +23,18 @@ public class AnimalTest {
         .name("Horse")
         .good(true)
         .build();
-    assertThat(spiderPig.getName(), is("Spider-Pig"));
-    assertThat(spiderPig.isGood(), is(false));
-    assertThat(spiderPig.maybe(), is(Optional.of("yo")));
-    assertThat(spiderPig.maybeMaybe(), is(Optional.of(Optional.of("mama"))));
-    assertThat(horse.getName(), is("Horse"));
-    assertThat(horse.isGood(), is(true));
-    assertThat(horse.maybe(), is(Optional.of("yo")));
-    assertThat(horse.maybeMaybe(), is(Optional.of(Optional.of("mama"))));
+    assertEquals("Spider-Pig", spiderPig.getName());
+    assertFalse(spiderPig.isGood());
+    assertEquals(Optional.of("yo"), spiderPig.maybe());
+    assertEquals(Optional.of(Optional.of("mama")), spiderPig.maybeMaybe());
+    assertEquals("Horse", horse.getName());
+    assertTrue(horse.isGood());
+    assertEquals(Optional.of("yo"), horse.maybe());
+    assertEquals(Optional.of(Optional.of("mama")), horse.maybeMaybe());
   }
 
   @Test
-  public void testFactoryNestingWorksCorrectly() throws Exception {
+  void testFactoryNestingWorksCorrectly() {
     Animal spiderPig = Animal_Builder.builder().name("").build();
     Animal horse = spiderPig.toBuilder()
         .good(true)
@@ -42,21 +43,21 @@ public class AnimalTest {
             .good(false)
             .build().getName())
         .build();
-    assertThat(horse.getName(), is("Horse"));
-    assertThat("nested builder calls leads to incorrect results",
-        horse.isGood(), is(true));
+    assertEquals("Horse", horse.getName());
+    assertTrue(horse.isGood(),
+        "nested builder calls leads to incorrect results");
   }
 
   @Test
-  public void testFactoryBuildersAreReused() throws Exception {
+  void testFactoryBuildersAreReused() {
     Animal spiderPig = Animal_Builder.builder().name("").build();
     Animal_Builder builder_1 = spiderPig.toBuilder();
     Animal badger = builder_1.name("Badger").build();
     Animal_Builder builder_2 = spiderPig.toBuilder();
     Animal snake = builder_2.name("Snake").build();
-    assertThat(badger.getName(), is("Badger"));
-    assertThat(snake.getName(), is("Snake"));
-    assertThat("builders are not reused",
-        builder_1, sameInstance(builder_2));
+    assertEquals("Badger", badger.getName());
+    assertEquals("Snake", snake.getName());
+    Assertions.assertSame(builder_1, builder_2,
+        "builders are not reused");
   }
 }
