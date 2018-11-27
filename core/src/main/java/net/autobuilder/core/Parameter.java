@@ -17,19 +17,19 @@ import static net.autobuilder.core.Cleanse.detox;
 import static net.autobuilder.core.Util.downcase;
 import static net.autobuilder.core.Util.upcase;
 
-final class Parameter extends ParaParameter {
+public final class Parameter extends ParaParameter {
 
   private static final Pattern GETTER_PATTERN =
       Pattern.compile("^get[A-Z].*$");
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
 
-  final VariableElement variableElement;
-  final String setterName;
+  public final VariableElement variableElement;
+  public final String setterName;
   final String getterName;
-  final TypeName type;
+  public final TypeName type;
 
-  final Model model;
+  public final Model model;
 
   private Parameter(
       VariableElement variableElement,
@@ -105,7 +105,7 @@ final class Parameter extends ParaParameter {
     return getter;
   }
 
-  FieldSpec asField() {
+  public FieldSpec asField() {
     return FieldSpec.builder(type, setterName).addModifiers(PRIVATE).build();
   }
 
@@ -115,7 +115,7 @@ final class Parameter extends ParaParameter {
   }
 
   @Override
-  <R, P> R accept(Cases<R, P> cases, P p) {
+  <R, P> R accept(ParamCases<R, P> cases, P p) {
     return cases.parameter(this, p);
   }
 }

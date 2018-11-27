@@ -18,7 +18,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 
-final class Optionalish extends ParaParameter {
+public final class Optionalish extends ParaParameter {
 
   private static final String JAVA_UTIL_OPTIONAL = "java.util.Optional";
   private static final ClassName OPTIONAL_CLASS =
@@ -36,7 +36,7 @@ final class Optionalish extends ParaParameter {
   private static final String OF = "of";
   private static final String OF_NULLABLE = "ofNullable";
 
-  final Parameter parameter;
+  public final Parameter parameter;
 
   private final ClassName wrapper;
   private final TypeName wrapped;
@@ -72,13 +72,13 @@ final class Optionalish extends ParaParameter {
         .map(checkoutResult -> checkoutResult.optionalish);
   }
 
-  static Optional<CodeBlock> emptyBlock(Parameter parameter) {
+  public static Optional<CodeBlock> emptyBlock(Parameter parameter) {
     return checkout(parameter)
         .map(checkoutResult -> checkoutResult.optionalish)
         .map(Optionalish::getFieldValue);
   }
 
-  CodeBlock getFieldValue() {
+  public CodeBlock getFieldValue() {
     ParameterSpec builder = parameter.model.builderParameter();
     FieldSpec field = parameter.asField();
     return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
@@ -113,7 +113,7 @@ final class Optionalish extends ParaParameter {
         Optional.empty();
   }
 
-  MethodSpec convenienceOverloadMethod() {
+  public MethodSpec convenienceOverloadMethod() {
     FieldSpec f = parameter.asField();
     ParameterSpec p = ParameterSpec.builder(wrapped,
         parameter.setterName).build();
@@ -139,7 +139,7 @@ final class Optionalish extends ParaParameter {
   }
 
   @Override
-  <R, P> R accept(Cases<R, P> cases, P p) {
+  <R, P> R accept(ParamCases<R, P> cases, P p) {
     return cases.optionalish(this, p);
   }
 }

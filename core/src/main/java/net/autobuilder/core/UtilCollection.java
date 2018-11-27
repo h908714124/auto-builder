@@ -6,11 +6,11 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+
 import java.util.Collections;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.Model.withTypevars;
-import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 import static net.autobuilder.core.Util.typeArguments;
 
@@ -73,7 +73,7 @@ final class UtilCollection extends Collectionish.Base {
   @Override
   CodeBlock setterAssignment(Parameter parameter) {
     FieldSpec field = parameter.asField();
-    ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
+    ParameterSpec p = parameter.asSetterParameter();
     return CodeBlock.builder()
         .addStatement("this.$N = $N", field, p)
         .build();

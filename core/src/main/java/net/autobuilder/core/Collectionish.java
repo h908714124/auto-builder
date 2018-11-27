@@ -29,7 +29,7 @@ import static net.autobuilder.core.Util.equalsType;
 import static net.autobuilder.core.Util.upcase;
 import static net.autobuilder.core.UtilCollection.ofUtil;
 
-final class Collectionish extends ParaParameter {
+public final class Collectionish extends ParaParameter {
 
   enum CollectionType {
     LIST(1, "addTo"), MAP(2, "putIn");
@@ -93,7 +93,7 @@ final class Collectionish extends ParaParameter {
 
   private final Base base;
 
-  final Parameter parameter;
+  public final Parameter parameter;
 
   private Collectionish(Base base, Parameter parameter) {
     this.base = base;
@@ -105,7 +105,7 @@ final class Collectionish extends ParaParameter {
         new Collectionish(lookupResult.base, parameter));
   }
 
-  static Optional<CodeBlock> emptyBlock(Parameter parameter) {
+  public static Optional<CodeBlock> emptyBlock(Parameter parameter) {
     ParameterSpec builder = parameter.model.builderParameter();
     return lookup(parameter).map(lookupResult -> {
       FieldSpec field = parameter.asField();
@@ -151,20 +151,20 @@ final class Collectionish extends ParaParameter {
     return map;
   }
 
-  MethodSpec accumulatorMethod() {
+  public MethodSpec accumulatorMethod() {
     return base.collectionType == CollectionType.MAP ?
         putInMethod() :
         addToMethod();
   }
 
-  MethodSpec accumulatorMethodOverload() {
+  public MethodSpec accumulatorMethodOverload() {
     ParameterizedTypeName addAllType = base.accumulatorOverloadArgumentType(parameter);
     return base.collectionType == CollectionType.MAP ?
         putAllInMethod(addAllType) :
         addAllToMethod(addAllType);
   }
 
-  CodeBlock getFieldValue() {
+  public CodeBlock getFieldValue() {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
     ParameterSpec builder = parameter.model.builderParameter();
@@ -182,7 +182,7 @@ final class Collectionish extends ParaParameter {
     return new Collectionish(base, parameter);
   }
 
-  CodeBlock setterAssignment() {
+  public CodeBlock setterAssignment() {
     return base.setterAssignment(parameter);
   }
 
@@ -190,7 +190,7 @@ final class Collectionish extends ParaParameter {
     return downcase(parameter.setterName) + "Builder";
   }
 
-  FieldSpec asBuilderField() {
+  public FieldSpec asBuilderField() {
     return FieldSpec.builder(base.accumulatorType(parameter),
         builderFieldName()).addModifiers(PRIVATE).build();
   }
@@ -199,7 +199,7 @@ final class Collectionish extends ParaParameter {
     return base.collectionType.accumulatorPrefix + upcase(parameter.setterName);
   }
 
-  ParameterSpec asSetterParameter() {
+  public ParameterSpec asSetterParameter() {
     return base.setterParameter(parameter);
   }
 
@@ -344,7 +344,7 @@ final class Collectionish extends ParaParameter {
   }
 
   @Override
-  <R, P> R accept(Cases<R, P> cases, P p) {
+  <R, P> R accept(ParamCases<R, P> cases, P p) {
     return cases.collectionish(this, p);
   }
 }

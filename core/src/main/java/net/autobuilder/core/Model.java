@@ -20,7 +20,7 @@ import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 import static net.autobuilder.core.Util.typeArguments;
 
-final class Model {
+public final class Model {
 
   private static final String SUFFIX = "_Builder";
   private static final Modifier[] PUBLIC_MODIFIER = {PUBLIC};
@@ -152,7 +152,7 @@ final class Model {
             .collect(joining(", ")));
   }
 
-  ParameterSpec builderParameter() {
+  public ParameterSpec builderParameter() {
     return builderParameter;
   }
 }

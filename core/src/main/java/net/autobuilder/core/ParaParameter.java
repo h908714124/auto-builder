@@ -1,240 +1,101 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeSpec;
+import net.autobuilder.core.cases.AddAccumulatorFieldCases;
+import net.autobuilder.core.cases.AddAccumulatorMethodCases;
+import net.autobuilder.core.cases.AddAccumulatorOverloadCases;
+import net.autobuilder.core.cases.AddOptionalishOverloadCases;
+import net.autobuilder.core.cases.AsSetterParameterCases;
+import net.autobuilder.core.cases.CleanupCodeCases;
+import net.autobuilder.core.cases.ClearAccumulatorCases;
+import net.autobuilder.core.cases.GetFieldValueCases;
+import net.autobuilder.core.cases.GetParameterCases;
+import net.autobuilder.core.cases.SetterAssignmentCases;
+
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-abstract class ParaParameter {
+public abstract class ParaParameter {
 
-  static abstract class Cases<R, P> {
-
-    abstract R parameter(Parameter parameter, P p);
-
-    abstract R collectionish(Collectionish collectionish, P p);
-
-    abstract R optionalish(Optionalish optionalish, P p);
-  }
-
-  static <R> Function<ParaParameter, R> asFunction(Cases<R, Void> cases) {
+  static <R> Function<ParaParameter, R> asFunction(ParamCases<R, Void> cases) {
     return parameter -> parameter.accept(cases, null);
   }
 
-  private static <P> BiConsumer<ParaParameter, P> asConsumer(Cases<Void, P> cases) {
+  private static <P> BiConsumer<ParaParameter, P> asConsumer(ParamCases<Void, P> cases) {
     return (parameter, p) -> parameter.accept(cases, p);
   }
 
-  abstract <R, P> R accept(Cases<R, P> cases, P p);
+  abstract <R, P> R accept(ParamCases<R, P> cases, P p);
 
+  final Parameter getParameter() {
+    return GET_PARAMETER.apply(this);
+  }
 
-  static final Function<ParaParameter, Parameter> GET_PARAMETER =
-      asFunction(new ParaParameter.Cases<Parameter, Void>() {
-        @Override
-        Parameter parameter(Parameter parameter, Void _null) {
-          return parameter;
-        }
+  private static final Function<ParaParameter, Parameter> GET_PARAMETER =
+      asFunction(new GetParameterCases());
 
-        @Override
-        Parameter collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.parameter;
-        }
+  public ParameterSpec asSetterParameter() {
+    return AS_SETTER_PARAMETER.apply(this);
+  }
 
-        @Override
-        Parameter optionalish(Optionalish optionalish, Void _null) {
-          return optionalish.parameter;
-        }
-      });
+  private static final Function<ParaParameter, ParameterSpec> AS_SETTER_PARAMETER =
+      asFunction(new AsSetterParameterCases());
 
+  CodeBlock setterAssignment() {
+    return SETTER_ASSIGNMENT.apply(this);
+  }
 
-  static final Function<ParaParameter, ParameterSpec> AS_SETTER_PARAMETER =
-      asFunction(new ParaParameter.Cases<ParameterSpec, Void>() {
-        @Override
-        ParameterSpec parameter(Parameter parameter, Void _null) {
-          return ParameterSpec.builder(parameter.type, parameter.setterName).build();
-        }
+  private static final Function<ParaParameter, CodeBlock> SETTER_ASSIGNMENT =
+      asFunction(new SetterAssignmentCases());
 
-        @Override
-        ParameterSpec collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.asSetterParameter();
-        }
+  CodeBlock getFieldValue() {
+    return GET_FIELD_VALUE.apply(this);
+  }
 
-        @Override
-        ParameterSpec optionalish(Optionalish optionalish, Void _null) {
-          return ParameterSpec.builder(optionalish.parameter.type,
-              optionalish.parameter.setterName).build();
-        }
-      });
+  private static final Function<ParaParameter, CodeBlock> GET_FIELD_VALUE =
+      asFunction(new GetFieldValueCases());
 
-  static final Function<ParaParameter, CodeBlock> SETTER_ASSIGNMENT =
-      asFunction(new ParaParameter.Cases<CodeBlock, Void>() {
-        @Override
-        CodeBlock parameter(Parameter parameter, Void _null) {
-          FieldSpec field = parameter.asField();
-          ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
-          return CodeBlock.builder()
-              .addStatement("this.$N = $N", field, p).build();
-        }
+  void clearAccumulator(CodeBlock.Builder builder) {
+    CLEAR_ACCUMULATOR.accept(this, builder);
+  }
 
-        @Override
-        CodeBlock collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.setterAssignment();
-        }
+  private static final BiConsumer<ParaParameter, CodeBlock.Builder> CLEAR_ACCUMULATOR =
+      asConsumer(new ClearAccumulatorCases());
 
-        @Override
-        CodeBlock optionalish(Optionalish optionalish, Void _null) {
-          FieldSpec field = optionalish.parameter.asField();
-          ParameterSpec p = AS_SETTER_PARAMETER.apply(optionalish);
-          return CodeBlock.builder()
-              .addStatement("this.$N = $N", field, p).build();
-        }
-      });
+  void addOptionalishOverload(TypeSpec.Builder builder) {
+    ADD_OPTIONALISH_OVERLOAD.accept(this, builder);
+  }
 
-  static final Function<ParaParameter, CodeBlock> GET_FIELD_VALUE =
-      asFunction(new ParaParameter.Cases<CodeBlock, Void>() {
-        @Override
-        CodeBlock parameter(Parameter parameter, Void _null) {
-          return Collectionish.emptyBlock(parameter)
-              .orElse(Optionalish.emptyBlock(parameter)
-                  .orElse(CodeBlock.of("$N.$N",
-                      parameter.model.builderParameter(),
-                      parameter.asField())));
-        }
+  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_OPTIONALISH_OVERLOAD =
+      asConsumer(new AddOptionalishOverloadCases());
 
-        @Override
-        CodeBlock collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.getFieldValue();
-        }
+  void addAccumulatorField(TypeSpec.Builder builder) {
+    ADD_ACCUMULATOR_FIELD.accept(this, builder);
+  }
 
-        @Override
-        CodeBlock optionalish(Optionalish optionalish, Void _null) {
-          return optionalish.getFieldValue();
-        }
-      });
+  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_FIELD =
+      asConsumer(new AddAccumulatorFieldCases());
 
-  static final BiConsumer<ParaParameter, CodeBlock.Builder> CLEAR_ACCUMULATOR =
-      asConsumer(new ParaParameter.Cases<Void, CodeBlock.Builder>() {
-        @Override
-        Void parameter(Parameter parameter, CodeBlock.Builder builder) {
-          return null;
-        }
+  void addAccumulatorMethod(TypeSpec.Builder builder) {
+    ADD_ACCUMULATOR_METHOD.accept(this, builder);
+  }
 
-        @Override
-        Void collectionish(Collectionish collectionish, CodeBlock.Builder builder) {
-          builder.addStatement("this.$N = null",
-              collectionish.asBuilderField());
-          return null;
-        }
+  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_METHOD =
+      asConsumer(new AddAccumulatorMethodCases());
 
-        @Override
-        Void optionalish(Optionalish optionalish, CodeBlock.Builder builder) {
-          return null;
-        }
-      });
+  void addAccumulatorOverload(TypeSpec.Builder builder) {
+    ADD_ACCUMULATOR_OVERLOAD.accept(this, builder);
+  }
 
-  static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_OPTIONALISH_OVERLOAD =
-      asConsumer(new ParaParameter.Cases<Void, TypeSpec.Builder>() {
-        @Override
-        Void parameter(Parameter parameter, TypeSpec.Builder builder) {
-          return null;
-        }
+  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_OVERLOAD =
+      asConsumer(new AddAccumulatorOverloadCases());
 
-        @Override
-        Void collectionish(Collectionish collectionish, TypeSpec.Builder block) {
-          return null;
-        }
+  void cleanupCode(CodeBlock.Builder builder) {
+    CLEANUP_CODE.accept(this, builder);
+  }
 
-        @Override
-        Void optionalish(Optionalish optionalish, TypeSpec.Builder builder) {
-          builder.addMethod(optionalish.convenienceOverloadMethod());
-          return null;
-        }
-      });
-
-  static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_FIELD =
-      asConsumer(new ParaParameter.Cases<Void, TypeSpec.Builder>() {
-        @Override
-        Void parameter(Parameter parameter, TypeSpec.Builder builder) {
-          return null;
-        }
-
-        @Override
-        Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          builder.addField(collectionish.asBuilderField());
-          return null;
-        }
-
-        @Override
-        Void optionalish(Optionalish optionalish, TypeSpec.Builder builder) {
-          return null;
-        }
-      });
-
-  static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_METHOD =
-      asConsumer(new ParaParameter.Cases<Void, TypeSpec.Builder>() {
-        @Override
-        Void parameter(Parameter parameter, TypeSpec.Builder builder) {
-          return null;
-        }
-
-        @Override
-        Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          builder.addMethod(collectionish.accumulatorMethod());
-          return null;
-        }
-
-        @Override
-        Void optionalish(Optionalish optionalish, TypeSpec.Builder builder) {
-          return null;
-        }
-      });
-
-  static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_OVERLOAD =
-      asConsumer(new ParaParameter.Cases<Void, TypeSpec.Builder>() {
-        @Override
-        Void parameter(Parameter parameter, TypeSpec.Builder builder) {
-          return null;
-        }
-
-        @Override
-        Void collectionish(Collectionish collectionish, TypeSpec.Builder builder) {
-          builder.addMethod(collectionish.accumulatorMethodOverload());
-          return null;
-        }
-
-        @Override
-        Void optionalish(Optionalish optionalish, TypeSpec.Builder builder) {
-          return null;
-        }
-      });
-
-  static final BiConsumer<ParaParameter, CodeBlock.Builder> CLEANUP_CODE =
-      asConsumer(new ParaParameter.Cases<Void, CodeBlock.Builder>() {
-        @Override
-        Void parameter(Parameter parameter, CodeBlock.Builder builder) {
-          if (!parameter.variableElement.asType().getKind().isPrimitive()) {
-            builder.addStatement("$N.$L(null)",
-                parameter.model.builderParameter(), parameter.setterName);
-          }
-          return null;
-        }
-
-        @Override
-        Void collectionish(Collectionish collectionish, CodeBlock.Builder builder) {
-          builder.addStatement("$N.$L(null)",
-              collectionish.parameter.model.builderParameter(),
-              collectionish.parameter.setterName);
-          return null;
-        }
-
-        @Override
-        Void optionalish(Optionalish optionalish, CodeBlock.Builder builder) {
-          builder.addStatement("$N.$L(($T) null)",
-              optionalish.parameter.model.builderParameter(),
-              optionalish.parameter.setterName,
-              optionalish.parameter.type);
-          return null;
-        }
-      });
+  private static final BiConsumer<ParaParameter, CodeBlock.Builder> CLEANUP_CODE =
+      asConsumer(new CleanupCodeCases());
 }

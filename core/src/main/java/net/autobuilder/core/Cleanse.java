@@ -38,77 +38,88 @@ final class Cleanse {
     return parameters;
   }
 
-  static final Function<ParaParameter, List<String>> METHOD_NAMES =
-      asFunction(new ParaParameter.Cases<List<String>, Void>() {
-        @Override
-        List<String> parameter(Parameter parameter, Void _null) {
-          return singletonList(parameter.setterName);
-        }
+  private static final Function<ParaParameter, List<String>> METHOD_NAMES =
+      asFunction(new MethodNamesCases());
 
-        @Override
-        List<String> collectionish(Collectionish collectionish, Void _null) {
-          return asList(collectionish.parameter.setterName, collectionish.accumulatorName());
-        }
+  private static final Function<ParaParameter, List<String>> FIELD_NAMES =
+      asFunction(new FieldNamesCases());
 
-        @Override
-        List<String> optionalish(Optionalish optionalish, Void _null) {
-          return singletonList(optionalish.parameter.setterName);
-        }
-      });
+  private static final Function<ParaParameter, ParaParameter> NO_ACCUMULATOR =
+      asFunction(new NoAccumulatorCases());
 
-  static final Function<ParaParameter, List<String>> FIELD_NAMES =
-      asFunction(new ParaParameter.Cases<List<String>, Void>() {
-        @Override
-        List<String> parameter(Parameter parameter, Void _null) {
-          return singletonList(parameter.setterName);
-        }
+  private static final Function<ParaParameter, ParaParameter> ORIGINAL_SETTER =
+      asFunction(new OriginalSetterCases());
 
-        @Override
-        List<String> collectionish(Collectionish collectionish, Void _null) {
-          return asList(collectionish.parameter.setterName,
-              collectionish.builderFieldName());
-        }
+  private static class MethodNamesCases implements ParamCases<List<String>, Void> {
 
-        @Override
-        List<String> optionalish(Optionalish optionalish, Void _null) {
-          return singletonList(optionalish.parameter.setterName);
-        }
-      });
+    @Override
+    public List<String> parameter(Parameter parameter, Void _null) {
+      return singletonList(parameter.setterName);
+    }
 
-  static final Function<ParaParameter, ParaParameter> NO_ACCUMULATOR =
-      asFunction(new ParaParameter.Cases<ParaParameter, Void>() {
-        @Override
-        ParaParameter parameter(Parameter parameter, Void _null) {
-          return parameter;
-        }
+    @Override
+    public List<String> collectionish(Collectionish collectionish, Void _null) {
+      return asList(collectionish.parameter.setterName, collectionish.accumulatorName());
+    }
 
-        @Override
-        ParaParameter collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.parameter;
-        }
+    @Override
+    public List<String> optionalish(Optionalish optionalish, Void _null) {
+      return singletonList(optionalish.parameter.setterName);
+    }
+  }
 
-        @Override
-        ParaParameter optionalish(Optionalish optionalish, Void _null) {
-          return optionalish;
-        }
-      });
+  private static class FieldNamesCases implements ParamCases<List<String>, Void> {
 
-  static final Function<ParaParameter, ParaParameter> ORIGINAL_SETTER =
-      asFunction(new ParaParameter.Cases<ParaParameter, Void>() {
-        @Override
-        ParaParameter parameter(Parameter parameter, Void _null) {
-          return parameter.originalSetter();
-        }
+    @Override
+    public List<String> parameter(Parameter parameter, Void _null) {
+      return singletonList(parameter.setterName);
+    }
 
-        @Override
-        ParaParameter collectionish(Collectionish collectionish, Void _null) {
-          return collectionish.withParameter(collectionish.parameter.originalSetter());
-        }
+    @Override
+    public List<String> collectionish(Collectionish collectionish, Void _null) {
+      return asList(collectionish.parameter.setterName,
+          collectionish.builderFieldName());
+    }
 
-        @Override
-        ParaParameter optionalish(Optionalish optionalish, Void _null) {
-          return optionalish.withParameter(optionalish.parameter.originalSetter());
-        }
-      });
+    @Override
+    public List<String> optionalish(Optionalish optionalish, Void _null) {
+      return singletonList(optionalish.parameter.setterName);
+    }
+  }
 
+  private static class NoAccumulatorCases implements ParamCases<ParaParameter, Void> {
+
+    @Override
+    public ParaParameter parameter(Parameter parameter, Void _null) {
+      return parameter;
+    }
+
+    @Override
+    public ParaParameter collectionish(Collectionish collectionish, Void _null) {
+      return collectionish.parameter;
+    }
+
+    @Override
+    public ParaParameter optionalish(Optionalish optionalish, Void _null) {
+      return optionalish;
+    }
+  }
+
+  private static class OriginalSetterCases implements ParamCases<ParaParameter, Void> {
+
+    @Override
+    public ParaParameter parameter(Parameter parameter, Void _null) {
+      return parameter.originalSetter();
+    }
+
+    @Override
+    public ParaParameter collectionish(Collectionish collectionish, Void _null) {
+      return collectionish.withParameter(collectionish.parameter.originalSetter());
+    }
+
+    @Override
+    public ParaParameter optionalish(Optionalish optionalish, Void _null) {
+      return optionalish.withParameter(optionalish.parameter.originalSetter());
+    }
+  }
 }

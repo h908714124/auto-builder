@@ -1,37 +1,32 @@
 package net.autobuilder.core;
 
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.TypeSpec;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
-import static net.autobuilder.core.ParaParameter.ADD_ACCUMULATOR_FIELD;
-import static net.autobuilder.core.ParaParameter.ADD_ACCUMULATOR_METHOD;
-import static net.autobuilder.core.ParaParameter.ADD_ACCUMULATOR_OVERLOAD;
-import static net.autobuilder.core.ParaParameter.ADD_OPTIONALISH_OVERLOAD;
-import static net.autobuilder.core.ParaParameter.AS_SETTER_PARAMETER;
-import static net.autobuilder.core.ParaParameter.CLEANUP_CODE;
-import static net.autobuilder.core.ParaParameter.CLEAR_ACCUMULATOR;
-import static net.autobuilder.core.ParaParameter.GET_FIELD_VALUE;
-import static net.autobuilder.core.ParaParameter.GET_PARAMETER;
-import static net.autobuilder.core.ParaParameter.SETTER_ASSIGNMENT;
 import static net.autobuilder.core.Util.joinCodeBlocks;
-
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.TypeSpec;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 final class Analyser {
 
   private final Model model;
+
   private final List<ParaParameter> parameters;
+
   private final MethodSpec initMethod;
+
   private final MethodSpec staticBuildMethod;
+
   private final Optional<RefTrackingBuilder> optionalRefTrackingBuilder;
 
   private Analyser(Model model) {
@@ -63,16 +58,15 @@ final class Analyser {
           builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder)
               .define());
         })
-        .otherwise(() -> {
-          builder.addType(PerThreadFactory.createStub(model));
-        });
+        .otherwise(() ->
+            builder.addType(PerThreadFactory.createStub(model)));
     for (ParaParameter parameter : parameters) {
-      builder.addField(GET_PARAMETER.apply(parameter).asField());
+      builder.addField(parameter.getParameter().asField());
       builder.addMethod(setterMethod(parameter));
-      ADD_OPTIONALISH_OVERLOAD.accept(parameter, builder);
-      ADD_ACCUMULATOR_FIELD.accept(parameter, builder);
-      ADD_ACCUMULATOR_METHOD.accept(parameter, builder);
-      ADD_ACCUMULATOR_OVERLOAD.accept(parameter, builder);
+      parameter.addOptionalishOverload(builder);
+      parameter.addAccumulatorField(builder);
+      parameter.addAccumulatorMethod(builder);
+      parameter.addAccumulatorOverload(builder);
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(ABSTRACT)
@@ -102,8 +96,8 @@ final class Analyser {
     for (ParaParameter parameter : parameters) {
       block.addStatement("$N.$N = $N.$L()",
           model.builderParameter(),
-          GET_PARAMETER.apply(parameter).setterName, input,
-          GET_PARAMETER.apply(parameter).getterName);
+          parameter.getParameter().setterName, input,
+          parameter.getParameter().getterName);
     }
     return MethodSpec.methodBuilder("init")
         .addCode(block.build())
@@ -114,13 +108,13 @@ final class Analyser {
   }
 
   private MethodSpec setterMethod(ParaParameter parameter) {
-    ParameterSpec p = AS_SETTER_PARAMETER.apply(parameter);
+    ParameterSpec p = parameter.asSetterParameter();
     CodeBlock.Builder block = CodeBlock.builder();
-    block.add(SETTER_ASSIGNMENT.apply(parameter));
-    CLEAR_ACCUMULATOR.accept(parameter, block);
+    block.add(parameter.setterAssignment());
+    parameter.clearAccumulator(block);
     block.addStatement("return this");
     return MethodSpec.methodBuilder(
-        GET_PARAMETER.apply(parameter).setterName)
+        parameter.getParameter().setterName)
         .addCode(block.build())
         .addParameter(p)
         .addModifiers(FINAL)
@@ -159,10 +153,10 @@ final class Analyser {
     ParameterSpec result = ParameterSpec.builder(model.sourceClass, "result")
         .build();
     List<CodeBlock> invocation = parameters.stream()
-        .map(GET_FIELD_VALUE)
+        .map(ParaParameter::getFieldValue)
         .collect(Collectors.toList());
     CodeBlock.Builder cleanup = CodeBlock.builder();
-    parameters.forEach(parameter -> CLEANUP_CODE.accept(parameter, cleanup));
+    parameters.forEach(parameter -> parameter.cleanupCode(cleanup));
     return MethodSpec.methodBuilder("build")
         .addCode("$T $N = new $T(\n    ", model.sourceClass, result, model.avType)
         .addCode(invocation.stream().collect(joinCodeBlocks(",\n    ")))
@@ -189,5 +183,4 @@ final class Analyser {
             "@see <a href=\"https://github.com/h908714124/auto-builder\">auto-builder on github</a>\n",
         AutoBuilderProcessor.class.getName()).build();
   }
-
 }
