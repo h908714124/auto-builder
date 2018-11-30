@@ -6,6 +6,15 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
+import net.autobuilder.AutoBuilder;
+
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -16,14 +25,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
-import net.autobuilder.AutoBuilder;
 
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.util.ElementFilter.typesIn;
@@ -113,9 +114,9 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
   }
 
   private static ClassName avPeer(TypeElement typeElement) {
-    TypeName type = TypeName.get(typeElement.asType());
-    String name = AV_PREFIX + String.join("_", rawType(type).simpleNames());
-    return rawType(type).topLevelClassName().peerClass(name);
+    ClassName className = ClassName.get(typeElement);
+    String name = AV_PREFIX + String.join("_", className.simpleNames());
+    return className.topLevelClassName().peerClass(name);
   }
 
   static ClassName rawType(TypeName typeName) {
