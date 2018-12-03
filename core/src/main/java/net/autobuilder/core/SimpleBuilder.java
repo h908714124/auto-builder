@@ -1,6 +1,7 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import static javax.lang.model.element.Modifier.FINAL;
@@ -36,7 +37,7 @@ final class SimpleBuilder {
         .addAnnotation(Override.class)
         .addStatement("return $T.$N(this)",
             rawType(model.generatedClass), staticBuildMethod)
-        .returns(model.sourceClass)
+        .returns(TypeName.get(model.sourceClass().asType()))
         .addModifiers(model.maybePublic())
         .build();
   }

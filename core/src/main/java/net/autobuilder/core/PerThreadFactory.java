@@ -4,6 +4,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import static com.squareup.javapoet.MethodSpec.constructorBuilder;
@@ -51,7 +52,7 @@ final class PerThreadFactory {
   }
 
   private MethodSpec builderMethod() {
-    ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
         .beginControlFlow("if (this.$N == null || this.$N.inUse)", builder, builder)
         .addStatement("this.$N = new $T()", builder, refTrackingBuilder.refTrackingBuilderClass)

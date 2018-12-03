@@ -3,6 +3,7 @@ package net.autobuilder.core;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.util.List;
@@ -91,7 +92,7 @@ final class Analyser {
 
   private static MethodSpec initMethod(
       Model model, List<ParaParameter> parameters) {
-    ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
     for (ParaParameter parameter : parameters) {
       block.addStatement("$N.$N = $N.$L()",
@@ -134,7 +135,7 @@ final class Analyser {
 
   private MethodSpec builderMethodWithParam() {
     ParameterSpec builder = model.builderParameter();
-    ParameterSpec input = ParameterSpec.builder(model.sourceClass, "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
         .addStatement("$T $N = new $T()", builder.type, builder, model.simpleBuilderClass)
         .addStatement("$N($N, $N)", initMethod, builder, input)
@@ -150,7 +151,7 @@ final class Analyser {
 
   private static MethodSpec staticBuildMethod(Model model, List<ParaParameter> parameters) {
     ParameterSpec builder = model.builderParameter();
-    ParameterSpec result = ParameterSpec.builder(model.sourceClass, "result")
+    ParameterSpec result = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "result")
         .build();
     List<CodeBlock> invocation = parameters.stream()
         .map(ParaParameter::getFieldValue)
@@ -158,13 +159,13 @@ final class Analyser {
     CodeBlock.Builder cleanup = CodeBlock.builder();
     parameters.forEach(parameter -> parameter.cleanupCode(cleanup));
     return MethodSpec.methodBuilder("build")
-        .addCode("$T $N = new $T(\n    ", model.sourceClass, result, model.avType)
+        .addCode("$T $N = new $T(\n    ", TypeName.get(model.sourceClass().asType()), result, model.avType)
         .addCode(invocation.stream().collect(joinCodeBlocks(",\n    ")))
         .addCode(");\n")
         .addCode(cleanup.build())
         .addStatement("return $N", result)
         .addTypeVariables(model.typevars())
-        .returns(model.sourceClass)
+        .returns(TypeName.get(model.sourceClass().asType()))
         .addParameter(builder)
         .addModifiers(PRIVATE, STATIC)
         .build();
@@ -172,7 +173,7 @@ final class Analyser {
 
   private MethodSpec abstractBuildMethod() {
     return MethodSpec.methodBuilder("build")
-        .returns(model.sourceClass)
+        .returns(TypeName.get(model.sourceClass().asType()))
         .addModifiers(ABSTRACT)
         .addModifiers(model.maybePublic())
         .build();

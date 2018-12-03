@@ -39,7 +39,7 @@ public final class Model {
   final TypeName generatedClass;
   final TypeName simpleBuilderClass;
   final TypeElement avType;
-  final TypeName sourceClass;
+  private final TypeElement sourceClass;
   final Util util;
 
 
@@ -55,7 +55,7 @@ public final class Model {
     this.avType = avType;
     this.simpleBuilderClass = simpleBuilderClass;
     this.optionalRefTrackingBuilderClass = optionalRefTrackingBuilderClass;
-    this.sourceClass = TypeName.get(sourceClassElement.asType());
+    this.sourceClass = sourceClassElement;
     this.constructor = constructor;
     this.builderParameter = ParameterSpec.builder(generatedClass, "builder").build();
   }
@@ -154,5 +154,9 @@ public final class Model {
 
   public ParameterSpec builderParameter() {
     return builderParameter;
+  }
+
+  TypeElement sourceClass() {
+    return sourceClass;
   }
 }

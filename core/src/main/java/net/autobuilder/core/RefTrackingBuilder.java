@@ -7,6 +7,7 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+
 import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.FINAL;
@@ -56,16 +57,16 @@ final class RefTrackingBuilder {
   }
 
   private MethodSpec buildMethod() {
-    ParameterSpec result = ParameterSpec.builder(model.sourceClass, "result").build();
+    ParameterSpec result = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "result").build();
     CodeBlock.Builder builder = CodeBlock.builder()
-        .addStatement("$T $N = $T.$N(this)", model.sourceClass, result,
+        .addStatement("$T $N = $T.$N(this)", model.sourceClass(), result,
             rawType(model.generatedClass), staticBuildMethod);
     builder.addStatement("this.$N = $L", inUse, false)
         .addStatement("return $N", result);
     return MethodSpec.methodBuilder("build")
         .addAnnotation(Override.class)
         .addCode(builder.build())
-        .returns(model.sourceClass)
+        .returns(TypeName.get(model.sourceClass().asType()))
         .addModifiers(model.maybePublic())
         .build();
   }
