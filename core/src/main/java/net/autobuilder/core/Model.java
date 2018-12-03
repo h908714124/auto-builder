@@ -5,16 +5,16 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeVariableName;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import javax.lang.model.element.Element;
+import net.autobuilder.AutoBuilder;
+
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
@@ -23,8 +23,6 @@ import static net.autobuilder.core.Util.typeArguments;
 public final class Model {
 
   private static final String SUFFIX = "_Builder";
-  private static final Modifier[] PUBLIC_MODIFIER = {PUBLIC};
-  private static final Modifier[] NO_MODIFIERS = {};
   private static final String REF_TRACKING_BUILDER = "RefTrackingBuilder";
   private static final String SIMPLE_BUILDER = "SimpleBuilder";
 
@@ -67,7 +65,8 @@ public final class Model {
         avType.getEnclosedElements());
     if (constructors.size() != 1) {
       throw new ValidationException(
-          avType + " does not have exactly one constructor.", sourceClassElement);
+          "Expecting the generated auto-value class to have exactly one constructor.",
+          sourceClassElement);
     }
     ExecutableElement constructor = constructors.get(0);
     if (constructor.getModifiers().contains(Modifier.PRIVATE)) {
@@ -85,13 +84,17 @@ public final class Model {
             sourceClassElement);
       }
       throw new ValidationException(
-          avType + " has a private constructor.",
+          "Expecting the generated auto-value class to have a non-private constructor.",
           sourceClassElement);
     }
     TypeName generatedClass = generatedClass(sourceClassElement);
     TypeName simpleBuilderClass = simpleBuilderClass(sourceClassElement, generatedClass);
+    if (!sourceClassElement.getTypeParameters().isEmpty()) {
+      throw new ValidationException("The class may not have type parameters.",
+          sourceClassElement);
+    }
     Optional<ClassName> optionalRefTrackingBuilderClass =
-        sourceClassElement.getTypeParameters().isEmpty() ?
+        sourceClassElement.getAnnotation(AutoBuilder.class).reusableBuilder() ?
             Optional.of(rawType(generatedClass).nestedClass(REF_TRACKING_BUILDER)) :
             Optional.empty();
     return new Model(util, sourceClassElement, generatedClass, avType,
@@ -138,18 +141,9 @@ public final class Model {
 
   Modifier[] maybePublic() {
     if (isPublic()) {
-      return PUBLIC_MODIFIER;
+      return new Modifier[]{PUBLIC};
     }
-    return NO_MODIFIERS;
-  }
-
-  String cacheWarning() {
-    return String.format(
-        "Caching not implemented: %s has type parameters: <%s>",
-        sourceClassElement.getSimpleName(),
-        sourceClassElement.getTypeParameters().stream()
-            .map(Element::getSimpleName)
-            .collect(joining(", ")));
+    return new Modifier[]{};
   }
 
   public ParameterSpec builderParameter() {

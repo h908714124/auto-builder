@@ -20,6 +20,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,9 +40,17 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
 
   @Override
   public Set<String> getSupportedAnnotationTypes() {
-    Set<String> strings = new HashSet<>();
-    strings.add(AutoBuilder.class.getCanonicalName());
-    return strings;
+    return Collections.singleton(AutoBuilder.class.getCanonicalName());
+  }
+
+  @Override
+  public Set<String> getSupportedOptions() {
+    // Marking it as aggregating may or may not be necessary,
+    // but it should be safer since we're looking at the class that's generated
+    // by auto-value, which may violate one rule of "isolating" annotation processing.
+    // See here:
+    // https://docs.gradle.org/5.0/userguide/java_plugin.html#sec:incremental_annotation_processing
+    return Collections.singleton("org.gradle.annotation.processing.aggregating");
   }
 
   @Override

@@ -53,14 +53,12 @@ final class Analyser {
     builder.addMethod(staticBuildMethod);
     builder.addMethod(abstractBuildMethod());
     builder.addType(SimpleBuilder.create(model, staticBuildMethod).define());
-    OptionalConsumer.of(optionalRefTrackingBuilder)
+    optionalRefTrackingBuilder
         .ifPresent(refTrackingBuilder -> {
           builder.addType(refTrackingBuilder.define());
           builder.addType(PerThreadFactory.create(model, initMethod, refTrackingBuilder)
               .define());
-        })
-        .otherwise(() ->
-            builder.addType(PerThreadFactory.createStub(model)));
+        });
     for (ParaParameter parameter : parameters) {
       builder.addField(parameter.getParameter().asField());
       builder.addMethod(setterMethod(parameter));
@@ -81,12 +79,9 @@ final class Analyser {
     MethodSpec.Builder builder = MethodSpec.methodBuilder("perThreadFactory")
         .returns(RefTrackingBuilder.perThreadFactoryClass(model))
         .addModifiers(STATIC);
-    OptionalConsumer.of(optionalRefTrackingBuilder)
+    optionalRefTrackingBuilder
         .ifPresent(refTrackingBuilder -> builder.addStatement("return new $T()",
-            refTrackingBuilder.perThreadFactoryClass))
-        .otherwise(() -> builder.addStatement("throw new $T(\n$S)",
-            UnsupportedOperationException.class, model.cacheWarning())
-            .addModifiers(PRIVATE));
+            refTrackingBuilder.perThreadFactoryClass));
     return builder.build();
   }
 

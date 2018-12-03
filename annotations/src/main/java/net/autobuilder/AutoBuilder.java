@@ -6,19 +6,33 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation for
- * <a href="https://github.com/h908714124/auto-builder">auto-builder</a>.
+ * <p>Marker annotation for
+ * <a href="https://github.com/h908714124/auto-builder">auto-builder</a>.</p>
+ *
  * <ul>
  * <li>This won't do anything,
- * unless the class also has an @AutoValue annotation.</li>
+ * unless the class also has an @AutoValue annotation.
+ * See <a href="https://github.com/google/auto/tree/master/value">here</a> for
+ * details.</li>
  * <li>The annotated class should be a "regular" auto-value class,
  * not the "builder" variety.</li>
- * <li>I'm not sure how this combines with auto-value <i>extensions</i>.
- * If you find an annoying behaviour,
- * please report it at the above mentioned github page.</li>
  * </ul>
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface AutoBuilder {
+
+  /**
+   * <p>If true, the generated code will attempt to reuse
+   * builder instances. This will improve performance unless builder calls are
+   * stacked, i.e. a new builder instance is needed before {@code build()}
+   * has been called on the &quot;previous&quot; builder instance.</p>
+   *
+   * <h4>Note:</h2>
+   *
+   * <p>The generated code will store the builder instance in a static
+   * {@link ThreadLocal} field.
+   * Set to {@code false} to prevent this.</p>
+   */
+  boolean reusableBuilder() default true;
 }

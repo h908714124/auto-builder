@@ -8,14 +8,14 @@ import java.util.OptionalInt;
 
 @AutoBuilder
 @AutoValue
-abstract class GradleMan<S extends String> {
+abstract class GradleMan {
 
-  abstract Optional<S> getName();
+  abstract Optional<String> getName();
 
-  abstract S getSnake();
+  abstract String getSnake();
 
   abstract boolean good();
-  
+
   abstract boolean isNice();
 
   abstract OptionalInt legs();

@@ -32,16 +32,6 @@ final class PerThreadFactory {
     return new PerThreadFactory(model, initMethod, refTrackingBuilder);
   }
 
-  static TypeSpec createStub(Model model) {
-    return TypeSpec.classBuilder(RefTrackingBuilder.perThreadFactoryClass(model))
-        .addMethod(constructorBuilder()
-            .addStatement("throw new $T(\n$S)", UnsupportedOperationException.class,
-                model.cacheWarning())
-            .build())
-        .addModifiers(STATIC, FINAL)
-        .build();
-  }
-
   TypeSpec define() {
     return TypeSpec.classBuilder(refTrackingBuilder.perThreadFactoryClass)
         .addField(builder)

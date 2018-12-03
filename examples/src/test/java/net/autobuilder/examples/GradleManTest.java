@@ -13,12 +13,12 @@ class GradleManTest {
 
   @Test
   void builderTest() {
-    GradleMan<String> batman = GradleMan_Builder.builder()
+    GradleMan batman = GradleMan_Builder.builder()
         .good(true)
         .nice(true)
         .snake("snake")
         .build();
-    GradleMan<String> badman = GradleMan_Builder.builder(batman)
+    GradleMan badman = GradleMan_Builder.builder(batman)
         .name("Bad")
         .legs(2)
         .good(false)
