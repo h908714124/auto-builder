@@ -31,7 +31,7 @@ final class RefTrackingBuilder {
     this.staticBuildMethod = staticBuildMethod;
     this.refTrackingBuilderClass = refTrackingBuilderClass;
     this.perThreadFactoryClass = perThreadFactoryClass;
-    this.inUse = FieldSpec.builder(TypeName.BOOLEAN, "inUse", PRIVATE).build();
+    this.inUse = FieldSpec.builder(TypeName.BOOLEAN, "inUse").build();
   }
 
   static ClassName perThreadFactoryClass(Model model) {

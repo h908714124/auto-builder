@@ -25,7 +25,6 @@ final class SimpleBuilder {
 
   TypeSpec define() {
     return TypeSpec.classBuilder(rawType(model.simpleBuilderClass))
-        .addTypeVariables(model.typevars())
         .superclass(model.generatedClass)
         .addMethod(buildMethod())
         .addModifiers(PRIVATE, STATIC, FINAL)

@@ -102,13 +102,6 @@ final class Util {
         .toArray(TypeName[]::new);
   }
 
-  static TypeName[] typeArguments(TypeElement sourceClassElement) {
-    return sourceClassElement.getTypeParameters().stream()
-        .map(TypeParameterElement::asType)
-        .map(TypeName::get)
-        .toArray(TypeName[]::new);
-  }
-
   static TypeName[] typeArguments(TypeMirror typeMirror) {
     DeclaredType type = typeMirror.accept(AS_DECLARED, null);
     return type.getTypeArguments().stream()

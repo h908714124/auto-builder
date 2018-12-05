@@ -11,12 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@AutoBuilder
+@AutoBuilder(reuseBuilder = true)
 @AutoValue
 abstract class Bird {
-
-  private static final ThreadLocal<Bird_Builder.PerThreadFactory> FACTORY =
-      ThreadLocal.withInitial(Bird_Builder::perThreadFactory);
 
   abstract ImmutableList<Date> feathers();
   abstract ImmutableSet<String> feet();
@@ -27,7 +24,7 @@ abstract class Bird {
   abstract Map<Date, String> tail();
 
   final Bird_Builder toBuilder() {
-    return FACTORY.get().builder(this);
+    return Bird_Builder.builder(this);
   }
 
   @AutoBuilder

@@ -24,12 +24,7 @@ class PublicPenguinTest {
     String toBuilderMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("builder", PublicPenguin.class)
             .getModifiers());
-    // the static methods are never public
     assertFalse(toBuilderMethodModifiers.contains("public"));
-    String factoryMethodModifiers = Modifier.toString(
-        PublicPenguin_Builder.class.getDeclaredMethod("perThreadFactory")
-            .getModifiers());
-    assertFalse(factoryMethodModifiers.contains("public"));
     String setterMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("foo", String.class)
             .getModifiers());

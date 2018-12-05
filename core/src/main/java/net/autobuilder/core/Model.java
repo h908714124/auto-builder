@@ -4,7 +4,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeVariableName;
 import net.autobuilder.AutoBuilder;
 
 import javax.lang.model.element.ExecutableElement;
@@ -15,10 +14,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
-import static net.autobuilder.core.Util.typeArguments;
 
 public final class Model {
 
@@ -88,7 +85,7 @@ public final class Model {
           sourceClassElement);
     }
     TypeName generatedClass = generatedClass(sourceClassElement);
-    TypeName simpleBuilderClass = simpleBuilderClass(sourceClassElement, generatedClass);
+    TypeName simpleBuilderClass = simpleBuilderClass(generatedClass);
     if (!sourceClassElement.getTypeParameters().isEmpty()) {
       throw new ValidationException("The class may not have type parameters.",
           sourceClassElement);
@@ -107,19 +104,13 @@ public final class Model {
   }
 
   private static TypeName generatedClass(TypeElement typeElement) {
-    TypeName type = TypeName.get(typeElement.asType());
-    String name = String.join("_", rawType(type).simpleNames()) + SUFFIX;
-    ClassName className = rawType(type).topLevelClassName().peerClass(name);
-    return withTypevars(className, typeArguments(typeElement));
+    String name = String.join("_", ClassName.get(typeElement).simpleNames()) + SUFFIX;
+    return ClassName.get(typeElement).topLevelClassName().peerClass(name);
   }
 
-  private static TypeName simpleBuilderClass(
-      TypeElement typeElement,
-      TypeName generatedClass) {
-    return withTypevars(
-        rawType(generatedClass)
-            .nestedClass(SIMPLE_BUILDER),
-        typeArguments(typeElement));
+  private static TypeName simpleBuilderClass(TypeName generatedClass) {
+    return rawType(generatedClass)
+        .nestedClass(SIMPLE_BUILDER);
   }
 
   static TypeName withTypevars(ClassName className, TypeName[] typevars) {
@@ -127,12 +118,6 @@ public final class Model {
       return className;
     }
     return ParameterizedTypeName.get(className, typevars);
-  }
-
-  List<TypeVariableName> typevars() {
-    return avType.getTypeParameters().stream()
-        .map(TypeVariableName::get)
-        .collect(toList());
   }
 
   private boolean isPublic() {

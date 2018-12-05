@@ -14,8 +14,8 @@ import java.lang.annotation.Target;
  * unless the class also has an @AutoValue annotation.
  * See <a href="https://github.com/google/auto/tree/master/value">here</a> for
  * details.</li>
- * <li>The annotated class should be a "regular" auto-value class,
- * not the "builder" variety.</li>
+ * <li>The annotated class should be a &quot;regular&quot; auto-value class,
+ * not the &quot;builder&quot; variety.</li>
  * </ul>
  */
 @Target(ElementType.TYPE)

@@ -22,10 +22,6 @@ class PackagePiranhaTest {
         PackagePiranha_Builder.class.getDeclaredMethod("builder", PackagePiranha.class)
             .getModifiers());
     assertFalse(toBuilderMethodModifiers.contains("public"));
-    String factoryMethodModifiers = Modifier.toString(
-        PackagePiranha_Builder.class.getDeclaredMethod("perThreadFactory")
-            .getModifiers());
-    assertFalse(factoryMethodModifiers.contains("public"));
     String setterMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("foo", String.class)
             .getModifiers());
