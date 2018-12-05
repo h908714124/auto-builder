@@ -94,7 +94,7 @@ public final class Model {
           sourceClassElement);
     }
     Optional<ClassName> optionalRefTrackingBuilderClass =
-        sourceClassElement.getAnnotation(AutoBuilder.class).reusableBuilder() ?
+        sourceClassElement.getAnnotation(AutoBuilder.class).reuseBuilder() ?
             Optional.of(rawType(generatedClass).nestedClass(REF_TRACKING_BUILDER)) :
             Optional.empty();
     return new Model(util, sourceClassElement, generatedClass, avType,
