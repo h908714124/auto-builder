@@ -34,5 +34,5 @@ public @interface AutoBuilder {
    * {@link ThreadLocal} field.
    * Set to {@code false} to prevent this.</p>
    */
-  boolean reusableBuilder() default true;
+  boolean reusableBuilder() default false;
 }

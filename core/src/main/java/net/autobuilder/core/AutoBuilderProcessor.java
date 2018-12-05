@@ -50,7 +50,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
     // by auto-value, which may violate one rule of "isolating" annotation processing.
     // See here:
     // https://docs.gradle.org/5.0/userguide/java_plugin.html#sec:incremental_annotation_processing
-    return Collections.singleton("org.gradle.annotation.processing.aggregating");
+    return super.getSupportedOptions();
   }
 
   @Override
