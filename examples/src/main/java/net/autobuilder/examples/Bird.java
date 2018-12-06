@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import net.autobuilder.AutoBuilder;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,9 @@ abstract class Bird {
   abstract List<Date> beak();
   abstract Set<String> wings();
   abstract Map<Date, String> tail();
+  abstract boolean inUse();
+  @Nullable
+  abstract Bird init();
 
   final Bird_Builder toBuilder() {
     return Bird_Builder.builder(this);

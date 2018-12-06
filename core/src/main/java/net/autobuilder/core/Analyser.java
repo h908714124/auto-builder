@@ -12,7 +12,6 @@ import com.squareup.javapoet.TypeSpec;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.STATIC;
@@ -35,7 +34,7 @@ final class Analyser {
     this.model = model;
     this.parameters = model.scan();
     this.initMethod = initMethod(model, parameters);
-    String inUseFieldName = uniqueName("inUse", parameters);
+    String inUseFieldName = uniqueFieldName("inUse", parameters);
     this.inUse = FieldSpec.builder(TypeName.BOOLEAN, inUseFieldName)
         .addModifiers(PRIVATE).build();
     this.staticBuildMethod = staticBuildMethod(
@@ -81,24 +80,42 @@ final class Analyser {
   private FieldSpec createFactoryField() {
     ClassName perThreadFactoryClass = model.perThreadFactoryClass();
     ParameterizedTypeName factoryFieldType = ParameterizedTypeName.get(ClassName.get(ThreadLocal.class), perThreadFactoryClass);
-    String factoryFieldName = uniqueName("FACTORY", parameters);
+    String factoryFieldName = uniqueFieldName("FACTORY", parameters);
     return FieldSpec.builder(factoryFieldType, factoryFieldName)
         .addModifiers(PRIVATE, STATIC, FINAL)
         .initializer("$T.withInitial($T::new)", ThreadLocal.class, perThreadFactoryClass).build();
   }
 
-  private static String uniqueName(String suffix, List<ParaParameter> parameters) {
-    while (isFactoryFieldNameCollision(suffix, parameters)) {
+  private static String uniqueFieldName(String suffix, List<ParaParameter> parameters) {
+    while (isFieldNameCollision(suffix, parameters)) {
       suffix = "_" + suffix;
     }
     return suffix;
   }
 
-  private static boolean isFactoryFieldNameCollision(
+  private static String uniqueMethodName(String suffix, List<ParaParameter> parameters) {
+    while (isSetterMethodNameCollision(suffix, parameters)) {
+      suffix = "_" + suffix;
+    }
+    return suffix;
+  }
+
+  private static boolean isFieldNameCollision(
       String factoryFieldName,
       List<ParaParameter> parameters) {
     for (ParaParameter parameter : parameters) {
       if (parameter.getParameter().asField().name.equals(factoryFieldName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isSetterMethodNameCollision(
+      String factoryFieldName,
+      List<ParaParameter> parameters) {
+    for (ParaParameter parameter : parameters) {
+      if (parameter.getParameter().setterName.equals(factoryFieldName)) {
         return true;
       }
     }
@@ -110,15 +127,14 @@ final class Analyser {
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
     for (ParaParameter parameter : parameters) {
-      block.addStatement("$N.$N = $N.$L()",
-          model.builderParameter(),
+      block.addStatement("$N = $N.$L()",
           parameter.getParameter().setterName, input,
           parameter.getParameter().getterName);
     }
-    return MethodSpec.methodBuilder("init")
+    return MethodSpec.methodBuilder(uniqueMethodName("init", parameters))
         .addCode(block.build())
-        .addParameters(asList(model.builderParameter(), input))
-        .addModifiers(PRIVATE, STATIC)
+        .addParameter(input)
+        .addModifiers(PRIVATE)
         .build();
   }
 
@@ -147,11 +163,11 @@ final class Analyser {
   }
 
   private MethodSpec builderMethodWithParam() {
-    ParameterSpec builder = model.builderParameter();
+    ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder").build();
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
         .addStatement("$T $N = new $T()", builder.type, builder, model.generatedClass)
-        .addStatement("$N($N, $N)", initMethod, builder, input)
+        .addStatement("$N.$N($N)", builder, initMethod, input)
         .addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
         .addCode(block.build())

@@ -41,6 +41,8 @@ class BirdTest {
         .feet(ImmutableSet.of(""))
         .addToFeet(nothing)
         .tail(map1)
+        .init(bird)
+        .inUse(true)
         .putInTail(new Date(0), "")
         .putInTail(map2)
         .putInTail(null)
@@ -64,6 +66,7 @@ class BirdTest {
     assertEquals(1, bord.feet().size());
     assertEquals(3, bord.tail().size());
     assertEquals(3, bord.wings().size());
+    assertEquals(bird, bard.init());
   }
 
   @Test

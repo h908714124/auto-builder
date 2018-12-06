@@ -48,11 +48,11 @@ final class PerThreadFactory {
   private MethodSpec builderMethod() {
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
-        .beginControlFlow("if (this.$N == null || this.$N.$N)", builder, builder, inUse)
-        .addStatement("this.$N = new $T()", builder, model.generatedClass)
+        .beginControlFlow("if ($N == null || $N.$N)", builder, builder, inUse)
+        .addStatement("$N = new $T()", builder, model.generatedClass)
         .endControlFlow()
-        .addStatement("$T.$N(this.$N, $N)", model.generatedClass, initMethod, builder, input)
-        .addStatement("this.$N.$N = $L", builder, inUse, true)
+        .addStatement("$N.$N($N)", builder, initMethod, input)
+        .addStatement("$N.$N = $L", builder, inUse, true)
         .addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
         .addParameter(input)
@@ -63,10 +63,10 @@ final class PerThreadFactory {
 
   private MethodSpec builderMethodWithoutParam() {
     CodeBlock.Builder block = CodeBlock.builder()
-        .beginControlFlow("if (this.$N == null || this.$N.$N)", builder, builder, inUse)
-        .addStatement("this.$N = new $T()", builder, model.generatedClass)
+        .beginControlFlow("if ($N == null || $N.$N)", builder, builder, inUse)
+        .addStatement("$N = new $T()", builder, model.generatedClass)
         .endControlFlow()
-        .addStatement("this.$N.$N = $L", builder, inUse, true)
+        .addStatement("$N.$N = $L", builder, inUse, true)
         .addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
         .addCode(block.build())

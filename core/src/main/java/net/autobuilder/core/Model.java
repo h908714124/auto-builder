@@ -24,8 +24,6 @@ public final class Model {
 
   private final ExecutableElement constructor;
 
-  private final ParameterSpec builderParameter;
-
   final boolean reuse;
 
   final TypeName generatedClass;
@@ -46,7 +44,6 @@ public final class Model {
     this.reuse = reuse;
     this.sourceClass = sourceClassElement;
     this.constructor = constructor;
-    this.builderParameter = ParameterSpec.builder(generatedClass, "builder").build();
   }
 
   static Model create(
@@ -114,10 +111,6 @@ public final class Model {
       return new Modifier[]{PUBLIC};
     }
     return new Modifier[]{};
-  }
-
-  ParameterSpec builderParameter() {
-    return builderParameter;
   }
 
   TypeElement sourceClass() {
