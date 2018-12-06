@@ -14,7 +14,7 @@ class PackagePiranhaTest {
     String classModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getModifiers());
     assertFalse(classModifiers.contains("public"));
-    assertTrue(classModifiers.contains("abstract"));
+    assertTrue(classModifiers.contains("final"));
     String builderMethodModifiers = Modifier.toString(
         PackagePiranha_Builder.class.getDeclaredMethod("builder").getModifiers());
     assertFalse(builderMethodModifiers.contains("public"));

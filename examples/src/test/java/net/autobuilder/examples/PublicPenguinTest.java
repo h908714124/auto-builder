@@ -17,7 +17,7 @@ class PublicPenguinTest {
     String classModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getModifiers());
     assertTrue(classModifiers.contains("public"));
-    assertTrue(classModifiers.contains("abstract"));
+    assertTrue(classModifiers.contains("final"));
     String builderMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("builder").getModifiers());
     assertFalse(builderMethodModifiers.contains("public"));

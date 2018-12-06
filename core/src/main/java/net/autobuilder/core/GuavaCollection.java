@@ -74,8 +74,8 @@ final class GuavaCollection extends Collectionish.Base {
   }
 
   @Override
-  CodeBlock buildBlock(ParameterSpec builder, FieldSpec field) {
-    return CodeBlock.of("$N.$N.build()", builder, field);
+  CodeBlock buildBlock(FieldSpec field) {
+    return CodeBlock.of("$N.build()", field);
   }
 
   @Override

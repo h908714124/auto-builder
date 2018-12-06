@@ -16,23 +16,28 @@ final class PerThreadFactory {
   private final Model model;
   private final MethodSpec initMethod;
   private final FieldSpec builder;
-  private final RefTrackingBuilder refTrackingBuilder;
+  private final FieldSpec inUse;
 
-  private PerThreadFactory(Model model, MethodSpec initMethod, RefTrackingBuilder refTrackingBuilder) {
+  private PerThreadFactory(
+      Model model,
+      MethodSpec initMethod,
+      FieldSpec inUse) {
     this.model = model;
     this.initMethod = initMethod;
-    this.builder = FieldSpec.builder(refTrackingBuilder.refTrackingBuilderClass, "builder")
+    this.builder = FieldSpec.builder(model.generatedClass, "builder")
         .build();
-    this.refTrackingBuilder = refTrackingBuilder;
+    this.inUse = inUse;
   }
 
-  static PerThreadFactory create(Model model, MethodSpec initMethod,
-                                 RefTrackingBuilder refTrackingBuilder) {
-    return new PerThreadFactory(model, initMethod, refTrackingBuilder);
+  static PerThreadFactory create(
+      Model model,
+      MethodSpec initMethod,
+      FieldSpec inUse) {
+    return new PerThreadFactory(model, initMethod, inUse);
   }
 
   TypeSpec define() {
-    return TypeSpec.classBuilder(refTrackingBuilder.perThreadFactoryClass)
+    return TypeSpec.classBuilder(model.perThreadFactoryClass())
         .addField(builder)
         .addMethod(builderMethod())
         .addMethod(builderMethodWithoutParam())
@@ -43,11 +48,11 @@ final class PerThreadFactory {
   private MethodSpec builderMethod() {
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
-        .beginControlFlow("if (this.$N == null || this.$N.$N)", builder, builder, refTrackingBuilder.inUse)
-        .addStatement("this.$N = new $T()", builder, refTrackingBuilder.refTrackingBuilderClass)
+        .beginControlFlow("if (this.$N == null || this.$N.$N)", builder, builder, inUse)
+        .addStatement("this.$N = new $T()", builder, model.generatedClass)
         .endControlFlow()
         .addStatement("$T.$N(this.$N, $N)", model.generatedClass, initMethod, builder, input)
-        .addStatement("this.$N.$N = $L", builder, refTrackingBuilder.inUse, true)
+        .addStatement("this.$N.$N = $L", builder, inUse, true)
         .addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
         .addParameter(input)
@@ -58,10 +63,10 @@ final class PerThreadFactory {
 
   private MethodSpec builderMethodWithoutParam() {
     CodeBlock.Builder block = CodeBlock.builder()
-        .beginControlFlow("if (this.$N == null || this.$N.$N)", builder, builder, refTrackingBuilder.inUse)
-        .addStatement("this.$N = new $T()", builder, refTrackingBuilder.refTrackingBuilderClass)
+        .beginControlFlow("if (this.$N == null || this.$N.$N)", builder, builder, inUse)
+        .addStatement("this.$N = new $T()", builder, model.generatedClass)
         .endControlFlow()
-        .addStatement("this.$N.$N = $L", builder, refTrackingBuilder.inUse, true)
+        .addStatement("this.$N.$N = $L", builder, inUse, true)
         .addStatement("return $N", builder);
     return MethodSpec.methodBuilder("builder")
         .addCode(block.build())

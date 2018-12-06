@@ -79,10 +79,9 @@ public final class Optionalish extends ParaParameter {
   }
 
   public CodeBlock getFieldValue() {
-    ParameterSpec builder = parameter.model.builderParameter();
     FieldSpec field = parameter.asField();
-    return CodeBlock.of("$N.$N != null ? $N.$N : $T.empty()",
-        builder, field, builder, field, wrapper);
+    return CodeBlock.of("$N != null ? $N : $T.empty()",
+        field, field, wrapper);
   }
 
   private static Optional<CheckoutResult> checkout(Parameter parameter) {

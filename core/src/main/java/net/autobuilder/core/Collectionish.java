@@ -6,14 +6,15 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeMirror;
 
 import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.FINAL;
@@ -50,11 +51,17 @@ public final class Collectionish extends ParaParameter {
     final CollectionType collectionType;
 
     abstract CodeBlock accumulatorInitBlock(FieldSpec builderField);
+
     abstract CodeBlock emptyBlock();
+
     abstract ParameterizedTypeName accumulatorType(Parameter parameter);
+
     abstract ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter);
+
     abstract CodeBlock setterAssignment(Parameter parameter);
-    abstract CodeBlock buildBlock(ParameterSpec builder, FieldSpec field);
+
+    abstract CodeBlock buildBlock(FieldSpec field);
+
     abstract ParameterSpec setterParameter(Parameter parameter);
 
     Base(String collectionClassName,
@@ -77,6 +84,7 @@ public final class Collectionish extends ParaParameter {
   private static final class LookupResult {
     final Base base;
     final DeclaredType declaredType;
+
     LookupResult(Base base, DeclaredType declaredType) {
       this.base = base;
       this.declaredType = declaredType;
@@ -106,12 +114,11 @@ public final class Collectionish extends ParaParameter {
   }
 
   public static Optional<CodeBlock> emptyBlock(Parameter parameter) {
-    ParameterSpec builder = parameter.model.builderParameter();
     return lookup(parameter).map(lookupResult -> {
       FieldSpec field = parameter.asField();
       return CodeBlock.builder()
-          .add("$N.$N != null ? $N.$N : ",
-              builder, field, builder, field)
+          .add("$N != null ? $N : ",
+              field, field)
           .add(lookupResult.base.emptyBlock())
           .build();
     });
@@ -167,13 +174,12 @@ public final class Collectionish extends ParaParameter {
   public CodeBlock getFieldValue() {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
-    ParameterSpec builder = parameter.model.builderParameter();
     return CodeBlock.builder()
-        .add("$N.$N != null ? ", builder, builderField)
-        .add(base.buildBlock(builder, builderField))
+        .add("$N != null ? ", builderField)
+        .add(base.buildBlock(builderField))
         .add(" :\n        ")
-        .add("$N.$N != null ? $N.$N : ",
-            builder, field, builder, field)
+        .add("$N != null ? $N : ",
+            field, field)
         .add(base.emptyBlock())
         .build();
   }

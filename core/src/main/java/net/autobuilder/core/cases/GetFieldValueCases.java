@@ -12,8 +12,7 @@ public class GetFieldValueCases implements ParamCases<CodeBlock, Void> {
   public CodeBlock parameter(Parameter parameter, Void _null) {
     return Collectionish.emptyBlock(parameter)
         .orElse(Optionalish.emptyBlock(parameter)
-            .orElse(CodeBlock.of("$N.$N",
-                parameter.model.builderParameter(),
+            .orElse(CodeBlock.of("$N",
                 parameter.asField())));
   }
 

@@ -12,7 +12,6 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
@@ -20,8 +19,6 @@ import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 public final class Model {
 
   private static final String SUFFIX = "_Builder";
-  private static final String REF_TRACKING_BUILDER = "RefTrackingBuilder";
-  private static final String SIMPLE_BUILDER = "SimpleBuilder";
 
   private final TypeElement sourceClassElement;
 
@@ -29,10 +26,9 @@ public final class Model {
 
   private final ParameterSpec builderParameter;
 
-  final Optional<ClassName> optionalRefTrackingBuilderClass;
+  final boolean reuse;
 
   final TypeName generatedClass;
-  final TypeName simpleBuilderClass;
   final TypeElement avType;
   private final TypeElement sourceClass;
   final Util util;
@@ -41,15 +37,13 @@ public final class Model {
   private Model(Util util, TypeElement sourceClassElement,
                 TypeName generatedClass,
                 TypeElement avType,
-                TypeName simpleBuilderClass,
-                Optional<ClassName> optionalRefTrackingBuilderClass,
+                boolean reuse,
                 ExecutableElement constructor) {
     this.util = util;
     this.sourceClassElement = sourceClassElement;
     this.generatedClass = generatedClass;
     this.avType = avType;
-    this.simpleBuilderClass = simpleBuilderClass;
-    this.optionalRefTrackingBuilderClass = optionalRefTrackingBuilderClass;
+    this.reuse = reuse;
     this.sourceClass = sourceClassElement;
     this.constructor = constructor;
     this.builderParameter = ParameterSpec.builder(generatedClass, "builder").build();
@@ -85,17 +79,13 @@ public final class Model {
           sourceClassElement);
     }
     TypeName generatedClass = generatedClass(sourceClassElement);
-    TypeName simpleBuilderClass = simpleBuilderClass(generatedClass);
     if (!sourceClassElement.getTypeParameters().isEmpty()) {
       throw new ValidationException("The class may not have type parameters.",
           sourceClassElement);
     }
-    Optional<ClassName> optionalRefTrackingBuilderClass =
-        sourceClassElement.getAnnotation(AutoBuilder.class).reuseBuilder() ?
-            Optional.of(rawType(generatedClass).nestedClass(REF_TRACKING_BUILDER)) :
-            Optional.empty();
+    boolean optionalRefTrackingBuilderClass =
+        sourceClassElement.getAnnotation(AutoBuilder.class).reuseBuilder();
     return new Model(util, sourceClassElement, generatedClass, avType,
-        simpleBuilderClass,
         optionalRefTrackingBuilderClass, constructor);
   }
 
@@ -106,11 +96,6 @@ public final class Model {
   private static TypeName generatedClass(TypeElement typeElement) {
     String name = String.join("_", ClassName.get(typeElement).simpleNames()) + SUFFIX;
     return ClassName.get(typeElement).topLevelClassName().peerClass(name);
-  }
-
-  private static TypeName simpleBuilderClass(TypeName generatedClass) {
-    return rawType(generatedClass)
-        .nestedClass(SIMPLE_BUILDER);
   }
 
   static TypeName withTypevars(ClassName className, TypeName[] typevars) {
@@ -131,11 +116,16 @@ public final class Model {
     return new Modifier[]{};
   }
 
-  public ParameterSpec builderParameter() {
+  ParameterSpec builderParameter() {
     return builderParameter;
   }
 
   TypeElement sourceClass() {
     return sourceClass;
+  }
+
+  ClassName perThreadFactoryClass() {
+    return rawType(generatedClass)
+        .nestedClass("PerThreadFactory");
   }
 }

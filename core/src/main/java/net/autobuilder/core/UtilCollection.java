@@ -80,8 +80,8 @@ final class UtilCollection extends Collectionish.Base {
   }
 
   @Override
-  CodeBlock buildBlock(ParameterSpec builder, FieldSpec field) {
-    return CodeBlock.of("$N.$N", builder, field);
+  CodeBlock buildBlock(FieldSpec field) {
+    return CodeBlock.of("$N", field);
   }
 
   @Override
