@@ -1,18 +1,23 @@
 package net.autobuilder.core;
 
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.util.Elements;
+import javax.lang.model.util.SimpleElementVisitor8;
 import javax.lang.model.util.SimpleTypeVisitor8;
 import javax.lang.model.util.Types;
+import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.FINAL;
 
 class TypeTool {
 
-  private final SimpleTypeVisitor8<TypeMirror, Void> subtype =
+  private final TypeVisitor<TypeMirror, Void> subtype =
 
       new SimpleTypeVisitor8<TypeMirror, Void>() {
         @Override
@@ -31,6 +36,19 @@ class TypeTool {
         @Override
         protected TypeMirror defaultAction(TypeMirror mirror, Void aVoid) {
           return mirror;
+        }
+      };
+
+  private final ElementVisitor<Optional<TypeElement>, Void> asTypeElement =
+      new SimpleElementVisitor8<Optional<TypeElement>, Void>() {
+        @Override
+        public Optional<TypeElement> visitType(TypeElement e, Void aVoid) {
+          return Optional.of(e);
+        }
+
+        @Override
+        protected Optional<TypeElement> defaultAction(Element e, Void aVoid) {
+          return Optional.empty();
         }
       };
 
@@ -62,5 +80,13 @@ class TypeTool {
 
   TypeElement getTypeElement(String qualifiedName) {
     return elements.getTypeElement(qualifiedName);
+  }
+
+  Optional<TypeElement> getTypeElement(TypeMirror typeMirror) {
+    Element element = types.asElement(typeMirror);
+    if (element == null) {
+      return Optional.empty();
+    }
+    return element.accept(asTypeElement, null);
   }
 }

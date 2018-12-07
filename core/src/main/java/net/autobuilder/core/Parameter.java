@@ -2,14 +2,17 @@ package net.autobuilder.core;
 
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
+
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.ElementFilter;
 
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -24,10 +27,14 @@ public final class Parameter extends ParaParameter {
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
 
+  // One parameter of the generated auto-value constructor
   public final VariableElement variableElement;
+
+  public final TypeMirror type;
+
   public final String setterName;
+
   final String getterName;
-  public final TypeName type;
 
   public final Model model;
 
@@ -35,7 +42,7 @@ public final class Parameter extends ParaParameter {
       VariableElement variableElement,
       String setterName,
       String getterName,
-      TypeName type,
+      TypeMirror type,
       Model model) {
     this.variableElement = variableElement;
     this.setterName = setterName;
@@ -46,29 +53,30 @@ public final class Parameter extends ParaParameter {
 
   static List<ParaParameter> scan(
       Model model,
-      ExecutableElement constructor,
+      ExecutableElement avConstructor,
       TypeElement avType) {
     Set<String> methodNames = methodNames(avType);
-    List<ParaParameter> parameters = constructor.getParameters().stream()
+    List<ParaParameter> avConstructorParameters = avConstructor.getParameters().stream()
         .map(variableElement -> {
           String name = variableElement.getSimpleName().toString();
-          TypeName type = TypeName.get(variableElement.asType());
+          TypeMirror type = variableElement.asType();
           String getterName = matchingAccessor(methodNames, variableElement);
           String setterName = setterName(name, type);
           Parameter parameter = new Parameter(
               variableElement, setterName, getterName, type, model);
-          return Collectionish.create(parameter)
-              .orElse(Optionalish.create(parameter).orElse(parameter));
+          return Collectionish.maybeCreate(parameter)
+              .orElse(Optionalish.maybeCreate(parameter)
+                  .orElse(parameter));
         })
         .collect(toList());
-    return detox(parameters);
+    return detox(avConstructorParameters);
   }
 
-  static String setterName(String name, TypeName type) {
+  static String setterName(String name, TypeMirror type) {
     if (GETTER_PATTERN.matcher(name).matches()) {
       return downcase(name.substring(3));
     }
-    if (type.equals(TypeName.BOOLEAN) &&
+    if (type.getKind() == TypeKind.BOOLEAN &&
         IS_PATTERN.matcher(name).matches()) {
       return downcase(name.substring(2));
     }
@@ -79,7 +87,7 @@ public final class Parameter extends ParaParameter {
     return ElementFilter.methodsIn(
         avType.getEnclosedElements()).stream()
         .filter(m -> m.getParameters().isEmpty())
-        .filter(m -> !m.getReturnType().equals(TypeName.VOID))
+        .filter(m -> m.getReturnType().getKind() != TypeKind.VOID)
         .map(ExecutableElement::getSimpleName)
         .map(CharSequence::toString)
         .collect(Collectors.toSet());
@@ -106,7 +114,7 @@ public final class Parameter extends ParaParameter {
   }
 
   public FieldSpec asField() {
-    return FieldSpec.builder(type, setterName).addModifiers(PRIVATE).build();
+    return FieldSpec.builder(TypeName.get(type), setterName).addModifiers(PRIVATE).build();
   }
 
   Parameter originalSetter() {

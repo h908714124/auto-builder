@@ -1,7 +1,6 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import net.autobuilder.AutoBuilder;
@@ -16,12 +15,13 @@ import java.util.List;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
-public final class Model {
+final class Model {
 
   private static final String SUFFIX = "_Builder";
 
   private final TypeElement sourceClassElement;
 
+  // The constructor that auto-value has generated
   private final ExecutableElement constructor;
 
   final boolean reuse;
@@ -29,35 +29,33 @@ public final class Model {
   final TypeName generatedClass;
   final TypeElement avType;
   private final TypeElement sourceClass;
-  final Util util;
 
 
-  private Model(Util util, TypeElement sourceClassElement,
-                TypeName generatedClass,
-                TypeElement avType,
-                boolean reuse,
-                ExecutableElement constructor) {
-    this.util = util;
+  private Model(
+      TypeElement sourceClassElement,
+      TypeName generatedClass,
+      TypeElement avType,
+      boolean reuse,
+      ExecutableElement avConstructor) {
     this.sourceClassElement = sourceClassElement;
     this.generatedClass = generatedClass;
     this.avType = avType;
     this.reuse = reuse;
     this.sourceClass = sourceClassElement;
-    this.constructor = constructor;
+    this.constructor = avConstructor;
   }
 
   static Model create(
-      Util util,
       TypeElement sourceClassElement, TypeElement avType) {
-    List<ExecutableElement> constructors = ElementFilter.constructorsIn(
+    List<ExecutableElement> avConstructors = ElementFilter.constructorsIn(
         avType.getEnclosedElements());
-    if (constructors.size() != 1) {
+    if (avConstructors.size() != 1) {
       throw new ValidationException(
           "Expecting the generated auto-value class to have exactly one constructor.",
           sourceClassElement);
     }
-    ExecutableElement constructor = constructors.get(0);
-    if (constructor.getModifiers().contains(Modifier.PRIVATE)) {
+    ExecutableElement avConstructor = avConstructors.get(0);
+    if (avConstructor.getModifiers().contains(Modifier.PRIVATE)) {
       boolean suspicious = ElementFilter.typesIn(sourceClassElement.getEnclosedElements())
           .stream()
           .anyMatch(
@@ -82,8 +80,8 @@ public final class Model {
     }
     boolean optionalRefTrackingBuilderClass =
         sourceClassElement.getAnnotation(AutoBuilder.class).reuseBuilder();
-    return new Model(util, sourceClassElement, generatedClass, avType,
-        optionalRefTrackingBuilderClass, constructor);
+    return new Model(sourceClassElement, generatedClass, avType,
+        optionalRefTrackingBuilderClass, avConstructor);
   }
 
   List<ParaParameter> scan() {

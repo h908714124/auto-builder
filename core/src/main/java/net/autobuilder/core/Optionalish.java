@@ -1,22 +1,26 @@
 package net.autobuilder.core;
 
-import static javax.lang.model.element.Modifier.FINAL;
-import static net.autobuilder.core.Util.AS_DECLARED;
-import static net.autobuilder.core.Util.AS_TYPE_ELEMENT;
-import static net.autobuilder.core.Util.equalsType;
-
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
+
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeMirror;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+
+import static javax.lang.model.element.Modifier.FINAL;
+import static net.autobuilder.core.Util.equalsType;
 
 public final class Optionalish extends ParaParameter {
 
@@ -24,13 +28,15 @@ public final class Optionalish extends ParaParameter {
   private static final ClassName OPTIONAL_CLASS =
       ClassName.get(Optional.class);
 
-  private static final Map<String, TypeName> OPTIONAL_PRIMITIVES;
+  private static final Map<String, TypeName> OPTIONAL_PRIMITIVES =
+      Collections.unmodifiableMap(optionalPrimitives());
 
-  static {
-    OPTIONAL_PRIMITIVES = new HashMap<>(3);
-    OPTIONAL_PRIMITIVES.put("java.util.OptionalInt", TypeName.INT);
-    OPTIONAL_PRIMITIVES.put("java.util.OptionalDouble", TypeName.DOUBLE);
-    OPTIONAL_PRIMITIVES.put("java.util.OptionalLong", TypeName.LONG);
+  static Map<String, TypeName> optionalPrimitives() {
+    Map<String, TypeName> m = new HashMap<>(3);
+    m.put(OptionalInt.class.getCanonicalName(), TypeName.INT);
+    m.put(OptionalDouble.class.getCanonicalName(), TypeName.DOUBLE);
+    m.put(OptionalLong.class.getCanonicalName(), TypeName.LONG);
+    return m;
   }
 
   private static final String OF = "of";
@@ -64,7 +70,11 @@ public final class Optionalish extends ParaParameter {
     }
   }
 
-  static Optional<ParaParameter> create(Parameter parameter) {
+  /**
+   * @return an optionalish parameter, if this parameter
+   * represents an optional type, or else {@link Optional#empty()}
+   */
+  static Optional<ParaParameter> maybeCreate(Parameter parameter) {
     return checkout(parameter)
         .filter(checkoutResult -> checkoutResult.optionalish.wrapped.isPrimitive() ||
             !equalsType(checkoutResult.declaredType.getTypeArguments().get(0),
@@ -86,17 +96,18 @@ public final class Optionalish extends ParaParameter {
 
   private static Optional<CheckoutResult> checkout(Parameter parameter) {
     TypeMirror type = parameter.variableElement.asType();
-    DeclaredType declaredType = type.accept(AS_DECLARED, null);
-    if (declaredType == null) {
+    if (type.getKind() != TypeKind.DECLARED) {
       return Optional.empty();
     }
-    TypeElement typeElement = declaredType.asElement().accept(AS_TYPE_ELEMENT, null);
-    if (typeElement == null) {
-      return Optional.empty();
-    }
+    DeclaredType declaredType = Util.asDeclared(type);
     if (declaredType.getTypeArguments().size() > 1) {
       return Optional.empty();
     }
+    Optional<TypeElement> opt = TypeTool.get().getTypeElement(declaredType);
+    if (!opt.isPresent()) {
+      return Optional.empty();
+    }
+    TypeElement typeElement = opt.get();
     if (declaredType.getTypeArguments().isEmpty()) {
       TypeName primitive = OPTIONAL_PRIMITIVES.get(typeElement.getQualifiedName().toString());
       return primitive != null ?

@@ -4,12 +4,11 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 
-import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.SimpleElementVisitor8;
 import javax.lang.model.util.SimpleTypeVisitor8;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,30 +36,12 @@ final class Util {
         }
       };
 
-  static final SimpleElementVisitor8<TypeElement, Void> AS_TYPE_ELEMENT =
-      new SimpleElementVisitor8<TypeElement, Void>() {
-        @Override
-        public TypeElement visitType(TypeElement typeElement, Void _null) {
-          return typeElement;
-        }
-      };
-
   static boolean equalsType(TypeMirror typeMirror, String qualified) {
-    DeclaredType declared = typeMirror.accept(AS_DECLARED, null);
-    if (declared == null) {
-      return false;
-    }
-    TypeElement typeElement = declared.asElement().accept(AS_TYPE_ELEMENT, null);
-    if (typeElement == null) {
-      return false;
-    }
-    return typeElement.getQualifiedName().toString().equals(qualified);
-  }
-
-  private final ProcessingEnvironment processingEnv;
-
-  Util(ProcessingEnvironment processingEnv) {
-    this.processingEnv = processingEnv;
+    return TypeTool.get().getTypeElement(typeMirror)
+        .map(TypeElement::getQualifiedName)
+        .map(Name::toString)
+        .map(s -> s.equals(qualified))
+        .orElse(false);
   }
 
   static TypeName[] typeArgumentSubtypes(VariableElement variableElement) {
@@ -80,7 +61,11 @@ final class Util {
   }
 
   private static DeclaredType asDeclared(VariableElement variableElement) {
-    DeclaredType declaredType = variableElement.asType().accept(AS_DECLARED, null);
+    return asDeclared(variableElement.asType());
+  }
+
+  static DeclaredType asDeclared(TypeMirror mirror) {
+    DeclaredType declaredType = mirror.accept(AS_DECLARED, null);
     if (declaredType == null) {
       throw new AssertionError();
     }
@@ -187,11 +172,6 @@ final class Util {
         return emptySet();
       }
     };
-  }
-
-  TypeElement typeElement(ClassName className) {
-    return processingEnv.getElementUtils().getTypeElement(
-        className.toString());
   }
 
   static ClassName className(String qualifiedName) {

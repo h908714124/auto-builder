@@ -17,6 +17,9 @@ import net.autobuilder.core.cases.SetterAssignmentCases;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+/**
+ * Represents one parameter of the generated auto-value constructor
+ */
 public abstract class ParaParameter {
 
   static <R> Function<ParaParameter, R> asFunction(ParamCases<R, Void> cases) {
