@@ -94,6 +94,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         continue;
       }
       try {
+        TypeTool.init(processingEnv.getTypeUtils(), processingEnv.getElementUtils());
         Model model = Model.create(util, sourceClassElement, avType);
         TypeSpec typeSpec = Analyser.create(model).analyse();
         write(rawType(model.generatedClass), typeSpec);
@@ -104,6 +105,8 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         String trace = getStackTraceAsString(e);
         String message = "Unexpected error: " + trace;
         processingEnv.getMessager().printMessage(ERROR, message);
+      } finally {
+        TypeTool.clear();
       }
     }
     return false;
