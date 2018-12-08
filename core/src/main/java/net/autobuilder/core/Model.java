@@ -15,48 +15,42 @@ import java.util.List;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 
-final class Model {
+public final class Model {
 
   private static final String SUFFIX = "_Builder";
 
-  private final TypeElement sourceClassElement;
+  private final TypeElement sourceElement;
 
-  // The constructor that auto-value has generated
-  private final ExecutableElement constructor;
+  // The type that auto-value has generated
+  final TypeElement avElement;
 
+  // should gen code reuse builder instances?
   final boolean reuse;
 
-  final TypeName generatedClass;
-  final TypeElement avType;
-  private final TypeElement sourceClass;
+  public final List<ParaParameter> parameters;
 
+  final TypeName generatedClass;
 
   private Model(
-      TypeElement sourceClassElement,
+      TypeElement sourceElement,
       TypeName generatedClass,
-      TypeElement avType,
+      TypeElement avElement,
       boolean reuse,
-      ExecutableElement avConstructor) {
-    this.sourceClassElement = sourceClassElement;
-    this.generatedClass = generatedClass;
-    this.avType = avType;
+      List<ParaParameter> parameters) {
     this.reuse = reuse;
-    this.sourceClass = sourceClassElement;
-    this.constructor = avConstructor;
+    this.generatedClass = generatedClass;
+    this.sourceElement = sourceElement;
+    this.avElement = avElement;
+    this.parameters = parameters;
   }
 
   static Model create(
-      TypeElement sourceClassElement, TypeElement avType) {
-    List<ExecutableElement> avConstructors = ElementFilter.constructorsIn(
-        avType.getEnclosedElements());
-    if (avConstructors.size() != 1) {
-      throw new ValidationException(
-          "Expecting the generated auto-value class to have exactly one constructor.",
-          sourceClassElement);
-    }
-    ExecutableElement avConstructor = avConstructors.get(0);
+      List<ParaParameter> parameters,
+      TypeElement sourceElement,
+      TypeElement avElement) {
+    ExecutableElement avConstructor = getAvConstructor(sourceElement, avElement);
     if (avConstructor.getModifiers().contains(Modifier.PRIVATE)) {
-      boolean suspicious = ElementFilter.typesIn(sourceClassElement.getEnclosedElements())
+      boolean suspicious = ElementFilter.typesIn(sourceElement.getEnclosedElements())
           .stream()
           .anyMatch(
               e -> e.getAnnotationMirrors().stream().anyMatch(annotationMirror -> {
@@ -66,29 +60,36 @@ final class Model {
               }));
       if (suspicious) {
         throw new ValidationException(
-            sourceClassElement + ": @AutoBuilder and @AutoValue.Builder cannot be used together.",
-            sourceClassElement);
+            sourceElement + ": @AutoBuilder and @AutoValue.Builder cannot be used together.",
+            sourceElement);
       }
       throw new ValidationException(
           "Expecting the generated auto-value class to have a non-private constructor.",
-          sourceClassElement);
+          sourceElement);
     }
-    TypeName generatedClass = generatedClass(sourceClassElement);
-    if (!sourceClassElement.getTypeParameters().isEmpty()) {
+    TypeName generatedClass = generatedClass(sourceElement);
+    if (!sourceElement.getTypeParameters().isEmpty()) {
       throw new ValidationException("The class may not have type parameters.",
-          sourceClassElement);
+          sourceElement);
     }
     boolean optionalRefTrackingBuilderClass =
-        sourceClassElement.getAnnotation(AutoBuilder.class).reuseBuilder();
-    return new Model(sourceClassElement, generatedClass, avType,
-        optionalRefTrackingBuilderClass, avConstructor);
+        sourceElement.getAnnotation(AutoBuilder.class).reuseBuilder();
+    return new Model(sourceElement, generatedClass, avElement,
+        optionalRefTrackingBuilderClass, parameters);
   }
 
-  List<ParaParameter> scan() {
-    return Parameter.scan(this, constructor, avType);
+  static ExecutableElement getAvConstructor(TypeElement sourceElement, TypeElement avElement) {
+    List<ExecutableElement> avConstructors = ElementFilter.constructorsIn(
+        avElement.getEnclosedElements());
+    if (avConstructors.size() != 1) {
+      throw new ValidationException(
+          "Expecting the generated auto-value class to have exactly one constructor.",
+          sourceElement);
+    }
+    return avConstructors.get(0);
   }
 
-  private static TypeName generatedClass(TypeElement typeElement) {
+  static TypeName generatedClass(TypeElement typeElement) {
     String name = String.join("_", ClassName.get(typeElement).simpleNames()) + SUFFIX;
     return ClassName.get(typeElement).topLevelClassName().peerClass(name);
   }
@@ -101,7 +102,7 @@ final class Model {
   }
 
   private boolean isPublic() {
-    return sourceClassElement.getModifiers().contains(PUBLIC);
+    return sourceElement.getModifiers().contains(PUBLIC);
   }
 
   Modifier[] maybePublic() {
@@ -111,12 +112,46 @@ final class Model {
     return new Modifier[]{};
   }
 
-  TypeElement sourceClass() {
-    return sourceClass;
+  TypeElement sourceElement() {
+    return sourceElement;
   }
 
   ClassName perThreadFactoryClass() {
     return rawType(generatedClass)
         .nestedClass("PerThreadFactory");
   }
+
+  String uniqueFieldName(String baseName) {
+    while (isFieldNameCollision(baseName)) {
+      baseName = "_" + baseName;
+    }
+    return baseName;
+  }
+
+  String uniqueSetterMethodName(String baseName) {
+    while (isSetterMethodNameCollision(baseName)) {
+      baseName = "_" + baseName;
+    }
+    return baseName;
+  }
+
+  private boolean isFieldNameCollision(
+      String fieldName) {
+    for (ParaParameter parameter : parameters) {
+      if (parameter.getParameter().asField().name.equals(fieldName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  boolean isSetterMethodNameCollision(String methodName) {
+    for (ParaParameter parameter : parameters) {
+      if (parameter.getParameter().setterName.equals(methodName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 }

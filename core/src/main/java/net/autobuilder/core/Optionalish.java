@@ -11,32 +11,31 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 import static javax.lang.model.element.Modifier.FINAL;
-import static net.autobuilder.core.Util.equalsType;
 
 public final class Optionalish extends ParaParameter {
 
   private static final String JAVA_UTIL_OPTIONAL = "java.util.Optional";
-  private static final ClassName OPTIONAL_CLASS =
-      ClassName.get(Optional.class);
 
-  private static final Map<String, TypeName> OPTIONAL_PRIMITIVES =
-      Collections.unmodifiableMap(optionalPrimitives());
+  private static final ClassName OPTIONAL_CLASS = ClassName.get(Optional.class);
 
-  static Map<String, TypeName> optionalPrimitives() {
-    Map<String, TypeName> m = new HashMap<>(3);
-    m.put(OptionalInt.class.getCanonicalName(), TypeName.INT);
-    m.put(OptionalDouble.class.getCanonicalName(), TypeName.DOUBLE);
-    m.put(OptionalLong.class.getCanonicalName(), TypeName.LONG);
-    return m;
+  private static Optional<TypeMirror> optionalPrimitive(TypeMirror mirror) {
+    TypeTool tool = TypeTool.get();
+    if (tool.isSameType(OptionalInt.class, mirror)) {
+      return Optional.of(tool.getPrimitiveType(TypeKind.INT));
+    }
+    if (tool.isSameType(OptionalLong.class, mirror)) {
+      return Optional.of(tool.getPrimitiveType(TypeKind.LONG));
+    }
+    if (tool.isSameType(OptionalDouble.class, mirror)) {
+      return Optional.of(tool.getPrimitiveType(TypeKind.DOUBLE));
+    }
+    return Optional.empty();
   }
 
   private static final String OF = "of";
@@ -45,14 +44,14 @@ public final class Optionalish extends ParaParameter {
   public final Parameter parameter;
 
   private final ClassName wrapper;
-  private final TypeName wrapped;
+  private final TypeMirror wrapped;
 
   private final String of;
 
   private Optionalish(
       Parameter parameter,
       ClassName wrapper,
-      TypeName wrapped,
+      TypeMirror wrapped,
       String of) {
     this.parameter = parameter;
     this.wrapper = wrapper;
@@ -76,9 +75,6 @@ public final class Optionalish extends ParaParameter {
    */
   static Optional<ParaParameter> maybeCreate(Parameter parameter) {
     return checkout(parameter)
-        .filter(checkoutResult -> checkoutResult.optionalish.wrapped.isPrimitive() ||
-            !equalsType(checkoutResult.declaredType.getTypeArguments().get(0),
-                JAVA_UTIL_OPTIONAL))
         .map(checkoutResult -> checkoutResult.optionalish);
   }
 
@@ -100,32 +96,39 @@ public final class Optionalish extends ParaParameter {
       return Optional.empty();
     }
     DeclaredType declaredType = Util.asDeclared(type);
-    if (declaredType.getTypeArguments().size() > 1) {
+    TypeTool tool = TypeTool.get();
+    if (tool.hasWildcards(type)) {
       return Optional.empty();
     }
-    Optional<TypeElement> opt = TypeTool.get().getTypeElement(declaredType);
+    Optional<TypeElement> opt = tool.getTypeElement(declaredType);
     if (!opt.isPresent()) {
       return Optional.empty();
     }
     TypeElement typeElement = opt.get();
     if (declaredType.getTypeArguments().isEmpty()) {
-      TypeName primitive = OPTIONAL_PRIMITIVES.get(typeElement.getQualifiedName().toString());
-      return primitive != null ?
-          Optional.of(new CheckoutResult(declaredType,
-              new Optionalish(parameter, ClassName.get(typeElement), primitive, OF))) :
-          Optional.empty();
+      return optionalPrimitive(typeElement.asType())
+          .map(prim -> new CheckoutResult(declaredType,
+              new Optionalish(parameter, ClassName.get(typeElement), prim, OF)));
     }
-    return equalsType(type, JAVA_UTIL_OPTIONAL) ?
-        Optional.of(new CheckoutResult(declaredType,
-            new Optionalish(parameter, OPTIONAL_CLASS,
-                TypeName.get(declaredType.getTypeArguments().get(0)),
-                OF_NULLABLE))) :
-        Optional.empty();
+    if (!tool.isSameErasure(Optional.class, type)) {
+      return Optional.empty();
+    }
+    if (declaredType.getTypeArguments().size() != 1) {
+      return Optional.empty();
+    }
+    TypeMirror wrapped = declaredType.getTypeArguments().get(0);
+    if (tool.isSameErasure(Optional.class, wrapped)) {
+      return Optional.empty();
+    }
+    return Optional.of(new CheckoutResult(declaredType,
+        new Optionalish(parameter, OPTIONAL_CLASS,
+            wrapped,
+            OF_NULLABLE)));
   }
 
   public MethodSpec convenienceOverloadMethod() {
     FieldSpec f = parameter.asField();
-    ParameterSpec p = ParameterSpec.builder(wrapped,
+    ParameterSpec p = ParameterSpec.builder(TypeName.get(wrapped),
         parameter.setterName).build();
     CodeBlock.Builder block = CodeBlock.builder();
     if (wrapper.equals(OPTIONAL_CLASS)) {
@@ -139,8 +142,8 @@ public final class Optionalish extends ParaParameter {
         .addStatement("return this")
         .addParameter(p)
         .addModifiers(FINAL)
-        .addModifiers(parameter.model.maybePublic())
-        .returns(parameter.model.generatedClass)
+        .addModifiers(parameter.maybePublic())
+        .returns(parameter.generatedClass)
         .build();
   }
 

@@ -27,7 +27,7 @@ public class CleanupCodeCases implements ParamCases<Void, CodeBlock.Builder> {
   public Void optionalish(Optionalish optionalish, CodeBlock.Builder builder) {
     builder.addStatement("$L(($T) null)",
         optionalish.parameter.setterName,
-        optionalish.parameter.type);
+        optionalish.parameter.type());
     return null;
   }
 }

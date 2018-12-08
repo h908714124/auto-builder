@@ -46,7 +46,7 @@ final class PerThreadFactory {
   }
 
   private MethodSpec builderMethod() {
-    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
         .beginControlFlow("if ($N == null || $N.$N)", builder, builder, inUse)
         .addStatement("$N = new $T()", builder, model.generatedClass)

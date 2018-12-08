@@ -4,6 +4,7 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
@@ -16,10 +17,14 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PRIVATE;
-import static net.autobuilder.core.Cleanse.detox;
+import static javax.lang.model.element.Modifier.PUBLIC;
+import static net.autobuilder.core.Cleanse.preventNamingCollisions;
 import static net.autobuilder.core.Util.downcase;
 import static net.autobuilder.core.Util.upcase;
 
+/**
+ * Represents a &quot;normal&quot; parameter of the auto-value constructor.
+ */
 public final class Parameter extends ParaParameter {
 
   private static final Pattern GETTER_PATTERN =
@@ -27,52 +32,54 @@ public final class Parameter extends ParaParameter {
   private static final Pattern IS_PATTERN =
       Pattern.compile("^is[A-Z].*$");
 
-  // One parameter of the generated auto-value constructor
+  // A parameter of the auto-value constructor
   public final VariableElement variableElement;
-
-  public final TypeMirror type;
 
   public final String setterName;
 
   final String getterName;
 
-  public final Model model;
+  final TypeName generatedClass;
+
+  private final boolean isPublic;
 
   private Parameter(
       VariableElement variableElement,
       String setterName,
       String getterName,
-      TypeMirror type,
-      Model model) {
+      TypeName generatedClass,
+      boolean isPublic) {
     this.variableElement = variableElement;
     this.setterName = setterName;
     this.getterName = getterName;
-    this.type = type;
-    this.model = model;
+    this.generatedClass = generatedClass;
+    this.isPublic = isPublic;
   }
 
   static List<ParaParameter> scan(
-      Model model,
+      TypeName generatedClass,
+      boolean isPublic,
       ExecutableElement avConstructor,
       TypeElement avType) {
     Set<String> methodNames = methodNames(avType);
-    List<ParaParameter> avConstructorParameters = avConstructor.getParameters().stream()
+    List<? extends VariableElement> rawParameters = avConstructor.getParameters();
+    List<ParaParameter> avConstructorParameters = rawParameters.stream()
         .map(variableElement -> {
           String name = variableElement.getSimpleName().toString();
           TypeMirror type = variableElement.asType();
           String getterName = matchingAccessor(methodNames, variableElement);
           String setterName = setterName(name, type);
           Parameter parameter = new Parameter(
-              variableElement, setterName, getterName, type, model);
+              variableElement, setterName, getterName, generatedClass, isPublic);
           return Collectionish.maybeCreate(parameter)
               .orElse(Optionalish.maybeCreate(parameter)
                   .orElse(parameter));
         })
         .collect(toList());
-    return detox(avConstructorParameters);
+    return preventNamingCollisions(avConstructorParameters);
   }
 
-  static String setterName(String name, TypeMirror type) {
+  private static String setterName(String name, TypeMirror type) {
     if (GETTER_PATTERN.matcher(name).matches()) {
       return downcase(name.substring(3));
     }
@@ -114,13 +121,25 @@ public final class Parameter extends ParaParameter {
   }
 
   public FieldSpec asField() {
-    return FieldSpec.builder(TypeName.get(type), setterName).addModifiers(PRIVATE).build();
+    return FieldSpec.builder(TypeName.get(type()), setterName).addModifiers(PRIVATE).build();
   }
 
   Parameter originalSetter() {
     return new Parameter(variableElement, variableElement.getSimpleName().toString(),
-        getterName, type, model);
+        getterName, generatedClass, isPublic);
   }
+
+  public TypeMirror type() {
+    return variableElement.asType();
+  }
+
+  Modifier[] maybePublic() {
+    if (isPublic) {
+      return new Modifier[]{PUBLIC};
+    }
+    return new Modifier[]{};
+  }
+
 
   @Override
   <R, P> R accept(ParamCases<R, P> cases, P p) {

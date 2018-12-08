@@ -3,13 +3,13 @@ package net.autobuilder.core.cases;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
-import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.Collectionish;
 import net.autobuilder.core.Optionalish;
-import net.autobuilder.core.ParaParameter;
+import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.Parameter;
 
 public class SetterAssignmentCases implements ParamCases<CodeBlock, Void> {
+
   @Override
   public CodeBlock parameter(Parameter parameter, Void _null) {
     FieldSpec field = parameter.asField();

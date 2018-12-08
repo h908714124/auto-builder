@@ -7,11 +7,13 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
+import java.util.List;
 import java.util.Map;
 
 import static com.squareup.javapoet.WildcardTypeName.subtypeOf;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
-import static net.autobuilder.core.Util.typeArguments;
 
 final class GuavaCollection extends Collectionish.Base {
 
@@ -48,9 +50,10 @@ final class GuavaCollection extends Collectionish.Base {
   }
 
   @Override
-  ParameterizedTypeName accumulatorType(Parameter parameter) {
-    return ParameterizedTypeName.get(collectionClassName().nestedClass("Builder"),
-        typeArguments(parameter.variableElement.asType()));
+  DeclaredType accumulatorType(Parameter parameter) {
+    TypeTool tool = TypeTool.get();
+    List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
+    return tool.getDeclaredType(sCollectionClassName() + ".Builder", typeArguments);
   }
 
   @Override

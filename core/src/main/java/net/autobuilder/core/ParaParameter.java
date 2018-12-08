@@ -1,19 +1,20 @@
 package net.autobuilder.core;
 
 import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.TypeSpec;
-import net.autobuilder.core.cases.AddAccumulatorFieldCases;
-import net.autobuilder.core.cases.AddAccumulatorMethodCases;
-import net.autobuilder.core.cases.AddAccumulatorOverloadCases;
-import net.autobuilder.core.cases.AddOptionalishOverloadCases;
 import net.autobuilder.core.cases.AsSetterParameterCases;
 import net.autobuilder.core.cases.CleanupCodeCases;
 import net.autobuilder.core.cases.ClearAccumulatorCases;
+import net.autobuilder.core.cases.ExtraFieldCases;
+import net.autobuilder.core.cases.ExtraMethodsCases;
 import net.autobuilder.core.cases.GetFieldValueCases;
 import net.autobuilder.core.cases.GetParameterCases;
 import net.autobuilder.core.cases.SetterAssignmentCases;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -67,33 +68,19 @@ public abstract class ParaParameter {
   private static final BiConsumer<ParaParameter, CodeBlock.Builder> CLEAR_ACCUMULATOR =
       asConsumer(new ClearAccumulatorCases());
 
-  void addOptionalishOverload(TypeSpec.Builder builder) {
-    ADD_OPTIONALISH_OVERLOAD.accept(this, builder);
+  Optional<FieldSpec> getExtraField() {
+    return EXTRA_FIELD.apply(this);
   }
 
-  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_OPTIONALISH_OVERLOAD =
-      asConsumer(new AddOptionalishOverloadCases());
+  private static final Function<ParaParameter, Optional<FieldSpec>> EXTRA_FIELD =
+      asFunction(new ExtraFieldCases());
 
-  void addAccumulatorField(TypeSpec.Builder builder) {
-    ADD_ACCUMULATOR_FIELD.accept(this, builder);
+  List<MethodSpec> getExtraMethods(Model model) {
+    return accept(EXTRA_METHODS, model);
   }
 
-  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_FIELD =
-      asConsumer(new AddAccumulatorFieldCases());
-
-  void addAccumulatorMethod(TypeSpec.Builder builder) {
-    ADD_ACCUMULATOR_METHOD.accept(this, builder);
-  }
-
-  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_METHOD =
-      asConsumer(new AddAccumulatorMethodCases());
-
-  void addAccumulatorOverload(TypeSpec.Builder builder) {
-    ADD_ACCUMULATOR_OVERLOAD.accept(this, builder);
-  }
-
-  private static final BiConsumer<ParaParameter, TypeSpec.Builder> ADD_ACCUMULATOR_OVERLOAD =
-      asConsumer(new AddAccumulatorOverloadCases());
+  private static final ParamCases<List<MethodSpec>, Model> EXTRA_METHODS =
+      new ExtraMethodsCases();
 
   void cleanupCode(CodeBlock.Builder builder) {
     CLEANUP_CODE.accept(this, builder);

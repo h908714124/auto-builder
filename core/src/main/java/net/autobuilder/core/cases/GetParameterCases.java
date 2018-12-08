@@ -6,6 +6,7 @@ import net.autobuilder.core.Optionalish;
 import net.autobuilder.core.Parameter;
 
 public class GetParameterCases implements ParamCases<Parameter, Void> {
+
   @Override
   public Parameter parameter(Parameter parameter, Void _null) {
     return parameter;

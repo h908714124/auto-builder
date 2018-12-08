@@ -7,6 +7,7 @@ import net.autobuilder.core.Optionalish;
 import net.autobuilder.core.Parameter;
 
 public class ClearAccumulatorCases implements ParamCases<Void, CodeBlock.Builder> {
+
   @Override
   public Void parameter(Parameter parameter, CodeBlock.Builder builder) {
     return null;

@@ -6,6 +6,7 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
@@ -26,26 +27,26 @@ import static net.autobuilder.core.Collectionish.CollectionType.MAP;
 import static net.autobuilder.core.GuavaCollection.ofGuava;
 import static net.autobuilder.core.Util.className;
 import static net.autobuilder.core.Util.downcase;
-import static net.autobuilder.core.Util.equalsType;
 import static net.autobuilder.core.Util.upcase;
 import static net.autobuilder.core.UtilCollection.ofUtil;
 
 public final class Collectionish extends ParaParameter {
 
   enum CollectionType {
-    LIST(1, "addTo"), MAP(2, "putIn");
-    final int typeParams;
-    final String accumulatorPrefix;
 
-    CollectionType(int typeParams, String accumulatorPrefix) {
-      this.typeParams = typeParams;
-      this.accumulatorPrefix = accumulatorPrefix;
+    LIST(1), MAP(2);
+
+    final int numberOfTypeargs;
+
+    CollectionType(int numberOfTypeargs) {
+      this.numberOfTypeargs = numberOfTypeargs;
     }
   }
 
   static abstract class Base {
 
     private final String collectionClassName;
+
     private final String overloadArgumentType;
 
     final CollectionType collectionType;
@@ -54,7 +55,7 @@ public final class Collectionish extends ParaParameter {
 
     abstract CodeBlock emptyBlock();
 
-    abstract ParameterizedTypeName accumulatorType(Parameter parameter);
+    abstract DeclaredType accumulatorType(Parameter parameter);
 
     abstract ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter);
 
@@ -78,6 +79,10 @@ public final class Collectionish extends ParaParameter {
 
     ClassName collectionClassName() {
       return className(collectionClassName);
+    }
+
+    String sCollectionClassName() {
+      return collectionClassName;
     }
   }
 
@@ -117,7 +122,7 @@ public final class Collectionish extends ParaParameter {
         new Collectionish(lookupResult.base, parameter));
   }
 
-  public static Optional<CodeBlock> emptyBlock(Parameter parameter) {
+  public Optional<CodeBlock> emptyBlock(Parameter parameter) {
     return lookup(parameter).map(lookupResult -> {
       FieldSpec field = parameter.asField();
       return CodeBlock.builder()
@@ -130,19 +135,23 @@ public final class Collectionish extends ParaParameter {
 
   private static Optional<LookupResult> lookup(Parameter parameter) {
     TypeMirror type = parameter.variableElement.asType();
+    TypeTool tool = TypeTool.get();
+    if (tool.hasWildcards(type)) {
+      return Optional.empty();
+    }
     if (type.getKind() != TypeKind.DECLARED) {
       return Optional.empty();
     }
     DeclaredType declaredType = Util.asDeclared(type);
-    return TypeTool.get().getTypeElement(type)
+    return tool.getTypeElement(type)
         .map(TypeElement::getQualifiedName)
         .map(Name::toString)
         .map(LOOKUP::get)
-        .filter(base -> base.collectionType.typeParams ==
+        .filter(base -> base.collectionType.numberOfTypeargs ==
             declaredType.getTypeArguments().size())
-        .filter(base -> base.collectionType.typeParams != 1 ||
-            !equalsType(declaredType.getTypeArguments().get(0),
-                base.overloadArgumentType))
+        .filter(base -> base.collectionType.numberOfTypeargs != 1 ||
+            !tool.isSameErasure(declaredType.getTypeArguments().get(0),
+                tool.getTypeElement(base.overloadArgumentType).asType()))
         .map(base -> new LookupResult(base, declaredType));
   }
 
@@ -154,29 +163,27 @@ public final class Collectionish extends ParaParameter {
     return map;
   }
 
-  public MethodSpec accumulatorMethod() {
+  public Optional<MethodSpec> accumulatorMethod(Model model) {
     return base.collectionType == CollectionType.MAP ?
-        putInMethod() :
-        addToMethod();
+        putInMethod(model) :
+        addToMethod(model);
   }
 
-  public MethodSpec accumulatorMethodOverload() {
+  public Optional<MethodSpec> accumulatorMethodOverload(Model model) {
     ParameterizedTypeName addAllType = base.accumulatorOverloadArgumentType(parameter);
     return base.collectionType == CollectionType.MAP ?
-        putAllInMethod(ParameterSpec.builder(addAllType, "map").build()) :
-        addAllToMethod(ParameterSpec.builder(addAllType, "values").build());
+        putAllInMethod(model, ParameterSpec.builder(addAllType, "map").build()) :
+        addAllToMethod(model, ParameterSpec.builder(addAllType, "values").build());
   }
 
   public CodeBlock getFieldValue() {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
     return CodeBlock.builder()
-        .add("$N != null ? ", builderField)
-        .add(base.buildBlock(builderField))
-        .add(" :\n        ")
-        .add("$N != null ? $N : ",
-            field, field)
-        .add(base.emptyBlock())
+        .add("$N != null ? $L : ",
+            builderField, base.buildBlock(builderField))
+        .add("( $N != null ? $N : $L )",
+            field, field, base.emptyBlock())
         .build();
   }
 
@@ -193,41 +200,24 @@ public final class Collectionish extends ParaParameter {
   }
 
   public FieldSpec asBuilderField() {
-    return FieldSpec.builder(base.accumulatorType(parameter),
+    return FieldSpec.builder(TypeName.get(base.accumulatorType(parameter)),
         builderFieldName()).addModifiers(PRIVATE).build();
-  }
-
-  String accumulatorName() {
-    return base.collectionType.accumulatorPrefix + upcase(parameter.setterName);
   }
 
   public ParameterSpec asSetterParameter() {
     return base.setterParameter(parameter);
   }
 
-  private CodeBlock normalAddAll(CodeBlock what) {
-    return CodeBlock.builder()
-        .addStatement("this.$N.addAll($L)", asBuilderField(), what)
-        .build();
-  }
-
-  private CodeBlock normalPutAll(CodeBlock what) {
-    FieldSpec builderField = asBuilderField();
-    return CodeBlock.builder()
-        .addStatement("this.$N.putAll($L)",
-            builderField, what)
-        .build();
-  }
-
-  private String addMethod() {
-    return base.collectionType == LIST ? "add" : "put";
-  }
-
-  private MethodSpec addAllToMethod(
+  private Optional<MethodSpec> addAllToMethod(
+      Model model,
       ParameterSpec param) {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
-    MethodSpec.Builder spec = MethodSpec.methodBuilder(accumulatorName());
+    String methodName = "addTo" + upcase(parameter.setterName);
+    if (model.isSetterMethodNameCollision(methodName)) {
+      return Optional.empty();
+    }
+    MethodSpec.Builder spec = MethodSpec.methodBuilder(methodName);
     spec.beginControlFlow("if ($N == null)", param)
         .addStatement("return this")
         .endControlFlow();
@@ -239,21 +229,24 @@ public final class Collectionish extends ParaParameter {
         .addStatement("this.$N = null", field)
         .endControlFlow();
     spec.addStatement("this.$N.addAll($N)", asBuilderField(), param);
-    return spec
+    return Optional.of(spec
         .addStatement("return this")
         .addParameter(param)
         .addModifiers(FINAL)
-        .addModifiers(parameter.model.maybePublic())
-        .returns(parameter.model.generatedClass)
-        .build();
+        .addModifiers(parameter.maybePublic())
+        .returns(parameter.generatedClass)
+        .build());
   }
 
-  private MethodSpec putAllInMethod(
-      ParameterSpec param) {
+  private Optional<MethodSpec> putAllInMethod(
+      Model model, ParameterSpec param) {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
-    ;
-    MethodSpec.Builder spec = MethodSpec.methodBuilder(accumulatorName());
+    String methodName = "putIn" + upcase(parameter.setterName);
+    if (model.isSetterMethodNameCollision(methodName)) {
+      return Optional.empty();
+    }
+    MethodSpec.Builder spec = MethodSpec.methodBuilder(methodName);
     spec.beginControlFlow("if ($N == null)", param)
         .addStatement("return this")
         .endControlFlow();
@@ -261,26 +254,30 @@ public final class Collectionish extends ParaParameter {
         .addCode(base.accumulatorInitBlock(builderField))
         .endControlFlow();
     spec.beginControlFlow("if (this.$N != null)", field)
-        .addCode(normalPutAll(CodeBlock.of("this.$N", field)))
+        .addStatement("this.$N.putAll(this.$N)", builderField, field)
         .addStatement("this.$N = null", field)
         .endControlFlow();
-    spec.addCode(normalPutAll(CodeBlock.of("$N", param)));
-    return spec
+    spec.addStatement("this.$N.putAll($N)", builderField, param);
+    return Optional.of(spec
         .addStatement("return this")
         .addParameter(param)
         .addModifiers(FINAL)
-        .addModifiers(parameter.model.maybePublic())
-        .returns(parameter.model.generatedClass)
-        .build();
+        .addModifiers(parameter.maybePublic())
+        .returns(parameter.generatedClass)
+        .build());
   }
 
-  private MethodSpec addToMethod() {
+  private Optional<MethodSpec> addToMethod(Model model) {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
-    ParameterizedTypeName accumulatorType = base.accumulatorType(parameter);
+    DeclaredType accumulatorType = base.accumulatorType(parameter);
     ParameterSpec key =
-        ParameterSpec.builder(accumulatorType.typeArguments.get(0), "value").build();
-    MethodSpec.Builder spec = MethodSpec.methodBuilder(accumulatorName());
+        ParameterSpec.builder(TypeName.get(accumulatorType.getTypeArguments().get(0)), "value").build();
+    String methodName = "addTo" + upcase(parameter.setterName);
+    if (model.isSetterMethodNameCollision(methodName)) {
+      return Optional.empty();
+    }
+    MethodSpec.Builder spec = MethodSpec.methodBuilder(methodName);
     spec.beginControlFlow("if (this.$N == null)", builderField)
         .addCode(base.accumulatorInitBlock(builderField))
         .endControlFlow();
@@ -288,40 +285,44 @@ public final class Collectionish extends ParaParameter {
         .addStatement("this.$N.addAll(this.$N)", asBuilderField(), field)
         .addStatement("this.$N = null", field)
         .endControlFlow();
-    spec.addStatement("this.$N.$L($N)",
-        builderField, addMethod(), key);
-    return spec.addStatement("return this")
+    spec.addStatement("this.$N.add($N)",
+        builderField, key);
+    return Optional.of(spec.addStatement("return this")
         .addParameter(key)
         .addModifiers(FINAL)
-        .addModifiers(parameter.model.maybePublic())
-        .returns(parameter.model.generatedClass)
-        .build();
+        .addModifiers(parameter.maybePublic())
+        .returns(parameter.generatedClass)
+        .build());
   }
 
-  private MethodSpec putInMethod() {
+  private Optional<MethodSpec> putInMethod(Model model) {
     FieldSpec field = parameter.asField();
     FieldSpec builderField = asBuilderField();
-    ParameterizedTypeName accumulatorType = base.accumulatorType(parameter);
+    DeclaredType accumulatorType = base.accumulatorType(parameter);
     ParameterSpec key =
-        ParameterSpec.builder(accumulatorType.typeArguments.get(0), "key").build();
+        ParameterSpec.builder(TypeName.get(accumulatorType.getTypeArguments().get(0)), "key").build();
     ParameterSpec value =
-        ParameterSpec.builder(accumulatorType.typeArguments.get(1), "value").build();
-    MethodSpec.Builder spec = MethodSpec.methodBuilder(accumulatorName());
+        ParameterSpec.builder(TypeName.get(accumulatorType.getTypeArguments().get(1)), "value").build();
+    String methodName = "putIn" + upcase(parameter.setterName);
+    if (model.isSetterMethodNameCollision(methodName)) {
+      return Optional.empty();
+    }
+    MethodSpec.Builder spec = MethodSpec.methodBuilder(methodName);
     spec.beginControlFlow("if (this.$N == null)", builderField)
         .addCode(base.accumulatorInitBlock(builderField))
         .endControlFlow();
     spec.beginControlFlow("if (this.$N != null)", field)
-        .addCode(normalPutAll(CodeBlock.of("this.$N", field)))
+        .addStatement("this.$N.putAll(this.$N)", builderField, field)
         .addStatement("this.$N = null", field)
         .endControlFlow();
-    spec.addStatement("this.$N.$L($N, $N)",
-        builderField, addMethod(), key, value);
-    return spec.addStatement("return this")
+    spec.addStatement("this.$N.put($N, $N)",
+        builderField, key, value);
+    return Optional.of(spec.addStatement("return this")
         .addParameters(asList(key, value))
         .addModifiers(FINAL)
-        .addModifiers(parameter.model.maybePublic())
-        .returns(parameter.model.generatedClass)
-        .build();
+        .addModifiers(parameter.maybePublic())
+        .returns(parameter.generatedClass)
+        .build());
   }
 
   @Override

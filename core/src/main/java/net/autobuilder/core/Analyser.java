@@ -22,8 +22,6 @@ final class Analyser {
 
   private final Model model;
 
-  private final List<ParaParameter> parameters;
-
   private final MethodSpec initMethod;
 
   private final MethodSpec staticBuildMethod;
@@ -32,13 +30,12 @@ final class Analyser {
 
   private Analyser(Model model) {
     this.model = model;
-    this.parameters = model.scan();
-    this.initMethod = initMethod(model, parameters);
-    String inUseFieldName = uniqueFieldName("inUse", parameters);
+    this.initMethod = initMethod(model, model.parameters);
+    String inUseFieldName = model.uniqueFieldName("inUse");
     this.inUse = FieldSpec.builder(TypeName.BOOLEAN, inUseFieldName)
         .addModifiers(PRIVATE).build();
     this.staticBuildMethod = staticBuildMethod(
-        model, inUse, parameters);
+        model, inUse, model.parameters);
   }
 
   static Analyser create(Model model) {
@@ -61,13 +58,11 @@ final class Analyser {
       builder.addMethod(builderMethod());
       builder.addMethod(builderMethodWithParam());
     }
-    for (ParaParameter parameter : parameters) {
+    for (ParaParameter parameter : model.parameters) {
       builder.addField(parameter.getParameter().asField());
       builder.addMethod(setterMethod(parameter));
-      parameter.addOptionalishOverload(builder);
-      parameter.addAccumulatorField(builder);
-      parameter.addAccumulatorMethod(builder);
-      parameter.addAccumulatorOverload(builder);
+      parameter.getExtraField().ifPresent(builder::addField);
+      parameter.getExtraMethods(model).forEach(builder::addMethod);
     }
     builder.addModifiers(model.maybePublic());
     return builder.addModifiers(FINAL)
@@ -80,58 +75,23 @@ final class Analyser {
   private FieldSpec createFactoryField() {
     ClassName perThreadFactoryClass = model.perThreadFactoryClass();
     ParameterizedTypeName factoryFieldType = ParameterizedTypeName.get(ClassName.get(ThreadLocal.class), perThreadFactoryClass);
-    String factoryFieldName = uniqueFieldName("FACTORY", parameters);
+    String factoryFieldName = model.uniqueFieldName("FACTORY");
     return FieldSpec.builder(factoryFieldType, factoryFieldName)
         .addModifiers(PRIVATE, STATIC, FINAL)
         .initializer("$T.withInitial($T::new)", ThreadLocal.class, perThreadFactoryClass).build();
   }
 
-  private static String uniqueFieldName(String suffix, List<ParaParameter> parameters) {
-    while (isFieldNameCollision(suffix, parameters)) {
-      suffix = "_" + suffix;
-    }
-    return suffix;
-  }
-
-  private static String uniqueMethodName(String suffix, List<ParaParameter> parameters) {
-    while (isSetterMethodNameCollision(suffix, parameters)) {
-      suffix = "_" + suffix;
-    }
-    return suffix;
-  }
-
-  private static boolean isFieldNameCollision(
-      String factoryFieldName,
-      List<ParaParameter> parameters) {
-    for (ParaParameter parameter : parameters) {
-      if (parameter.getParameter().asField().name.equals(factoryFieldName)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static boolean isSetterMethodNameCollision(
-      String factoryFieldName,
-      List<ParaParameter> parameters) {
-    for (ParaParameter parameter : parameters) {
-      if (parameter.getParameter().setterName.equals(factoryFieldName)) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   private static MethodSpec initMethod(
       Model model, List<ParaParameter> parameters) {
-    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
     for (ParaParameter parameter : parameters) {
       block.addStatement("$N = $N.$L()",
           parameter.getParameter().setterName, input,
           parameter.getParameter().getterName);
     }
-    return MethodSpec.methodBuilder(uniqueMethodName("init", parameters))
+    return MethodSpec.methodBuilder(model.uniqueSetterMethodName("init"))
         .addCode(block.build())
         .addParameter(input)
         .addModifiers(PRIVATE)
@@ -164,7 +124,7 @@ final class Analyser {
 
   private MethodSpec builderMethodWithParam() {
     ParameterSpec builder = ParameterSpec.builder(model.generatedClass, "builder").build();
-    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder()
         .addStatement("$T $N = new $T()", builder.type, builder, model.generatedClass)
         .addStatement("$N.$N($N)", builder, initMethod, input)
@@ -186,7 +146,7 @@ final class Analyser {
   }
 
   private MethodSpec builderMethodWithParamReuse(FieldSpec factoryField) {
-    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "input").build();
+    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     return MethodSpec.methodBuilder("builder")
         .addModifiers(STATIC)
         .addStatement("return $N.get().builder($N)", factoryField, input)
@@ -199,7 +159,7 @@ final class Analyser {
       Model model,
       FieldSpec inUse,
       List<ParaParameter> parameters) {
-    ParameterSpec result = ParameterSpec.builder(TypeName.get(model.sourceClass().asType()), "result")
+    ParameterSpec result = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "result")
         .build();
     List<CodeBlock> invocation = parameters.stream()
         .map(ParaParameter::getFieldValue)
@@ -209,7 +169,7 @@ final class Analyser {
       parameters.forEach(parameter -> parameter.cleanupCode(cleanup));
     }
     MethodSpec.Builder spec = MethodSpec.methodBuilder("build");
-    spec.addCode("$T $N = new $T(\n    ", TypeName.get(model.sourceClass().asType()), result, model.avType)
+    spec.addCode("$T $N = new $T(\n    ", TypeName.get(model.sourceElement().asType()), result, model.avElement)
         .addCode(invocation.stream().collect(joinCodeBlocks(",\n    ")))
         .addCode(");\n")
         .addCode(cleanup.build());
@@ -217,15 +177,15 @@ final class Analyser {
       spec.addStatement("$N = $L", inUse, false);
     }
     return spec.addStatement("return $N", result)
-        .returns(TypeName.get(model.sourceClass().asType()))
+        .returns(TypeName.get(model.sourceElement().asType()))
         .addModifiers(model.maybePublic())
         .build();
   }
 
   private CodeBlock generatedInfo() {
     return CodeBlock.builder().add("Generated by " +
-            "<a href=\"https://github.com/h908714124/auto-builder\">\nauto-builder " +
-            getClass().getPackage().getImplementationVersion() +
-            "</a>\n").build();
+        "<a href=\"https://github.com/h908714124/auto-builder\">\nauto-builder " +
+        getClass().getPackage().getImplementationVersion() +
+        "</a>\n").build();
   }
 }

@@ -19,15 +19,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
+import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.util.ElementFilter.typesIn;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
@@ -35,8 +33,50 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
 
   private static final String AV_PREFIX = "AutoValue_";
 
-  private final Set<String> deferred = new HashSet<>();
+  private final Set<Task> deferred = new HashSet<>();
+
   private final Set<String> done = new HashSet<>();
+
+  private final boolean debug;
+
+  public AutoBuilderProcessor() {
+    this(false);
+  }
+
+  // visible for testing
+  AutoBuilderProcessor(boolean debug) {
+    this.debug = debug;
+  }
+
+  private static final class Task {
+
+    final String sourceType;
+
+    final String avType;
+
+    Task(String sourceType, String avType) {
+      this.sourceType = sourceType;
+      this.avType = avType;
+    }
+
+    static Task create(TypeElement sourceClassElement, ClassName avClass) {
+      return new Task(sourceClassElement.getQualifiedName().toString(),
+          avClass.packageName() + '.' + avClass.simpleName());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      Task task = (Task) o;
+      return avType.equals(task.avType);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(avType);
+    }
+  }
 
   @Override
   public Set<String> getSupportedAnnotationTypes() {
@@ -60,64 +100,73 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
 
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
-    List<TypeElement> deferredTypes = deferred.stream()
-        .map(name -> processingEnv.getElementUtils().getTypeElement(name))
-        .collect(toList());
     if (env.processingOver()) {
-      for (String deferred : this.deferred) {
-        if (!done.contains(deferred)) {
-          TypeElement type = processingEnv.getElementUtils().getTypeElement(deferred);
-          ClassName avType = avPeer(type);
-          processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,
-              String.format("Could not find %s, maybe auto-value is not configured?", avType), type);
-        }
-      }
+      checkUnprocessed();
       return false;
     }
     try {
       TypeTool.init(processingEnv.getTypeUtils(), processingEnv.getElementUtils());
-      doProcess(env, deferredTypes);
+      doProcess(env);
     } finally {
       TypeTool.clear();
     }
     return false;
   }
 
-  private void doProcess(RoundEnvironment env, List<TypeElement> deferredTypes) {
-    List<TypeElement> types = Stream.of(
-        deferredTypes,
-        typesIn(env.getElementsAnnotatedWith(AutoBuilder.class)))
-        .map(Collection::stream)
-        .flatMap(Function.identity())
-        .collect(toList());
-
-    for (TypeElement sourceClassElement : types) {
-      String key = sourceClassElement.getQualifiedName().toString();
-      if (done.contains(key)) {
-        continue;
-      }
-      ClassName generatedByAutoValue = avPeer(sourceClassElement);
-      TypeElement avType = processingEnv.getElementUtils().getTypeElement(
-          String.format("%s.%s", generatedByAutoValue.packageName(), generatedByAutoValue.simpleName()));
-      if (avType == null) {
-        // Auto-value hasn't written its class yet.
-        // Remember this, so we can notify the user later on.
-        deferred.add(key);
-        continue;
-      }
-      try {
-        Model model = Model.create(sourceClassElement, avType);
-        TypeSpec typeSpec = Analyser.create(model).analyse();
-        write(rawType(model.generatedClass), typeSpec);
-        done.add(key);
-      } catch (ValidationException e) {
-        processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
-      } catch (Exception e) {
-        String trace = getStackTraceAsString(e);
-        String message = "Unexpected error: " + trace;
-        processingEnv.getMessager().printMessage(ERROR, message, sourceClassElement);
+  private void checkUnprocessed() {
+    for (Task task : deferred) {
+      if (!done.contains(task.avType)) {
+        TypeElement unprocessedType = processingEnv.getElementUtils().getTypeElement(task.sourceType);
+        processingEnv.getMessager().printMessage(
+            Diagnostic.Kind.ERROR,
+            String.format("Could not find %s, maybe auto-value is not configured?", task.avType),
+            unprocessedType);
       }
     }
+  }
+
+  private void doProcess(RoundEnvironment env) {
+    for (Task task : deferred) {
+      processTask(task);
+    }
+    for (TypeElement sourceClassElement : typesIn(env.getElementsAnnotatedWith(AutoBuilder.class))) {
+      ClassName avClass = avClass(sourceClassElement);
+      Task task = Task.create(sourceClassElement, avClass);
+      processTask(task);
+    }
+  }
+
+  private void processTask(Task task) {
+    if (done.contains(task.avType)) {
+      return;
+    }
+    TypeElement sourceElement = processingEnv.getElementUtils().getTypeElement(task.sourceType);
+    try {
+      TypeElement avElement = processingEnv.getElementUtils().getTypeElement(task.avType);
+      if (avElement == null) {
+        // Auto-value hasn't written its class yet.
+        // Remember this, so we can notify the user later on.
+        deferred.add(task);
+        return;
+      }
+      List<ParaParameter> parameters = Parameter.scan(
+          Model.generatedClass(sourceElement),
+          sourceElement.getModifiers().contains(PUBLIC),
+          Model.getAvConstructor(sourceElement, avElement),
+          avElement);
+      Model model = Model.create(parameters, sourceElement, avElement);
+
+      TypeSpec typeSpec = Analyser.create(model).analyse();
+      write(rawType(model.generatedClass), typeSpec);
+      done.add(task.avType);
+    } catch (ValidationException e) {
+      processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
+    } catch (Exception e) {
+      String trace = getStackTraceAsString(e);
+      String message = "Unexpected error: " + trace;
+      processingEnv.getMessager().printMessage(ERROR, message, sourceElement);
+    }
+
   }
 
   private void write(ClassName generatedType, TypeSpec typeSpec) throws IOException {
@@ -129,11 +178,18 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         .createSourceFile(generatedType.toString(),
             javaFile.typeSpec.originatingElements.toArray(new Element[0]));
     try (Writer writer = sourceFile.openWriter()) {
-      writer.write(javaFile.toString());
+      String sourceCode = javaFile.toString();
+      writer.write(sourceCode);
+      if (debug) {
+        System.err.println("##############");
+        System.err.println("# Debug info #");
+        System.err.println("##############");
+        System.err.println(sourceCode);
+      }
     }
   }
 
-  private static ClassName avPeer(TypeElement typeElement) {
+  private static ClassName avClass(TypeElement typeElement) {
     ClassName className = ClassName.get(typeElement);
     String name = AV_PREFIX + String.join("_", className.simpleNames());
     return className.topLevelClassName().peerClass(name);

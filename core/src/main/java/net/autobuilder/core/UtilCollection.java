@@ -7,7 +7,10 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import java.util.Collections;
+import java.util.List;
 
 import static net.autobuilder.core.Collectionish.CollectionType.LIST;
 import static net.autobuilder.core.Model.withTypevars;
@@ -58,9 +61,10 @@ final class UtilCollection extends Collectionish.Base {
   }
 
   @Override
-  ParameterizedTypeName accumulatorType(Parameter parameter) {
-    return ParameterizedTypeName.get(accumulatorClass,
-        typeArguments(parameter.variableElement.asType()));
+  DeclaredType accumulatorType(Parameter parameter) {
+    TypeTool tool = TypeTool.get();
+    List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
+    return tool.getDeclaredType(accumulatorClass.packageName() + '.' + accumulatorClass.simpleName(), typeArguments);
   }
 
   @Override
