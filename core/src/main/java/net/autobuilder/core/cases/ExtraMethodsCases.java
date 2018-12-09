@@ -28,6 +28,8 @@ public class ExtraMethodsCases implements ParamCases<List<MethodSpec>, Model> {
 
   @Override
   public List<MethodSpec> optionalish(Optionalish optionalish, Model model) {
-    return Collections.singletonList(optionalish.convenienceOverloadMethod());
+    List<MethodSpec> result = new ArrayList<>(1);
+    optionalish.convenienceOverloadMethod().ifPresent(result::add);
+    return result;
   }
 }

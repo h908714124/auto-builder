@@ -34,4 +34,24 @@ class CollisionTest {
         .processedWith(new AutoBuilderProcessor(), new AutoValueProcessor())
         .compilesWithoutError();
   }
+
+  @Test
+  void builder() {
+
+    List<String> sourceLines = Arrays.asList(
+        "package test;",
+        "import net.autobuilder.AutoBuilder;",
+        "import com.google.auto.value.AutoValue;",
+        "import java.util.List;",
+        "",
+        "@AutoBuilder",
+        "@AutoValue",
+        "abstract class Animal {",
+        "  abstract Animal builder();",
+        "}");
+    JavaFileObject javaFile = forSourceLines("test.Animal", sourceLines);
+    assertAbout(javaSources()).that(singletonList(javaFile))
+        .processedWith(new AutoBuilderProcessor(), new AutoValueProcessor())
+        .compilesWithoutError();
+  }
 }

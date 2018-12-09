@@ -1,9 +1,9 @@
 package net.autobuilder.core.cases;
 
 import com.squareup.javapoet.CodeBlock;
-import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.Collectionish;
 import net.autobuilder.core.Optionalish;
+import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.Parameter;
 
 public class ClearAccumulatorCases implements ParamCases<Void, CodeBlock.Builder> {
@@ -15,8 +15,8 @@ public class ClearAccumulatorCases implements ParamCases<Void, CodeBlock.Builder
 
   @Override
   public Void collectionish(Collectionish collectionish, CodeBlock.Builder builder) {
-    builder.addStatement("this.$N = null",
-        collectionish.asBuilderField());
+    collectionish.asBuilderField().ifPresent(builderField ->
+        builder.addStatement("this.$N = null", builderField));
     return null;
   }
 

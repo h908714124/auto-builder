@@ -17,7 +17,7 @@ public class ExtraFieldCases implements ParamCases<Optional<FieldSpec>, Void> {
 
   @Override
   public Optional<FieldSpec> collectionish(Collectionish collectionish, Void _null) {
-    return Optional.of(collectionish.asBuilderField());
+    return collectionish.asBuilderField();
   }
 
   @Override

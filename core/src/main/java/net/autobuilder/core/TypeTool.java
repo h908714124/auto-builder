@@ -42,23 +42,6 @@ class TypeTool {
         }
       };
 
-  private final TypeVisitor<TypeMirror, Void> unwild =
-
-      new SimpleTypeVisitor8<TypeMirror, Void>() {
-
-        @Override
-        public TypeMirror visitWildcard(WildcardType t, Void _null) {
-          TypeMirror lower = t.getExtendsBound();
-          TypeMirror upper = t.getSuperBound();
-          return lower == null ? upper : lower;
-        }
-
-        @Override
-        protected TypeMirror defaultAction(TypeMirror mirror, Void _null) {
-          return mirror;
-        }
-      };
-
   private final TypeVisitor<Boolean, Void> isWild =
 
       new SimpleTypeVisitor8<Boolean, Void>() {
@@ -136,12 +119,21 @@ class TypeTool {
     return mirror.accept(declared, null);
   }
 
+  DeclaredType getDeclaredType(TypeMirror mirror, TypeMirror... typeargs) {
+    Element el = mirror.accept(declared, null).asElement();
+    return types.getDeclaredType(el.accept(asTypeElement, null).orElseThrow(IllegalArgumentException::new), typeargs);
+  }
+
   TypeMirror asExtendsWildcard(TypeMirror typeMirror) {
     return typeMirror.accept(subtype, null);
   }
 
   TypeElement getTypeElement(String qualifiedName) {
     return elements.getTypeElement(qualifiedName);
+  }
+
+  TypeElement getTypeElement(Class<?> clazz) {
+    return elements.getTypeElement(clazz.getCanonicalName());
   }
 
   boolean hasWildcards(TypeMirror mirror) {

@@ -9,20 +9,19 @@ import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static com.squareup.javapoet.WildcardTypeName.subtypeOf;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 
-final class GuavaCollection extends Collectionish.Base {
+final class GuavaCollectionBase extends CollectionBase {
 
-  private static final ClassName MAP_ENTRY = ClassName.get(Map.Entry.class);
   private static final String GCC = "com.google.common.collect.";
 
   private final ClassName setterParameterClassName;
 
-  private GuavaCollection(
+  private GuavaCollectionBase(
       String className,
       Collectionish.CollectionType type,
       ClassName setterParameterClassName) {
@@ -30,11 +29,11 @@ final class GuavaCollection extends Collectionish.Base {
     this.setterParameterClassName = setterParameterClassName;
   }
 
-  static Collectionish.Base ofGuava(
+  static CollectionBase ofGuava(
       String simpleName,
       Class<?> setterParameterClass,
       Collectionish.CollectionType type) {
-    return new GuavaCollection(GCC + simpleName, type,
+    return new GuavaCollectionBase(GCC + simpleName, type,
         ClassName.get(setterParameterClass));
   }
 
@@ -53,17 +52,17 @@ final class GuavaCollection extends Collectionish.Base {
   DeclaredType accumulatorType(Parameter parameter) {
     TypeTool tool = TypeTool.get();
     List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
-    return tool.getDeclaredType(sCollectionClassName() + ".Builder", typeArguments);
+    return tool.getDeclaredType(collectionClassName + ".Builder", typeArguments);
   }
 
   @Override
-  ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter) {
-    TypeName[] typeArguments = typeArgumentSubtypes(
-        parameter.variableElement);
+  DeclaredType accumulatorOverloadArgumentType(Parameter parameter) {
+    TypeMirror[] typeArguments = typeArgumentSubtypes(parameter.variableElement);
+    TypeTool tool = TypeTool.get();
     return collectionType == Collectionish.CollectionType.LIST ?
-        ParameterizedTypeName.get(overloadArgumentType(), typeArguments) :
-        ParameterizedTypeName.get(overloadArgumentType(),
-            subtypeOf(ParameterizedTypeName.get(MAP_ENTRY, typeArguments)));
+        tool.getDeclaredType(overloadArgumentType().asType(), typeArguments) :
+        tool.getDeclaredType(overloadArgumentType().asType(),
+            tool.asExtendsWildcard(tool.getDeclaredType(tool.getTypeElement(Map.Entry.class).asType(), typeArguments)));
   }
 
   @Override
@@ -84,7 +83,9 @@ final class GuavaCollection extends Collectionish.Base {
   @Override
   ParameterSpec setterParameter(Parameter parameter) {
     TypeName type = ParameterizedTypeName.get(setterParameterClassName,
-        typeArgumentSubtypes(parameter.variableElement));
+        Arrays.stream(typeArgumentSubtypes(parameter.variableElement))
+            .map(TypeName::get)
+            .toArray(TypeName[]::new));
     return ParameterSpec.builder(type, parameter.setterName).build();
   }
 }

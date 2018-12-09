@@ -4,7 +4,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.type.DeclaredType;
@@ -17,12 +16,12 @@ import static net.autobuilder.core.Model.withTypevars;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 import static net.autobuilder.core.Util.typeArguments;
 
-final class UtilCollection extends Collectionish.Base {
+final class UtilCollectionBase extends CollectionBase {
 
   private final String emptyMethod;
   private final ClassName accumulatorClass;
 
-  private UtilCollection(
+  private UtilCollectionBase(
       ClassName accumulatorClass,
       String emptyMethod,
       String className,
@@ -33,7 +32,7 @@ final class UtilCollection extends Collectionish.Base {
     this.emptyMethod = emptyMethod;
   }
 
-  static Collectionish.Base ofUtil(
+  static CollectionBase ofUtil(
       String simpleName,
       String emptyMethod,
       Class<?> builderClass,
@@ -41,7 +40,7 @@ final class UtilCollection extends Collectionish.Base {
     String accumulatorAddAllType = collectionType == LIST ?
         "java.util.Collection" :
         "java.util.Map";
-    return new UtilCollection(
+    return new UtilCollectionBase(
         ClassName.get(builderClass),
         emptyMethod,
         "java.util." + simpleName,
@@ -68,10 +67,10 @@ final class UtilCollection extends Collectionish.Base {
   }
 
   @Override
-  ParameterizedTypeName accumulatorOverloadArgumentType(Parameter parameter) {
-    return ParameterizedTypeName.get(overloadArgumentType(),
-        typeArgumentSubtypes(
-            parameter.variableElement));
+  DeclaredType accumulatorOverloadArgumentType(Parameter parameter) {
+    TypeTool tool = TypeTool.get();
+    return tool.getDeclaredType(overloadArgumentType().asType(),
+        typeArgumentSubtypes(parameter.variableElement));
   }
 
   @Override

@@ -4,8 +4,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 
-import javax.lang.model.element.Name;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
@@ -28,7 +26,8 @@ import static java.util.Collections.emptySet;
 
 final class Util {
 
-  static final SimpleTypeVisitor8<DeclaredType, Void> AS_DECLARED =
+  private static final SimpleTypeVisitor8<DeclaredType, Void> AS_DECLARED =
+
       new SimpleTypeVisitor8<DeclaredType, Void>() {
         @Override
         public DeclaredType visitDeclared(DeclaredType declaredType, Void _null) {
@@ -36,21 +35,12 @@ final class Util {
         }
       };
 
-  static boolean equalsType(TypeMirror typeMirror, String qualified) {
-    return TypeTool.get().getTypeElement(typeMirror)
-        .map(TypeElement::getQualifiedName)
-        .map(Name::toString)
-        .map(s -> s.equals(qualified))
-        .orElse(false);
-  }
-
-  static TypeName[] typeArgumentSubtypes(VariableElement variableElement) {
+  static TypeMirror[] typeArgumentSubtypes(VariableElement variableElement) {
     DeclaredType declaredType = asDeclared(variableElement);
     TypeTool tool = TypeTool.get();
     return declaredType.getTypeArguments().stream()
         .map(tool::asExtendsWildcard)
-        .map(TypeName::get)
-        .toArray(TypeName[]::new);
+        .toArray(TypeMirror[]::new);
   }
 
   static TypeName[] typeArguments(VariableElement variableElement) {

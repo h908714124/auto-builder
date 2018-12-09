@@ -8,6 +8,7 @@ import net.autobuilder.AutoBuilder;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import java.util.Arrays;
 import java.util.List;
@@ -128,8 +129,8 @@ public final class Model {
     return baseName;
   }
 
-  String uniqueSetterMethodName(String baseName) {
-    while (isSetterMethodNameCollision(baseName)) {
+  String uniqueSetterMethodName(String baseName, TypeMirror paramType) {
+    while (isSetterMethodNameCollision(baseName, paramType)) {
       baseName = "_" + baseName;
     }
     return baseName;
@@ -145,10 +146,14 @@ public final class Model {
     return false;
   }
 
-  boolean isSetterMethodNameCollision(String methodName) {
+  boolean isSetterMethodNameCollision(String methodName, TypeMirror paramType) {
     for (ParaParameter parameter : parameters) {
       if (parameter.getParameter().setterName.equals(methodName)) {
-        return true;
+        if (TypeTool.get().isSameErasure(
+            paramType,
+            parameter.getParameter().variableElement.asType())) {
+          return true;
+        }
       }
     }
     return false;

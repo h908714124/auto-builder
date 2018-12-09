@@ -54,7 +54,7 @@ public abstract class ParaParameter {
   private static final Function<ParaParameter, CodeBlock> SETTER_ASSIGNMENT =
       asFunction(new SetterAssignmentCases());
 
-  CodeBlock getFieldValue() {
+  final CodeBlock fieldValue() {
     return GET_FIELD_VALUE.apply(this);
   }
 
