@@ -42,6 +42,7 @@ final class Analyser {
     TypeSpec.Builder spec = TypeSpec.classBuilder(rawType(model.generatedClass));
     spec.addMethod(initMethod);
     spec.addMethod(buildMethod(model, inUse, model.parameters));
+    MethodSpec toBuilderMethod;
     if (model.reuse) {
       FieldSpec factoryField = createFactoryField();
       spec.addField(factoryField);
@@ -49,11 +50,18 @@ final class Analyser {
       spec.addType(PerThreadFactory.create(
           model, initMethod, inUse).define());
       spec.addMethod(staticBuilderMethodReuse(factoryField));
-      spec.addMethod(staticBuilderMethodWithParamReuse(factoryField));
+      toBuilderMethod = staticToBuilderMethodReuse(factoryField, model.uniqueSetterMethodName("toBuilder", model.sourceElement().asType()));
     } else {
       spec.addMethod(staticBuilderMethod());
-      spec.addMethod(staticBuilderMethodWithParam());
+      toBuilderMethod = staticToBuilderMethod(model.uniqueSetterMethodName("toBuilder", model.sourceElement().asType()));
     }
+    spec.addMethod(toBuilderMethod);
+    spec.addMethod(MethodSpec.methodBuilder(model.uniqueSetterMethodName("builder", model.sourceElement().asType()))
+        .addParameter(toBuilderMethod.parameters.get(0))
+        .returns(toBuilderMethod.returnType)
+        .addModifiers(toBuilderMethod.modifiers)
+        .addStatement("return $N($N)", toBuilderMethod, toBuilderMethod.parameters.get(0))
+        .build());
     for (ParaParameter parameter : model.parameters) {
       spec.addField(parameter.getParameter().asField());
       spec.addMethod(setterMethod(parameter));
@@ -118,8 +126,7 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec staticBuilderMethodWithParam() {
-    String methodName = model.uniqueSetterMethodName("builder", model.sourceElement().asType());
+  private MethodSpec staticToBuilderMethod(String methodName) {
     ParameterSpec builder = ParameterSpec.builder(model.generatedClass,
         "builder").build();
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
@@ -143,9 +150,10 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec staticBuilderMethodWithParamReuse(FieldSpec factoryField) {
+  private MethodSpec staticToBuilderMethodReuse(
+      FieldSpec factoryField, String methodName) {
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
-    return MethodSpec.methodBuilder(model.uniqueSetterMethodName("builder", model.sourceElement().asType()))
+    return MethodSpec.methodBuilder(methodName)
         .addModifiers(STATIC)
         .addStatement("return $N.get().builder($N)", factoryField, input)
         .addParameter(input)
