@@ -23,7 +23,7 @@ final class GuavaCollectionBase extends CollectionBase {
 
   private GuavaCollectionBase(
       String className,
-      Collectionish.CollectionType type,
+      CollectionParameter.CollectionType type,
       ClassName setterParameterClassName) {
     super(className, "java.lang.Iterable", type);
     this.setterParameterClassName = setterParameterClassName;
@@ -32,7 +32,7 @@ final class GuavaCollectionBase extends CollectionBase {
   static CollectionBase ofGuava(
       String simpleName,
       Class<?> setterParameterClass,
-      Collectionish.CollectionType type) {
+      CollectionParameter.CollectionType type) {
     return new GuavaCollectionBase(GCC + simpleName, type,
         ClassName.get(setterParameterClass));
   }
@@ -49,24 +49,24 @@ final class GuavaCollectionBase extends CollectionBase {
   }
 
   @Override
-  DeclaredType accumulatorType(Parameter parameter) {
+  DeclaredType accumulatorType(RegularParameter parameter) {
     TypeTool tool = TypeTool.get();
     List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
     return tool.getDeclaredType(collectionClassName + ".Builder", typeArguments);
   }
 
   @Override
-  DeclaredType accumulatorOverloadArgumentType(Parameter parameter) {
+  DeclaredType accumulatorOverloadArgumentType(RegularParameter parameter) {
     TypeMirror[] typeArguments = typeArgumentSubtypes(parameter.variableElement);
     TypeTool tool = TypeTool.get();
-    return collectionType == Collectionish.CollectionType.LIST ?
+    return collectionType == CollectionParameter.CollectionType.LIST ?
         tool.getDeclaredType(overloadArgumentType().asType(), typeArguments) :
         tool.getDeclaredType(overloadArgumentType().asType(),
             tool.asExtendsWildcard(tool.getDeclaredType(tool.getTypeElement(Map.Entry.class).asType(), typeArguments)));
   }
 
   @Override
-  CodeBlock setterAssignment(Parameter parameter) {
+  CodeBlock setterAssignment(RegularParameter parameter) {
     FieldSpec field = parameter.asField();
     ParameterSpec p = parameter.asSetterParameter();
     return CodeBlock.builder()
@@ -81,7 +81,7 @@ final class GuavaCollectionBase extends CollectionBase {
   }
 
   @Override
-  ParameterSpec setterParameter(Parameter parameter) {
+  ParameterSpec setterParameter(RegularParameter parameter) {
     TypeName type = ParameterizedTypeName.get(setterParameterClassName,
         Arrays.stream(typeArgumentSubtypes(parameter.variableElement))
             .map(TypeName::get)

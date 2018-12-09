@@ -1,24 +1,24 @@
 package net.autobuilder.core.cases;
 
 import net.autobuilder.core.ParamCases;
-import net.autobuilder.core.Collectionish;
-import net.autobuilder.core.Optionalish;
-import net.autobuilder.core.Parameter;
+import net.autobuilder.core.CollectionParameter;
+import net.autobuilder.core.OptionalParameter;
+import net.autobuilder.core.RegularParameter;
 
-public class GetParameterCases implements ParamCases<Parameter, Void> {
+public class GetParameterCases implements ParamCases<RegularParameter, Void> {
 
   @Override
-  public Parameter parameter(Parameter parameter, Void _null) {
+  public RegularParameter parameter(RegularParameter parameter, Void _null) {
     return parameter;
   }
 
   @Override
-  public Parameter collectionish(Collectionish collectionish, Void _null) {
-    return collectionish.parameter;
+  public RegularParameter collectionish(CollectionParameter parameter, Void _null) {
+    return parameter.parameter;
   }
 
   @Override
-  public Parameter optionalish(Optionalish optionalish, Void _null) {
-    return optionalish.parameter;
+  public RegularParameter optionalish(OptionalParameter parameter, Void _null) {
+    return parameter.parameter;
   }
 }

@@ -5,7 +5,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
-import static net.autobuilder.core.ParaParameter.asFunction;
+import static net.autobuilder.core.Parameter.asFunction;
 import static net.autobuilder.core.Util.isDistinct;
 
 final class Cleanse {
@@ -13,7 +13,7 @@ final class Cleanse {
   /**
    * Simplify the generated builder, if necessary because of potential name collisions.
    */
-  static List<ParaParameter> preventNamingCollisions(List<ParaParameter> parameters) {
+  static List<Parameter> preventNamingCollisions(List<Parameter> parameters) {
     Boolean areFieldNamesDistinct = parameters.stream().map(FIELD_NAMES).collect(isDistinct());
     if (areFieldNamesDistinct) {
       return parameters;
@@ -21,46 +21,46 @@ final class Cleanse {
     return parameters.stream().map(ORIGINAL_SETTER).collect(toList());
   }
 
-  private static final Function<ParaParameter, Stream<String>> FIELD_NAMES =
+  private static final Function<Parameter, Stream<String>> FIELD_NAMES =
       asFunction(new FieldNamesCases());
 
-  private static final Function<ParaParameter, ParaParameter> ORIGINAL_SETTER =
+  private static final Function<Parameter, Parameter> ORIGINAL_SETTER =
       asFunction(new OriginalSetterCases());
 
   private static class FieldNamesCases implements ParamCases<Stream<String>, Void> {
 
     @Override
-    public Stream<String> parameter(Parameter parameter, Void _null) {
+    public Stream<String> parameter(RegularParameter parameter, Void _null) {
       return Stream.of(parameter.setterName);
     }
 
     @Override
-    public Stream<String> collectionish(Collectionish collectionish, Void _null) {
-      return Stream.of(collectionish.parameter.setterName,
-          collectionish.builderFieldName());
+    public Stream<String> collectionish(CollectionParameter parameter, Void _null) {
+      return Stream.of(parameter.parameter.setterName,
+          parameter.builderFieldName());
     }
 
     @Override
-    public Stream<String> optionalish(Optionalish optionalish, Void _null) {
-      return Stream.of(optionalish.parameter.setterName);
+    public Stream<String> optionalish(OptionalParameter parameter, Void _null) {
+      return Stream.of(parameter.parameter.setterName);
     }
   }
 
-  private static class OriginalSetterCases implements ParamCases<ParaParameter, Void> {
+  private static class OriginalSetterCases implements ParamCases<Parameter, Void> {
 
     @Override
-    public ParaParameter parameter(Parameter parameter, Void _null) {
+    public Parameter parameter(RegularParameter parameter, Void _null) {
       return parameter.originalSetter();
     }
 
     @Override
-    public ParaParameter collectionish(Collectionish collectionish, Void _null) {
-      return collectionish.withParameter(collectionish.parameter.originalSetter());
+    public Parameter collectionish(CollectionParameter parameter, Void _null) {
+      return parameter.withParameter(parameter.parameter.originalSetter());
     }
 
     @Override
-    public ParaParameter optionalish(Optionalish optionalish, Void _null) {
-      return optionalish.withParameter(optionalish.parameter.originalSetter());
+    public Parameter optionalish(OptionalParameter parameter, Void _null) {
+      return parameter.withParameter(parameter.parameter.originalSetter());
     }
   }
 }

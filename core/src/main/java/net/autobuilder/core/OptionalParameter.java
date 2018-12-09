@@ -18,7 +18,7 @@ import java.util.OptionalLong;
 
 import static javax.lang.model.element.Modifier.FINAL;
 
-public final class Optionalish extends ParaParameter {
+public final class OptionalParameter extends Parameter {
 
   private static final ClassName OPTIONAL_CLASS = ClassName.get(Optional.class);
 
@@ -39,7 +39,7 @@ public final class Optionalish extends ParaParameter {
   private static final String OF = "of";
   private static final String OF_NULLABLE = "ofNullable";
 
-  public final Parameter parameter;
+  public final RegularParameter parameter;
 
   private final ClassName wrapper;
 
@@ -47,8 +47,8 @@ public final class Optionalish extends ParaParameter {
 
   private final String of;
 
-  private Optionalish(
-      Parameter parameter,
+  private OptionalParameter(
+      RegularParameter parameter,
       ClassName wrapper,
       Optional<TypeMirror> wrapped,
       String of) {
@@ -60,11 +60,11 @@ public final class Optionalish extends ParaParameter {
 
   private static final class CheckoutResult {
     final DeclaredType declaredType;
-    final Optionalish optionalish;
+    final OptionalParameter parameter;
 
-    CheckoutResult(DeclaredType declaredType, Optionalish optionalish) {
+    CheckoutResult(DeclaredType declaredType, OptionalParameter parameter) {
       this.declaredType = declaredType;
-      this.optionalish = optionalish;
+      this.parameter = parameter;
     }
   }
 
@@ -72,9 +72,9 @@ public final class Optionalish extends ParaParameter {
    * @return an optionalish parameter, if this parameter
    * represents an optional type, or else {@link Optional#empty()}
    */
-  static Optional<ParaParameter> maybeCreate(Parameter parameter) {
+  static Optional<Parameter> maybeCreate(RegularParameter parameter) {
     return checkout(parameter)
-        .map(checkoutResult -> checkoutResult.optionalish);
+        .map(checkoutResult -> checkoutResult.parameter);
   }
 
   public CodeBlock getFieldValue() {
@@ -83,7 +83,7 @@ public final class Optionalish extends ParaParameter {
         field, field, wrapper);
   }
 
-  private static Optional<CheckoutResult> checkout(Parameter parameter) {
+  private static Optional<CheckoutResult> checkout(RegularParameter parameter) {
     TypeMirror type = parameter.variableElement.asType();
     if (type.getKind() != TypeKind.DECLARED) {
       return Optional.empty();
@@ -101,26 +101,26 @@ public final class Optionalish extends ParaParameter {
     if (declaredType.getTypeArguments().isEmpty()) {
       return optionalPrimitive(typeElement.asType())
           .map(prim -> new CheckoutResult(declaredType,
-              new Optionalish(parameter, ClassName.get(typeElement), Optional.of(prim), OF)));
+              new OptionalParameter(parameter, ClassName.get(typeElement), Optional.of(prim), OF)));
     }
     if (!tool.isSameErasure(Optional.class, type)) {
       return Optional.empty();
     }
     if (declaredType.getTypeArguments().size() != 1) {
       return Optional.of(new CheckoutResult(declaredType,
-          new Optionalish(parameter, OPTIONAL_CLASS,
+          new OptionalParameter(parameter, OPTIONAL_CLASS,
               Optional.empty(),
               OF_NULLABLE)));
     }
     TypeMirror wrapped = declaredType.getTypeArguments().get(0);
     if (tool.isSameErasure(Optional.class, wrapped)) {
       return Optional.of(new CheckoutResult(declaredType,
-          new Optionalish(parameter, OPTIONAL_CLASS,
+          new OptionalParameter(parameter, OPTIONAL_CLASS,
               Optional.empty(),
               OF_NULLABLE)));
     }
     return Optional.of(new CheckoutResult(declaredType,
-        new Optionalish(parameter, OPTIONAL_CLASS,
+        new OptionalParameter(parameter, OPTIONAL_CLASS,
             Optional.of(wrapped),
             OF_NULLABLE)));
   }
@@ -149,8 +149,8 @@ public final class Optionalish extends ParaParameter {
         .build();
   }
 
-  Optionalish withParameter(Parameter parameter) {
-    return new Optionalish(parameter, wrapper, wrapped, of);
+  OptionalParameter withParameter(RegularParameter parameter) {
+    return new OptionalParameter(parameter, wrapper, wrapped, of);
   }
 
   @Override

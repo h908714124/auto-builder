@@ -1,27 +1,27 @@
 package net.autobuilder.core.cases;
 
 import com.squareup.javapoet.FieldSpec;
-import net.autobuilder.core.Collectionish;
-import net.autobuilder.core.Optionalish;
+import net.autobuilder.core.CollectionParameter;
+import net.autobuilder.core.OptionalParameter;
 import net.autobuilder.core.ParamCases;
-import net.autobuilder.core.Parameter;
+import net.autobuilder.core.RegularParameter;
 
 import java.util.Optional;
 
 public class ExtraFieldCases implements ParamCases<Optional<FieldSpec>, Void> {
 
   @Override
-  public Optional<FieldSpec> parameter(Parameter parameter, Void _null) {
+  public Optional<FieldSpec> parameter(RegularParameter parameter, Void _null) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<FieldSpec> collectionish(Collectionish collectionish, Void _null) {
-    return collectionish.asBuilderField();
+  public Optional<FieldSpec> collectionish(CollectionParameter parameter, Void _null) {
+    return parameter.asBuilderField();
   }
 
   @Override
-  public Optional<FieldSpec> optionalish(Optionalish optionalish, Void _null) {
+  public Optional<FieldSpec> optionalish(OptionalParameter parameter, Void _null) {
     return Optional.empty();
   }
 }

@@ -18,7 +18,10 @@ import static javax.lang.model.element.Modifier.STATIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
 import static net.autobuilder.core.Util.joinCodeBlocks;
 
-final class Analyser {
+/**
+ * Generates the *_Builder class.
+ */
+final class Builder {
 
   private final Model model;
 
@@ -26,7 +29,7 @@ final class Analyser {
 
   private final FieldSpec inUse;
 
-  private Analyser(Model model) {
+  private Builder(Model model) {
     this.model = model;
     this.initMethod = initMethod(model, model.parameters);
     String inUseFieldName = model.uniqueFieldName("inUse");
@@ -34,11 +37,11 @@ final class Analyser {
         .addModifiers(PRIVATE).build();
   }
 
-  static Analyser create(Model model) {
-    return new Analyser(model);
+  static Builder create(Model model) {
+    return new Builder(model);
   }
 
-  TypeSpec analyse() {
+  TypeSpec define() {
     TypeSpec.Builder spec = TypeSpec.classBuilder(rawType(model.generatedClass));
     spec.addMethod(initMethod);
     spec.addMethod(buildMethod(model, inUse, model.parameters));
@@ -56,22 +59,16 @@ final class Analyser {
       toBuilderMethod = staticToBuilderMethod(model.uniqueSetterMethodName("toBuilder", model.sourceElement().asType()));
     }
     spec.addMethod(toBuilderMethod);
-    spec.addMethod(MethodSpec.methodBuilder(model.uniqueSetterMethodName("builder", model.sourceElement().asType()))
-        .addParameter(toBuilderMethod.parameters.get(0))
-        .returns(toBuilderMethod.returnType)
-        .addModifiers(toBuilderMethod.modifiers)
-        .addStatement("return $N($N)", toBuilderMethod, toBuilderMethod.parameters.get(0))
-        .build());
-    for (ParaParameter parameter : model.parameters) {
+    spec.addMethod(toBuilderAlias(toBuilderMethod.name));
+    for (Parameter parameter : model.parameters) {
       spec.addField(parameter.getParameter().asField());
       spec.addMethod(setterMethod(parameter));
       parameter.getExtraField().ifPresent(spec::addField);
       parameter.getExtraMethods(model).forEach(spec::addMethod);
     }
-    spec.addModifiers(model.maybePublic());
     return spec.addModifiers(FINAL)
-        .addMethod(MethodSpec.constructorBuilder()
-            .addModifiers(PRIVATE).build())
+        .addModifiers(model.maybePublic())
+        .addMethod(MethodSpec.constructorBuilder().addModifiers(PRIVATE).build())
         .addJavadoc(generatedInfo())
         .build();
   }
@@ -87,10 +84,10 @@ final class Analyser {
 
 
   private static MethodSpec initMethod(
-      Model model, List<ParaParameter> parameters) {
+      Model model, List<Parameter> parameters) {
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
-    for (ParaParameter parameter : parameters) {
+    for (Parameter parameter : parameters) {
       block.addStatement("$N = $N.$L()",
           parameter.getParameter().setterName, input,
           parameter.getParameter().getterName);
@@ -102,7 +99,7 @@ final class Analyser {
         .build();
   }
 
-  private MethodSpec setterMethod(ParaParameter parameter) {
+  private MethodSpec setterMethod(Parameter parameter) {
     ParameterSpec p = parameter.asSetterParameter();
     CodeBlock.Builder block = CodeBlock.builder();
     block.add(parameter.setterAssignment());
@@ -121,6 +118,7 @@ final class Analyser {
   private MethodSpec staticBuilderMethod() {
     return MethodSpec.methodBuilder("builder")
         .addModifiers(STATIC)
+        .addModifiers(model.maybePublic())
         .addStatement("return new $T()", model.generatedClass)
         .returns(model.generatedClass)
         .build();
@@ -138,6 +136,7 @@ final class Analyser {
         .addCode(block.build())
         .addParameter(input)
         .addModifiers(STATIC)
+        .addModifiers(model.maybePublic())
         .returns(model.generatedClass)
         .build();
   }
@@ -145,6 +144,7 @@ final class Analyser {
   private MethodSpec staticBuilderMethodReuse(FieldSpec factoryField) {
     return MethodSpec.methodBuilder("builder")
         .addModifiers(STATIC)
+        .addModifiers(model.maybePublic())
         .addStatement("return $N.get().builder()", factoryField)
         .returns(model.generatedClass)
         .build();
@@ -152,23 +152,35 @@ final class Analyser {
 
   private MethodSpec staticToBuilderMethodReuse(
       FieldSpec factoryField, String methodName) {
-    ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
+    ParameterSpec param = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     return MethodSpec.methodBuilder(methodName)
         .addModifiers(STATIC)
-        .addStatement("return $N.get().builder($N)", factoryField, input)
-        .addParameter(input)
+        .addModifiers(model.maybePublic())
+        .addStatement("return $N.get().builder($N)", factoryField, param)
+        .addParameter(param)
         .returns(model.generatedClass)
+        .build();
+  }
+
+  private MethodSpec toBuilderAlias(String toBuilderMethodName) {
+    ParameterSpec param = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
+    return MethodSpec.methodBuilder(model.uniqueSetterMethodName("builder", model.sourceElement().asType()))
+        .addParameter(param)
+        .returns(model.generatedClass)
+        .addModifiers(STATIC)
+        .addModifiers(model.maybePublic())
+        .addStatement("return $L($N)", toBuilderMethodName, param)
         .build();
   }
 
   private static MethodSpec buildMethod(
       Model model,
       FieldSpec inUse,
-      List<ParaParameter> parameters) {
+      List<Parameter> parameters) {
     ParameterSpec result = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "result")
         .build();
     List<CodeBlock> invocation = parameters.stream()
-        .map(ParaParameter::fieldValue)
+        .map(Parameter::fieldValue)
         .collect(Collectors.toList());
     CodeBlock.Builder cleanup = CodeBlock.builder();
     if (model.reuse) {

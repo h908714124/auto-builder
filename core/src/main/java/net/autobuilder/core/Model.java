@@ -28,7 +28,7 @@ public final class Model {
   // should gen code reuse builder instances?
   final boolean reuse;
 
-  public final List<ParaParameter> parameters;
+  public final List<Parameter> parameters;
 
   final TypeName generatedClass;
 
@@ -37,7 +37,7 @@ public final class Model {
       TypeName generatedClass,
       TypeElement avElement,
       boolean reuse,
-      List<ParaParameter> parameters) {
+      List<Parameter> parameters) {
     this.reuse = reuse;
     this.generatedClass = generatedClass;
     this.sourceElement = sourceElement;
@@ -46,7 +46,7 @@ public final class Model {
   }
 
   static Model create(
-      List<ParaParameter> parameters,
+      List<Parameter> parameters,
       TypeElement sourceElement,
       TypeElement avElement) {
     ExecutableElement avConstructor = getAvConstructor(sourceElement, avElement);
@@ -138,7 +138,7 @@ public final class Model {
 
   private boolean isFieldNameCollision(
       String fieldName) {
-    for (ParaParameter parameter : parameters) {
+    for (Parameter parameter : parameters) {
       if (parameter.getParameter().asField().name.equals(fieldName)) {
         return true;
       }
@@ -147,7 +147,7 @@ public final class Model {
   }
 
   boolean isSetterMethodNameCollision(String methodName, TypeMirror paramType) {
-    for (ParaParameter parameter : parameters) {
+    for (Parameter parameter : parameters) {
       if (parameter.getParameter().setterName.equals(methodName)) {
         if (TypeTool.get().isSameErasure(
             paramType,

@@ -149,14 +149,14 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         deferred.add(task);
         return;
       }
-      List<ParaParameter> parameters = Parameter.scan(
+      List<Parameter> parameters = RegularParameter.scan(
           Model.generatedClass(sourceElement),
           sourceElement.getModifiers().contains(PUBLIC),
           Model.getAvConstructor(sourceElement, avElement),
           avElement);
       Model model = Model.create(parameters, sourceElement, avElement);
 
-      TypeSpec typeSpec = Analyser.create(model).analyse();
+      TypeSpec typeSpec = Builder.create(model).define();
       write(rawType(model.generatedClass), typeSpec);
       done.add(task.avType);
     } catch (ValidationException e) {

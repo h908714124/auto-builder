@@ -11,7 +11,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.Collections;
 import java.util.List;
 
-import static net.autobuilder.core.Collectionish.CollectionType.LIST;
+import static net.autobuilder.core.CollectionParameter.CollectionType.LIST;
 import static net.autobuilder.core.Model.withTypevars;
 import static net.autobuilder.core.Util.typeArgumentSubtypes;
 import static net.autobuilder.core.Util.typeArguments;
@@ -25,7 +25,7 @@ final class UtilCollectionBase extends CollectionBase {
       ClassName accumulatorClass,
       String emptyMethod,
       String className,
-      Collectionish.CollectionType type,
+      CollectionParameter.CollectionType type,
       String accumulatorAddAllType) {
     super(className, accumulatorAddAllType, type);
     this.accumulatorClass = accumulatorClass;
@@ -36,7 +36,7 @@ final class UtilCollectionBase extends CollectionBase {
       String simpleName,
       String emptyMethod,
       Class<?> builderClass,
-      Collectionish.CollectionType collectionType) {
+      CollectionParameter.CollectionType collectionType) {
     String accumulatorAddAllType = collectionType == LIST ?
         "java.util.Collection" :
         "java.util.Map";
@@ -60,21 +60,21 @@ final class UtilCollectionBase extends CollectionBase {
   }
 
   @Override
-  DeclaredType accumulatorType(Parameter parameter) {
+  DeclaredType accumulatorType(RegularParameter parameter) {
     TypeTool tool = TypeTool.get();
     List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
     return tool.getDeclaredType(accumulatorClass.packageName() + '.' + accumulatorClass.simpleName(), typeArguments);
   }
 
   @Override
-  DeclaredType accumulatorOverloadArgumentType(Parameter parameter) {
+  DeclaredType accumulatorOverloadArgumentType(RegularParameter parameter) {
     TypeTool tool = TypeTool.get();
     return tool.getDeclaredType(overloadArgumentType().asType(),
         typeArgumentSubtypes(parameter.variableElement));
   }
 
   @Override
-  CodeBlock setterAssignment(Parameter parameter) {
+  CodeBlock setterAssignment(RegularParameter parameter) {
     FieldSpec field = parameter.asField();
     ParameterSpec p = parameter.asSetterParameter();
     return CodeBlock.builder()
@@ -88,7 +88,7 @@ final class UtilCollectionBase extends CollectionBase {
   }
 
   @Override
-  ParameterSpec setterParameter(Parameter parameter) {
+  ParameterSpec setterParameter(RegularParameter parameter) {
     TypeName type = withTypevars(
         collectionClassName(),
         typeArguments(parameter.variableElement));

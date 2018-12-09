@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PublicPenguinTest {
@@ -20,11 +19,15 @@ class PublicPenguinTest {
     assertTrue(classModifiers.contains("final"));
     String builderMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("builder").getModifiers());
-    assertFalse(builderMethodModifiers.contains("public"));
+    assertTrue(builderMethodModifiers.contains("public"));
+    assertTrue(builderMethodModifiers.contains("public"));
     String toBuilderMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("builder", PublicPenguin.class)
             .getModifiers());
-    assertFalse(toBuilderMethodModifiers.contains("public"));
+    assertTrue(toBuilderMethodModifiers.contains("public"));
+    String toBuilderMethodModifiers2 = Modifier.toString(
+        PublicPenguin_Builder.class.getDeclaredMethod("toBuilder", PublicPenguin.class).getModifiers());
+    assertTrue(toBuilderMethodModifiers2.contains("public"));
     String setterMethodModifiers = Modifier.toString(
         PublicPenguin_Builder.class.getDeclaredMethod("foo", String.class)
             .getModifiers());

@@ -1,27 +1,27 @@
 package net.autobuilder.core.cases;
 
 import com.squareup.javapoet.CodeBlock;
-import net.autobuilder.core.Collectionish;
-import net.autobuilder.core.Optionalish;
+import net.autobuilder.core.CollectionParameter;
+import net.autobuilder.core.OptionalParameter;
 import net.autobuilder.core.ParamCases;
-import net.autobuilder.core.Parameter;
+import net.autobuilder.core.RegularParameter;
 
 public class ClearAccumulatorCases implements ParamCases<Void, CodeBlock.Builder> {
 
   @Override
-  public Void parameter(Parameter parameter, CodeBlock.Builder builder) {
+  public Void parameter(RegularParameter parameter, CodeBlock.Builder builder) {
     return null;
   }
 
   @Override
-  public Void collectionish(Collectionish collectionish, CodeBlock.Builder builder) {
-    collectionish.asBuilderField().ifPresent(builderField ->
+  public Void collectionish(CollectionParameter parameter, CodeBlock.Builder builder) {
+    parameter.asBuilderField().ifPresent(builderField ->
         builder.addStatement("this.$N = null", builderField));
     return null;
   }
 
   @Override
-  public Void optionalish(Optionalish optionalish, CodeBlock.Builder builder) {
+  public Void optionalish(OptionalParameter parameter, CodeBlock.Builder builder) {
     return null;
   }
 }

@@ -20,15 +20,15 @@ import java.util.Optional;
 import static java.util.Arrays.asList;
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PRIVATE;
-import static net.autobuilder.core.Collectionish.CollectionType.LIST;
-import static net.autobuilder.core.Collectionish.CollectionType.MAP;
+import static net.autobuilder.core.CollectionParameter.CollectionType.LIST;
+import static net.autobuilder.core.CollectionParameter.CollectionType.MAP;
 import static net.autobuilder.core.GuavaCollectionBase.ofGuava;
 import static net.autobuilder.core.Util.asDeclared;
 import static net.autobuilder.core.Util.downcase;
 import static net.autobuilder.core.Util.upcase;
 import static net.autobuilder.core.UtilCollectionBase.ofUtil;
 
-public final class Collectionish extends ParaParameter {
+public final class CollectionParameter extends Parameter {
 
   enum CollectionType {
 
@@ -51,11 +51,11 @@ public final class Collectionish extends ParaParameter {
 
   private final CollectionBase base;
 
-  public final Parameter parameter;
+  public final RegularParameter parameter;
 
   private final boolean degenerate;
 
-  private Collectionish(CollectionBase base, Parameter parameter, boolean degenerate) {
+  private CollectionParameter(CollectionBase base, RegularParameter parameter, boolean degenerate) {
     this.base = base;
     this.parameter = parameter;
     this.degenerate = degenerate;
@@ -69,7 +69,7 @@ public final class Collectionish extends ParaParameter {
    * @return a collectionish parameter, if this parameter
    * represents a collection type, or else {@link Optional#empty()}
    */
-  static Optional<ParaParameter> maybeCreate(Parameter parameter) {
+  static Optional<Parameter> maybeCreate(RegularParameter parameter) {
     return lookup(parameter).map(base -> {
       boolean degenerate;
       TypeTool tool = TypeTool.get();
@@ -87,11 +87,11 @@ public final class Collectionish extends ParaParameter {
       } else {
         degenerate = false;
       }
-      return new Collectionish(base, parameter, degenerate);
+      return new CollectionParameter(base, parameter, degenerate);
     });
   }
 
-  private static Optional<CollectionBase> lookup(Parameter parameter) {
+  private static Optional<CollectionBase> lookup(RegularParameter parameter) {
     TypeMirror type = parameter.variableElement.asType();
     TypeTool tool = TypeTool.get();
     if (type.getKind() != TypeKind.DECLARED) {
@@ -135,8 +135,8 @@ public final class Collectionish extends ParaParameter {
     return code.build();
   }
 
-  Collectionish withParameter(Parameter parameter) {
-    return new Collectionish(base, parameter, degenerate);
+  CollectionParameter withParameter(RegularParameter parameter) {
+    return new CollectionParameter(base, parameter, degenerate);
   }
 
   public CodeBlock setterAssignment() {
