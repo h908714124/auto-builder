@@ -120,11 +120,17 @@ public final class RegularParameter extends Parameter {
     return getter;
   }
 
+  /**
+   * Gets the associated builder field for this parameter.
+   */
   public FieldSpec asField() {
     return FieldSpec.builder(TypeName.get(type()), setterName).addModifiers(PRIVATE).build();
   }
 
-  RegularParameter originalSetter() {
+  /**
+   * Use original setter name, to prevent potential naming collision.
+   */
+  RegularParameter originalNames() {
     return new RegularParameter(variableElement, variableElement.getSimpleName().toString(),
         getterName, generatedClass, isPublic);
   }

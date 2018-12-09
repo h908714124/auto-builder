@@ -8,7 +8,10 @@ import net.autobuilder.core.OptionalParameter;
 import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.RegularParameter;
 
-public class SetterAssignmentCases implements ParamCases<CodeBlock, Void> {
+/**
+ * Creates the code inside a setter method.
+ */
+public class CodeInsideSetterCases implements ParamCases<CodeBlock, Void> {
 
   @Override
   public CodeBlock parameter(RegularParameter parameter, Void _null) {
@@ -20,7 +23,10 @@ public class SetterAssignmentCases implements ParamCases<CodeBlock, Void> {
 
   @Override
   public CodeBlock collectionish(CollectionParameter parameter, Void _null) {
-    return parameter.setterAssignment();
+    CodeBlock.Builder builder = parameter.base.setterAssignmentCode(parameter.parameter).toBuilder();
+    parameter.asBuilderField().ifPresent(builderField ->
+        builder.addStatement("this.$N = null", builderField));
+    return builder.build();
   }
 
   @Override

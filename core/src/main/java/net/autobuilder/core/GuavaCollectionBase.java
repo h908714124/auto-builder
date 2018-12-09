@@ -44,12 +44,12 @@ final class GuavaCollectionBase extends CollectionBase {
   }
 
   @Override
-  CodeBlock emptyBlock() {
+  public CodeBlock emptyBlock() {
     return CodeBlock.of("$T.of()", collectionClassName());
   }
 
   @Override
-  DeclaredType accumulatorType(RegularParameter parameter) {
+  public DeclaredType accumulatorType(RegularParameter parameter) {
     TypeTool tool = TypeTool.get();
     List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
     return tool.getDeclaredType(collectionClassName + ".Builder", typeArguments);
@@ -66,7 +66,7 @@ final class GuavaCollectionBase extends CollectionBase {
   }
 
   @Override
-  CodeBlock setterAssignment(RegularParameter parameter) {
+  public CodeBlock setterAssignmentCode(RegularParameter parameter) {
     FieldSpec field = parameter.asField();
     ParameterSpec p = parameter.asSetterParameter();
     return CodeBlock.builder()
@@ -76,12 +76,12 @@ final class GuavaCollectionBase extends CollectionBase {
   }
 
   @Override
-  CodeBlock buildBlock(FieldSpec field) {
+  public CodeBlock buildBlock(FieldSpec field) {
     return CodeBlock.of("$N.build()", field);
   }
 
   @Override
-  ParameterSpec setterParameter(RegularParameter parameter) {
+  public ParameterSpec setterParameter(RegularParameter parameter) {
     TypeName type = ParameterizedTypeName.get(setterParameterClassName,
         Arrays.stream(typeArgumentSubtypes(parameter.variableElement))
             .map(TypeName::get)

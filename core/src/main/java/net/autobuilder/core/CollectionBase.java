@@ -10,7 +10,7 @@ import javax.lang.model.type.DeclaredType;
 
 import static net.autobuilder.core.Util.className;
 
-abstract class CollectionBase {
+public abstract class CollectionBase {
 
   final String collectionClassName;
 
@@ -20,17 +20,17 @@ abstract class CollectionBase {
 
   abstract CodeBlock accumulatorInitBlock(FieldSpec builderField);
 
-  abstract CodeBlock emptyBlock();
+  public abstract CodeBlock emptyBlock();
 
-  abstract DeclaredType accumulatorType(RegularParameter parameter);
+  public abstract DeclaredType accumulatorType(RegularParameter parameter);
 
   abstract DeclaredType accumulatorOverloadArgumentType(RegularParameter parameter);
 
-  abstract CodeBlock setterAssignment(RegularParameter parameter);
+  public abstract CodeBlock setterAssignmentCode(RegularParameter parameter);
 
-  abstract CodeBlock buildBlock(FieldSpec field);
+  public abstract CodeBlock buildBlock(FieldSpec field);
 
-  abstract ParameterSpec setterParameter(RegularParameter parameter);
+  public abstract ParameterSpec setterParameter(RegularParameter parameter);
 
   CollectionBase(String collectionClassName,
                  String overloadArgumentType,

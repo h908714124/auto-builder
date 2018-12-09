@@ -4,18 +4,15 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
+import net.autobuilder.core.cases.AsRegularParameterCases;
 import net.autobuilder.core.cases.AsSetterParameterCases;
-import net.autobuilder.core.cases.CleanupCodeCases;
-import net.autobuilder.core.cases.ClearAccumulatorCases;
+import net.autobuilder.core.cases.CodeInsideSetterCases;
 import net.autobuilder.core.cases.ExtraFieldCases;
 import net.autobuilder.core.cases.ExtraMethodsCases;
-import net.autobuilder.core.cases.GetFieldValueCases;
-import net.autobuilder.core.cases.GetParameterCases;
-import net.autobuilder.core.cases.SetterAssignmentCases;
+import net.autobuilder.core.cases.ExtractCases;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -27,18 +24,14 @@ public abstract class Parameter {
     return parameter -> parameter.accept(cases, null);
   }
 
-  private static <P> BiConsumer<Parameter, P> asConsumer(ParamCases<Void, P> cases) {
-    return (parameter, p) -> parameter.accept(cases, p);
-  }
-
   abstract <R, P> R accept(ParamCases<R, P> cases, P p);
 
-  final RegularParameter getParameter() {
-    return GET_PARAMETER.apply(this);
+  public final RegularParameter asRegularParameter() {
+    return AS_REGULAR_PARAMETER.apply(this);
   }
 
-  private static final Function<Parameter, RegularParameter> GET_PARAMETER =
-      asFunction(new GetParameterCases());
+  private static final Function<Parameter, RegularParameter> AS_REGULAR_PARAMETER =
+      asFunction(new AsRegularParameterCases());
 
   public ParameterSpec asSetterParameter() {
     return AS_SETTER_PARAMETER.apply(this);
@@ -47,28 +40,24 @@ public abstract class Parameter {
   private static final Function<Parameter, ParameterSpec> AS_SETTER_PARAMETER =
       asFunction(new AsSetterParameterCases());
 
-  CodeBlock setterAssignment() {
-    return SETTER_ASSIGNMENT.apply(this);
+  /**
+   * Creates the code inside one of the builder's setter methods.
+   */
+  CodeBlock codeInsideSetter() {
+    return CODE_INSIDE_SETTER.apply(this);
   }
 
-  private static final Function<Parameter, CodeBlock> SETTER_ASSIGNMENT =
-      asFunction(new SetterAssignmentCases());
+  private static final Function<Parameter, CodeBlock> CODE_INSIDE_SETTER =
+      asFunction(new CodeInsideSetterCases());
 
-  final CodeBlock fieldValue() {
-    return GET_FIELD_VALUE.apply(this);
+  final CodeBlock extract() {
+    return EXTRACT.apply(this);
   }
 
-  private static final Function<Parameter, CodeBlock> GET_FIELD_VALUE =
-      asFunction(new GetFieldValueCases());
+  private static final Function<Parameter, CodeBlock> EXTRACT =
+      asFunction(new ExtractCases());
 
-  void clearAccumulator(CodeBlock.Builder builder) {
-    CLEAR_ACCUMULATOR.accept(this, builder);
-  }
-
-  private static final BiConsumer<Parameter, CodeBlock.Builder> CLEAR_ACCUMULATOR =
-      asConsumer(new ClearAccumulatorCases());
-
-  Optional<FieldSpec> getExtraField() {
+  public final Optional<FieldSpec> extraField() {
     return EXTRA_FIELD.apply(this);
   }
 
@@ -82,10 +71,13 @@ public abstract class Parameter {
   private static final ParamCases<List<MethodSpec>, Model> EXTRA_METHODS =
       new ExtraMethodsCases();
 
-  void cleanupCode(CodeBlock.Builder builder) {
-    CLEANUP_CODE.accept(this, builder);
+  CodeBlock cleanupCode() {
+    CodeBlock.Builder builder = CodeBlock.builder();
+    if (!asRegularParameter().variableElement.asType().getKind().isPrimitive()) {
+      builder.addStatement("$N = null", asRegularParameter().asField());
+    }
+    extraField().ifPresent(field ->
+        builder.addStatement("$N = null", field));
+    return builder.build();
   }
-
-  private static final BiConsumer<Parameter, CodeBlock.Builder> CLEANUP_CODE =
-      asConsumer(new CleanupCodeCases());
 }

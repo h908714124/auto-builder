@@ -1,6 +1,5 @@
 package net.autobuilder.core;
 
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
@@ -49,7 +48,7 @@ public final class CollectionParameter extends Parameter {
       ofGuava("ImmutableSet", Iterable.class, LIST),
       ofGuava("ImmutableMap", Map.class, MAP));
 
-  private final CollectionBase base;
+  public final CollectionBase base;
 
   public final RegularParameter parameter;
 
@@ -61,7 +60,7 @@ public final class CollectionParameter extends Parameter {
     this.degenerate = degenerate;
   }
 
-  DeclaredType accumulatorOverloadArgumentType() {
+  private DeclaredType accumulatorOverloadArgumentType() {
     return base.accumulatorOverloadArgumentType(parameter);
   }
 
@@ -124,23 +123,8 @@ public final class CollectionParameter extends Parameter {
         addAllToMethod(model, ParameterSpec.builder(TypeName.get(addAllType), "values").build());
   }
 
-  public CodeBlock getFieldValue() {
-    FieldSpec field = parameter.asField();
-    CodeBlock.Builder code = CodeBlock.builder();
-    asBuilderField().ifPresent(builderField ->
-        code.add("$N != null ? $L : ",
-            builderField, base.buildBlock(builderField)));
-    code.add("$N != null ? $N : $L",
-        field, field, base.emptyBlock());
-    return code.build();
-  }
-
   CollectionParameter withParameter(RegularParameter parameter) {
     return new CollectionParameter(base, parameter, degenerate);
-  }
-
-  public CodeBlock setterAssignment() {
-    return base.setterAssignment(parameter);
   }
 
   String builderFieldName() {
@@ -153,10 +137,6 @@ public final class CollectionParameter extends Parameter {
     }
     return Optional.of(FieldSpec.builder(TypeName.get(base.accumulatorType(parameter)),
         builderFieldName()).addModifiers(PRIVATE).build());
-  }
-
-  public ParameterSpec asSetterParameter() {
-    return base.setterParameter(parameter);
   }
 
   private Optional<MethodSpec> addAllToMethod(

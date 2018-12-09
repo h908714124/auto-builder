@@ -7,6 +7,9 @@ import net.autobuilder.core.OptionalParameter;
 import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.RegularParameter;
 
+/**
+ *
+ */
 public class AsSetterParameterCases implements ParamCases<ParameterSpec, Void> {
 
   @Override
@@ -16,7 +19,7 @@ public class AsSetterParameterCases implements ParamCases<ParameterSpec, Void> {
 
   @Override
   public ParameterSpec collectionish(CollectionParameter parameter, Void _null) {
-    return parameter.asSetterParameter();
+    return parameter.base.setterParameter(parameter.parameter);
   }
 
   @Override

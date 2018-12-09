@@ -139,7 +139,7 @@ public final class Model {
   private boolean isFieldNameCollision(
       String fieldName) {
     for (Parameter parameter : parameters) {
-      if (parameter.getParameter().asField().name.equals(fieldName)) {
+      if (parameter.asRegularParameter().asField().name.equals(fieldName)) {
         return true;
       }
     }
@@ -148,10 +148,10 @@ public final class Model {
 
   boolean isSetterMethodNameCollision(String methodName, TypeMirror paramType) {
     for (Parameter parameter : parameters) {
-      if (parameter.getParameter().setterName.equals(methodName)) {
+      if (parameter.asRegularParameter().setterName.equals(methodName)) {
         if (TypeTool.get().isSameErasure(
             paramType,
-            parameter.getParameter().variableElement.asType())) {
+            parameter.asRegularParameter().variableElement.asType())) {
           return true;
         }
       }

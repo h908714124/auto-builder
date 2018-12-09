@@ -55,12 +55,12 @@ final class UtilCollectionBase extends CollectionBase {
   }
 
   @Override
-  CodeBlock emptyBlock() {
+  public CodeBlock emptyBlock() {
     return CodeBlock.of("$T.$L()", Collections.class, emptyMethod);
   }
 
   @Override
-  DeclaredType accumulatorType(RegularParameter parameter) {
+  public DeclaredType accumulatorType(RegularParameter parameter) {
     TypeTool tool = TypeTool.get();
     List<? extends TypeMirror> typeArguments = tool.getDeclaredType(parameter.variableElement.asType()).getTypeArguments();
     return tool.getDeclaredType(accumulatorClass.packageName() + '.' + accumulatorClass.simpleName(), typeArguments);
@@ -74,7 +74,7 @@ final class UtilCollectionBase extends CollectionBase {
   }
 
   @Override
-  CodeBlock setterAssignment(RegularParameter parameter) {
+  public CodeBlock setterAssignmentCode(RegularParameter parameter) {
     FieldSpec field = parameter.asField();
     ParameterSpec p = parameter.asSetterParameter();
     return CodeBlock.builder()
@@ -83,12 +83,12 @@ final class UtilCollectionBase extends CollectionBase {
   }
 
   @Override
-  CodeBlock buildBlock(FieldSpec field) {
+  public CodeBlock buildBlock(FieldSpec field) {
     return CodeBlock.of("$N", field);
   }
 
   @Override
-  ParameterSpec setterParameter(RegularParameter parameter) {
+  public ParameterSpec setterParameter(RegularParameter parameter) {
     TypeName type = withTypevars(
         collectionClassName(),
         typeArguments(parameter.variableElement));

@@ -8,6 +8,9 @@ import net.autobuilder.core.RegularParameter;
 
 import java.util.Optional;
 
+/**
+ * Gets the accumulator field for one builder parameter, if any.
+ */
 public class ExtraFieldCases implements ParamCases<Optional<FieldSpec>, Void> {
 
   @Override

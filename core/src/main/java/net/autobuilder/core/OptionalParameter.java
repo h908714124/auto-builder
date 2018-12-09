@@ -41,7 +41,7 @@ public final class OptionalParameter extends Parameter {
 
   public final RegularParameter parameter;
 
-  private final ClassName wrapper;
+  public final ClassName wrapper;
 
   private final Optional<TypeMirror> wrapped;
 
@@ -75,12 +75,6 @@ public final class OptionalParameter extends Parameter {
   static Optional<Parameter> maybeCreate(RegularParameter parameter) {
     return checkout(parameter)
         .map(checkoutResult -> checkoutResult.parameter);
-  }
-
-  public CodeBlock getFieldValue() {
-    FieldSpec field = parameter.asField();
-    return CodeBlock.of("$N != null ? $N : $T.empty()",
-        field, field, wrapper);
   }
 
   private static Optional<CheckoutResult> checkout(RegularParameter parameter) {

@@ -61,9 +61,9 @@ final class Builder {
     spec.addMethod(toBuilderMethod);
     spec.addMethod(toBuilderAlias(toBuilderMethod.name));
     for (Parameter parameter : model.parameters) {
-      spec.addField(parameter.getParameter().asField());
+      spec.addField(parameter.asRegularParameter().asField());
       spec.addMethod(setterMethod(parameter));
-      parameter.getExtraField().ifPresent(spec::addField);
+      parameter.extraField().ifPresent(spec::addField);
       parameter.getExtraMethods(model).forEach(spec::addMethod);
     }
     return spec.addModifiers(FINAL)
@@ -89,8 +89,8 @@ final class Builder {
     CodeBlock.Builder block = CodeBlock.builder();
     for (Parameter parameter : parameters) {
       block.addStatement("$N = $N.$L()",
-          parameter.getParameter().setterName, input,
-          parameter.getParameter().getterName);
+          parameter.asRegularParameter().setterName, input,
+          parameter.asRegularParameter().getterName);
     }
     return MethodSpec.methodBuilder(model.uniqueSetterMethodName("init", model.sourceElement().asType()))
         .addCode(block.build())
@@ -102,11 +102,10 @@ final class Builder {
   private MethodSpec setterMethod(Parameter parameter) {
     ParameterSpec p = parameter.asSetterParameter();
     CodeBlock.Builder block = CodeBlock.builder();
-    block.add(parameter.setterAssignment());
-    parameter.clearAccumulator(block);
+    block.add(parameter.codeInsideSetter());
     block.addStatement("return this");
     return MethodSpec.methodBuilder(
-        parameter.getParameter().setterName)
+        parameter.asRegularParameter().setterName)
         .addCode(block.build())
         .addParameter(p)
         .addModifiers(FINAL)
@@ -180,17 +179,14 @@ final class Builder {
     ParameterSpec result = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "result")
         .build();
     List<CodeBlock> invocation = parameters.stream()
-        .map(Parameter::fieldValue)
+        .map(Parameter::extract)
         .collect(Collectors.toList());
-    CodeBlock.Builder cleanup = CodeBlock.builder();
-    if (model.reuse) {
-      parameters.forEach(parameter -> parameter.cleanupCode(cleanup));
-    }
+    CodeBlock cleanupAfterBuildCode = cleanupAfterBuildCode(model, parameters);
     MethodSpec.Builder spec = MethodSpec.methodBuilder("build");
     spec.addCode("$T $N = new $T(\n", TypeName.get(model.sourceElement().asType()), result, model.avElement)
         .addCode(invocation.stream().collect(joinCodeBlocks(",\n")))
         .addCode(");\n")
-        .addCode(cleanup.build());
+        .addCode(cleanupAfterBuildCode);
     if (model.reuse) {
       spec.addStatement("$N = $L", inUse, false);
     }
@@ -198,6 +194,14 @@ final class Builder {
         .returns(TypeName.get(model.sourceElement().asType()))
         .addModifiers(model.maybePublic())
         .build();
+  }
+
+  private static CodeBlock cleanupAfterBuildCode(Model model, List<Parameter> parameters) {
+    CodeBlock.Builder builder = CodeBlock.builder();
+    if (model.reuse) {
+      parameters.stream().map(Parameter::cleanupCode).forEach(builder::add);
+    }
+    return builder.build();
   }
 
   private CodeBlock generatedInfo() {

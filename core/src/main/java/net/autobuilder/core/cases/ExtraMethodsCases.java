@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Gets the additional convenience methods for one parameter.
+ */
 public class ExtraMethodsCases implements ParamCases<List<MethodSpec>, Model> {
 
   @Override
