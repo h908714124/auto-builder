@@ -127,7 +127,9 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
 
   private void doProcess(RoundEnvironment env) {
     for (Task task : deferred) {
-      processTask(task);
+      if (!done.contains(task.avType)) {
+        processTask(task);
+      }
     }
     for (TypeElement sourceClassElement : typesIn(env.getElementsAnnotatedWith(AutoBuilder.class))) {
       ClassName avClass = avClass(sourceClassElement);
@@ -137,9 +139,6 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
   }
 
   private void processTask(Task task) {
-    if (done.contains(task.avType)) {
-      return;
-    }
     TypeElement sourceElement = processingEnv.getElementUtils().getTypeElement(task.sourceType);
     try {
       TypeElement avElement = processingEnv.getElementUtils().getTypeElement(task.avType);
@@ -161,12 +160,11 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
       done.add(task.avType);
     } catch (ValidationException e) {
       processingEnv.getMessager().printMessage(e.kind, e.getMessage(), e.about);
-    } catch (Exception e) {
+    } catch (Exception | AssertionError e) {
       String trace = getStackTraceAsString(e);
       String message = "Unexpected error: " + trace;
       processingEnv.getMessager().printMessage(ERROR, message, sourceElement);
     }
-
   }
 
   private void write(ClassName generatedType, TypeSpec typeSpec) throws IOException {
