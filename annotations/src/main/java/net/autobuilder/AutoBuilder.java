@@ -11,11 +11,12 @@ import java.lang.annotation.Target;
  *
  * <ul>
  * <li>This won't do anything,
- * unless the class also has an @AutoValue annotation.
+ * unless the annotated class also has an {@code @AutoValue} annotation.
  * See <a href="https://github.com/google/auto/tree/master/value">here</a> for
  * details.</li>
- * <li>The annotated class should be a &quot;regular&quot; auto-value class,
+ * <li>The annotated class must be a &quot;regular&quot; auto-value class,
  * not the &quot;builder&quot; variety.</li>
+ * <li>The annotated class may not have any type parameters.</li>
  * </ul>
  */
 @Target(ElementType.TYPE)
@@ -24,15 +25,15 @@ public @interface AutoBuilder {
 
   /**
    * <p>If true, the generated code will attempt to reuse
-   * builder instances. This will improve performance unless builder calls are
+   * builder instances. This will improve performance, unless builder calls are
    * stacked, i.e. a new builder instance is needed before {@code build()}
    * has been called on the &quot;previous&quot; builder instance.</p>
    *
-   * <h4>Note:</h2>
-   *
-   * <p>The generated code will store the builder instance in a static
+   * <p><em>Note:</em>The generated code will store the builder instance in a static
    * {@link ThreadLocal} field.
-   * Set to {@code false} to prevent this.</p>
+   * Leave this at {@code false} if you wish to prevent this.</p>
+   *
+   * @return whether the generated code should cache and reuse builder instances
    */
   boolean reuseBuilder() default false;
 }

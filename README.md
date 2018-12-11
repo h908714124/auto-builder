@@ -1,4 +1,6 @@
-# auto-builder
+## auto-builder
+
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder)
 
 Adding builder functionality to an [auto-value](https://github.com/google/auto/tree/master/value)
 class normally requires copying each property's name and type.
@@ -111,15 +113,40 @@ abstract class Animal {
 Of course, the builder instance that's returned by `toBuilder` is also not thread-safe,
 and shouldn't be stored in a field where other threads might see it.
 
-### It's maven time
+### Maven info
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.h908714124/auto-builder)
+The annotations are in a separate jar.
+They are not needed at runtime, so the scope can be `optional`
+or `provided`.
 
 ````xml
 <dependency>
   <groupId>com.github.h908714124</groupId>
-  <artifactId>auto-builder</artifactId>
-  <version>2.9</version>
+  <artifactId>auto-builder-annotations</artifactId>
+  <version>1.0</version>
   <scope>provided</scope>
 </dependency>
+````
+
+The processor itself is only needed on the compiler classpath.
+
+````xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-compiler-plugin</artifactId>
+      <version>3.8.0</version>
+      <configuration>
+        <annotationProcessorPaths>
+          <dependency>
+            <groupId>com.github.h908714124</groupId>
+            <artifactId>auto-builder</artifactId>
+            <version>${auto-builder.version}</version>
+          </dependency>
+        </annotationProcessorPaths>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
 ````
