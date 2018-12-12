@@ -60,7 +60,8 @@ An instance of `Animal_Builder` can be obtained in one of two ways:
 * `Animal_Builder.builder()` to create a builder filled with `null`, `0`, `false` and `Optional.empty()`.
 * `Animal_Builder.builder(Animal input)` makes a builder initialized from `input`, suitable for creating a modified copy.
 
-It might be a good idea to add the usual `toBuilder` convenience method:
+The usual `toBuilder` method can be added
+as an instance method, for convenience:
 
 ````java
 @AutoBuilder
@@ -70,48 +71,33 @@ abstract class Animal {
   // [...]
 
   final Animal_Builder toBuilder() {
-    return Animal_Builder.builder(this);
+    return Animal_Builder.toBuilder(this);
   }
 }
 ````
 
-The `static Animal create` method is not necessary for  `@AutoBuilder` to work.
-In fact, this annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
-If it can't find `AutoValue_Animal` on the classpath,
-presumably because auto-value is misconfigured or threw an error, it won't generate anything useful either.
+This annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
+It uses the constructor of that class as input.
+
+If `AutoValue_Animal` can't be found,
+presumably because auto-value is misconfigured or threw an error,
+then auto-builder will not generate anything either.
 
 ### Caching
 
 Since version 1.5, auto-builder is capable of caching the builder instance.
-This should in general help to reduce the garbage collection overhead.
+This can often reduce the garbage collection overhead.
 
-Unless your `Animal` has type parameters (like `Animal<X>`),
-a third static method `Animal_Builder.perThreadFactory()` is now generated, which returns a factory.
-
-> This factory is safe for use by a single thread, but it <em>must not</em> be shared between different threads.
-> If you're going to store the factory in a field,
-> you have to wrap it in a `ThreadLocal`, as shown below.
-
-#### Example: Wrapping the factory in a ThreadLocal
+Use `reuseBuilder = true` to make
+the generated code cache and re-use builder instances:
 
 ````java
-@AutoBuilder
+@AutoBuilder(reuseBuilder = true)
 @AutoValue
 abstract class Animal {
-
-  private static final ThreadLocal<Animal_Builder.PerThreadFactory> FACTORY =
-      ThreadLocal.withInitial(Animal_Builder::perThreadFactory);
-
   // [...]
-
-  final Animal_Builder toBuilder() {
-    return FACTORY.get().builder(this);
-  }
 }
 ````
-
-Of course, the builder instance that's returned by `toBuilder` is also not thread-safe,
-and shouldn't be stored in a field where other threads might see it.
 
 ### Maven info
 
