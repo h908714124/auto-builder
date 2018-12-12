@@ -55,13 +55,12 @@ abstract class Animal {
 ````
 
 A class `Animal_Builder` will now be generated in the same package as `Animal`.
-An instance of `Animal_Builder` can be obtained in one of two ways:
+An instance of `Animal_Builder` can be obtained in two different ways:
 
-* `Animal_Builder.builder()` to create a builder filled with `null`, `0`, `false` and `Optional.empty()`.
-* `Animal_Builder.builder(Animal input)` makes a builder initialized from `input`, suitable for creating a modified copy.
+* `Animal_Builder.builder()` returns a builder filled with `null`, `0`, `false` and `Optional.empty()`.
+* `Animal_Builder.toBuilder(Animal input)` returns a builder initialized from `input`, suitable for creating a modified copy.
 
-The usual `toBuilder` method can be added
-as an instance method, for convenience:
+It can be convenient to add aliases of these methods to `Animal` itself:
 
 ````java
 @AutoBuilder
@@ -70,14 +69,20 @@ abstract class Animal {
 
   // [...]
 
+  static Animal_Builder builder() {
+    return Animal_Builder.builder();
+  }
+
   final Animal_Builder toBuilder() {
     return Animal_Builder.toBuilder(this);
   }
 }
 ````
 
+### Configuration
+
 This annotation processor scans the generated class `AutoValue_Animal`, rather than `Animal` itself.
-It uses the constructor of that class as input.
+Specifically, it looks at the constructor of that class to figure out what to do.
 
 If `AutoValue_Animal` can't be found,
 presumably because auto-value is misconfigured or threw an error,
@@ -112,6 +117,11 @@ or `provided`.
   <version>1.0</version>
   <scope>provided</scope>
 </dependency>
+<dependency>
+  <groupId>com.google.auto.value</groupId>
+  <artifactId>auto-value-annotations</artifactId>
+  <version>${auto-value.version}</version>
+</dependency>
 ````
 
 The processor itself is only needed on the compiler classpath.
@@ -129,6 +139,12 @@ The processor itself is only needed on the compiler classpath.
             <groupId>com.github.h908714124</groupId>
             <artifactId>auto-builder</artifactId>
             <version>${auto-builder.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>com.google.auto.value</groupId>
+            <artifactId>auto-value</artifactId>
+            <version>${auto-value.version}</version>
+            <scope>provided</scope>
           </dependency>
         </annotationProcessorPaths>
       </configuration>

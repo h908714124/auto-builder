@@ -8,7 +8,7 @@ import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.RegularParameter;
 
 /**
- * Gets the builder field value for one parameter,
+ * Code that evaluates to one of the builder's properties,
  * while replacing null for lists and optionals.
  */
 public class ExtractCases implements ParamCases<CodeBlock, Void> {

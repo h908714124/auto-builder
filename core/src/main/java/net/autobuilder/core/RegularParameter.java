@@ -33,7 +33,7 @@ public final class RegularParameter extends Parameter {
       Pattern.compile("^is[A-Z].*$");
 
   // A parameter of the auto-value constructor
-  public final VariableElement variableElement;
+  final VariableElement variableElement;
 
   public final String setterName;
 

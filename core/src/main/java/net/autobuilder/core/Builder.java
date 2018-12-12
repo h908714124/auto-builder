@@ -181,27 +181,18 @@ final class Builder {
     List<CodeBlock> invocation = parameters.stream()
         .map(Parameter::extract)
         .collect(Collectors.toList());
-    CodeBlock cleanupAfterBuildCode = cleanupAfterBuildCode(model, parameters);
     MethodSpec.Builder spec = MethodSpec.methodBuilder("build");
     spec.addCode("$T $N = new $T(\n", TypeName.get(model.sourceElement().asType()), result, model.avElement)
         .addCode(invocation.stream().collect(joinCodeBlocks(",\n")))
-        .addCode(");\n")
-        .addCode(cleanupAfterBuildCode);
+        .addCode(");\n");
     if (model.reuse) {
+      parameters.stream().map(Parameter::cleanupCode).forEach(spec::addCode);
       spec.addStatement("$N = $L", inUse, false);
     }
     return spec.addStatement("return $N", result)
         .returns(TypeName.get(model.sourceElement().asType()))
         .addModifiers(model.maybePublic())
         .build();
-  }
-
-  private static CodeBlock cleanupAfterBuildCode(Model model, List<Parameter> parameters) {
-    CodeBlock.Builder builder = CodeBlock.builder();
-    if (model.reuse) {
-      parameters.stream().map(Parameter::cleanupCode).forEach(builder::add);
-    }
-    return builder.build();
   }
 
   private CodeBlock generatedInfo() {

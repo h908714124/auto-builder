@@ -8,7 +8,7 @@ import net.autobuilder.core.ParamCases;
 import net.autobuilder.core.RegularParameter;
 
 /**
- *
+ * Gets the parameter of one of the builder's setter methods.
  */
 public class AsSetterParameterCases implements ParamCases<ParameterSpec, Void> {
 

@@ -28,7 +28,7 @@ public final class Model {
   // should gen code reuse builder instances?
   final boolean reuse;
 
-  public final List<Parameter> parameters;
+  final List<Parameter> parameters;
 
   final TypeName generatedClass;
 

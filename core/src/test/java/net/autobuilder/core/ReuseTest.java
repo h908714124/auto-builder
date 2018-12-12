@@ -12,7 +12,7 @@ import static com.google.testing.compile.JavaFileObjects.forSourceLines;
 import static com.google.testing.compile.JavaSourcesSubjectFactory.javaSources;
 import static java.util.Collections.singletonList;
 
-public class ReuseTest {
+class ReuseTest {
 
   @Test
   void reuse() {

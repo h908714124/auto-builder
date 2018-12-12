@@ -17,6 +17,10 @@ import java.util.function.Function;
 
 /**
  * Represents one parameter of the generated auto-value constructor.
+ * Alternatively this can be seen as one property of the associated builder.
+ * For each property, the builder has at least one setter method.
+ * For some types, there can also be additional convenience methods,
+ * like an add method for a list.
  */
 public abstract class Parameter {
 
@@ -26,7 +30,7 @@ public abstract class Parameter {
 
   abstract <R, P> R accept(ParamCases<R, P> cases, P p);
 
-  public final RegularParameter asRegularParameter() {
+  final RegularParameter asRegularParameter() {
     return AS_REGULAR_PARAMETER.apply(this);
   }
 
@@ -57,7 +61,7 @@ public abstract class Parameter {
   private static final Function<Parameter, CodeBlock> EXTRACT =
       asFunction(new ExtractCases());
 
-  public final Optional<FieldSpec> extraField() {
+  final Optional<FieldSpec> extraField() {
     return EXTRA_FIELD.apply(this);
   }
 
@@ -71,10 +75,15 @@ public abstract class Parameter {
   private static final ParamCases<List<MethodSpec>, Model> EXTRA_METHODS =
       new ExtraMethodsCases();
 
+  /**
+   * Code that de-initialises the builder at the end of the {@code build()} method.
+   * This will only be called if the builder is reused.
+   */
   CodeBlock cleanupCode() {
+    RegularParameter param = asRegularParameter();
     CodeBlock.Builder builder = CodeBlock.builder();
-    if (!asRegularParameter().variableElement.asType().getKind().isPrimitive()) {
-      builder.addStatement("$N = null", asRegularParameter().asField());
+    if (!param.variableElement.asType().getKind().isPrimitive()) {
+      builder.addStatement("$N = null", param.asField());
     }
     extraField().ifPresent(field ->
         builder.addStatement("$N = null", field));
