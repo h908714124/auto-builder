@@ -144,7 +144,6 @@ The processor itself is only needed on the compiler classpath.
             <groupId>com.google.auto.value</groupId>
             <artifactId>auto-value</artifactId>
             <version>${auto-value.version}</version>
-            <scope>provided</scope>
           </dependency>
         </annotationProcessorPaths>
       </configuration>
