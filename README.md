@@ -158,13 +158,11 @@ The processor itself is only needed on the compiler classpath.
 
 The equivalent gradle configuration looks as follows:
  
- ````groovy
+````groovy
 dependencies {
-   // Use 'api' rather than 'compile' for Android or java-library projects.
-    compile "com.google.auto.value:auto-value-annotations:1.6.3"
-    compileOnly "com.github.h908714124:auto-builder-annotations:1.0"
+    api "com.google.auto.value:auto-value-annotations:1.6.3"
+    implementation "com.github.h908714124:auto-builder-annotations:1.0"
     annotationProcessor "com.google.auto.value:auto-value:1.6.3"
     annotationProcessor "com.github.h908714124:auto-builder:2.9.1"
 }
- ````
-  
+````
