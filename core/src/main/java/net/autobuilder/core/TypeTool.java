@@ -1,7 +1,10 @@
 package net.autobuilder.core;
 
+import net.autobuilder.AutoBuilder;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementVisitor;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -16,7 +19,9 @@ import javax.lang.model.util.Types;
 import java.util.List;
 import java.util.Optional;
 
+import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.FINAL;
+import static javax.lang.model.element.Modifier.PRIVATE;
 
 class TypeTool {
 
@@ -177,4 +182,5 @@ class TypeTool {
   TypeMirror getPrimitiveType(TypeKind kind) {
     return types.getPrimitiveType(kind);
   }
+
 }

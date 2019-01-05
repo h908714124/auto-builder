@@ -12,6 +12,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static net.autobuilder.core.AutoBuilderProcessor.rawType;
@@ -32,23 +33,28 @@ public final class Model {
 
   final TypeName generatedClass;
 
+  final Optional<ExecutableElement> postBuild;
+
   private Model(
       TypeElement sourceElement,
       TypeName generatedClass,
       TypeElement avElement,
       boolean reuse,
-      List<Parameter> parameters) {
+      List<Parameter> parameters,
+      Optional<ExecutableElement> postBuild) {
     this.reuse = reuse;
     this.generatedClass = generatedClass;
     this.sourceElement = sourceElement;
     this.avElement = avElement;
     this.parameters = parameters;
+    this.postBuild = postBuild;
   }
 
   static Model create(
       List<Parameter> parameters,
       TypeElement sourceElement,
-      TypeElement avElement) {
+      TypeElement avElement,
+      Optional<ExecutableElement> postBuild) {
     ExecutableElement avConstructor = getAvConstructor(sourceElement, avElement);
     if (avConstructor.getModifiers().contains(Modifier.PRIVATE)) {
       boolean suspicious = ElementFilter.typesIn(sourceElement.getEnclosedElements())
@@ -75,8 +81,9 @@ public final class Model {
     }
     boolean optionalRefTrackingBuilderClass =
         sourceElement.getAnnotation(AutoBuilder.class).reuseBuilder();
+
     return new Model(sourceElement, generatedClass, avElement,
-        optionalRefTrackingBuilderClass, parameters);
+        optionalRefTrackingBuilderClass, parameters, postBuild);
   }
 
   static ExecutableElement getAvConstructor(TypeElement sourceElement, TypeElement avElement) {

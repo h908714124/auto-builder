@@ -9,6 +9,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -182,17 +185,32 @@ final class Builder {
         .map(Parameter::extract)
         .collect(Collectors.toList());
     MethodSpec.Builder spec = MethodSpec.methodBuilder("build");
-    spec.addCode("$T $N = new $T(\n", TypeName.get(model.sourceElement().asType()), result, model.avElement)
-        .addCode(invocation.stream().collect(joinCodeBlocks(",\n")))
-        .addCode(");\n");
+    spec.addStatement(CodeBlock.builder().add("$T $N = new $T(", TypeName.get(model.sourceElement().asType()), result, model.avElement)
+        .add(invocation.stream().collect(joinCodeBlocks(", $Z")))
+        .add(")").build());
     if (model.reuse) {
       parameters.stream().map(Parameter::cleanupCode).forEach(spec::addCode);
       spec.addStatement("$N = $L", inUse, false);
     }
-    return spec.addStatement("return $N", result)
-        .returns(TypeName.get(model.sourceElement().asType()))
-        .addModifiers(model.maybePublic())
-        .build();
+    spec.addModifiers(model.maybePublic());
+    if (model.postBuild.isPresent()) {
+      ExecutableElement postBuild = model.postBuild.get();
+      for (TypeMirror thrownType : postBuild.getThrownTypes()) {
+        spec.addException(TypeName.get(thrownType));
+      }
+      if (postBuild.getReturnType().getKind() == TypeKind.VOID) {
+        return spec.addStatement("$N.$L()", result, postBuild.getSimpleName().toString())
+            .build();
+      } else {
+        return spec.returns(TypeName.get(postBuild.getReturnType()))
+            .addStatement("return $N.$L()", result, postBuild.getSimpleName().toString())
+            .build();
+      }
+    } else {
+      return spec.addStatement("return $N", result)
+          .returns(TypeName.get(model.sourceElement().asType()))
+          .build();
+    }
   }
 
   private CodeBlock generatedInfo() {
