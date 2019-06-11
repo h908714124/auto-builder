@@ -149,6 +149,7 @@ public final class AutoBuilderProcessor extends AbstractProcessor {
         return;
       }
       List<Parameter> parameters = RegularParameter.scan(
+          sourceElement,
           Model.generatedClass(sourceElement),
           sourceElement.getModifiers().contains(PUBLIC),
           Model.getAvConstructor(sourceElement, avElement),

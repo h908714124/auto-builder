@@ -19,12 +19,13 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <javapoet.version>1.11.1</javapoet.version>
     <auto-builder-annotations.version>1.0</auto-builder-annotations.version>
-    <compile-testing.version>0.15</compile-testing.version>
+    <compile-testing.version>0.16</compile-testing.version>
     <junit.version>5.3.1</junit.version>
     <surefire-plugin.version>2.22.1</surefire-plugin.version>
-    <compiler-plugin.version>3.8.0</compiler-plugin.version>
+    <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <jar-plugin.version>3.1.0</jar-plugin.version>
     <javadoc-plugin.version>3.0.1</javadoc-plugin.version>
+    <auto-value.version>1.6.5</auto-value.version>
   </properties>
 
   <dependencies>
@@ -60,6 +61,20 @@
       <groupId>com.google.testing.compile</groupId>
       <artifactId>compile-testing</artifactId>
       <version>${compile-testing.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value</artifactId>
+      <version>${auto-value.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value-annotations</artifactId>
+      <version>${auto-value.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

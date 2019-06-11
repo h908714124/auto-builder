@@ -10,10 +10,8 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.element.Modifier.PRIVATE;
@@ -57,11 +55,12 @@ public final class RegularParameter extends Parameter {
   }
 
   static List<Parameter> scan(
+      TypeElement sourceElement,
       TypeName generatedClass,
       boolean isPublic,
       ExecutableElement avConstructor,
       TypeElement avType) {
-    Set<String> methodNames = methodNames(avType);
+    Set<String> methodNames = methodNames(sourceElement, avType);
     List<? extends VariableElement> rawParameters = avConstructor.getParameters();
     List<Parameter> avConstructorParameters = rawParameters.stream()
         .map(variableElement -> {
@@ -80,6 +79,9 @@ public final class RegularParameter extends Parameter {
   }
 
   private static String setterName(String name, TypeMirror type) {
+    if (name.endsWith("$")) {
+      name = name.substring(0, name.length() - 1);
+    }
     if (GETTER_PATTERN.matcher(name).matches()) {
       return downcase(name.substring(3));
     }
@@ -90,22 +92,36 @@ public final class RegularParameter extends Parameter {
     return name;
   }
 
-  private static Set<String> methodNames(TypeElement avType) {
-    return ElementFilter.methodsIn(
+  private static Set<String> methodNames(TypeElement sourceElement, TypeElement avType) {
+    if (sourceElement.getQualifiedName().equals(avType.getQualifiedName())) {
+      return Collections.emptySet();
+    }
+    Set<String> result = new HashSet<>();
+    ElementFilter.methodsIn(
         avType.getEnclosedElements()).stream()
         .filter(m -> m.getParameters().isEmpty())
         .filter(m -> m.getReturnType().getKind() != TypeKind.VOID)
         .map(ExecutableElement::getSimpleName)
         .map(CharSequence::toString)
-        .collect(Collectors.toSet());
+        .forEach(result::add);
+    if (avType.getSuperclass().getKind() == TypeKind.DECLARED) {
+      Optional<TypeElement> superclass = TypeTool.get().getTypeElement(avType.getSuperclass());
+      superclass.ifPresent(sclass ->
+          result.addAll(methodNames(sourceElement, sclass)));
+    }
+    return result;
   }
 
-  private static String matchingAccessor(Set<String> methodNames,
-                                         VariableElement constructorArgument) {
+  private static String matchingAccessor(
+      Set<String> methodNames,
+      VariableElement constructorArgument) {
     String name = constructorArgument.getSimpleName().toString();
     TypeName type = TypeName.get(constructorArgument.asType());
     if (methodNames.contains(name)) {
       return name;
+    }
+    if (name.endsWith("$") && methodNames.contains(name.substring(0, name.length() - 1))) {
+      return name.substring(0, name.length() - 1);
     }
     if (type.equals(TypeName.BOOLEAN)) {
       String getter = "is" + upcase(name);
@@ -114,10 +130,10 @@ public final class RegularParameter extends Parameter {
       }
     }
     String getter = "get" + upcase(name);
-    if (!methodNames.contains(getter)) {
-      throw new ValidationException("no matching accessor: " + name, constructorArgument);
+    if (methodNames.contains(getter)) {
+      return getter;
     }
-    return getter;
+    throw new ValidationException("no matching accessor: " + name, constructorArgument);
   }
 
   /**
