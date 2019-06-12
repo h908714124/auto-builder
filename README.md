@@ -124,7 +124,7 @@ or `provided`.
 <dependency>
   <groupId>com.google.auto.value</groupId>
   <artifactId>auto-value-annotations</artifactId>
-  <version>1.6.3</version>
+  <version>1.6.5</version>
 </dependency>
 ````
 
@@ -136,18 +136,18 @@ The processor itself is only needed on the compiler classpath.
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-compiler-plugin</artifactId>
-      <version>3.8.0</version>
+      <version>3.8.1</version>
       <configuration>
         <annotationProcessorPaths>
           <dependency>
             <groupId>com.github.h908714124</groupId>
             <artifactId>auto-builder</artifactId>
-            <version>2.9.1</version>
+            <version>${auto-builder.version}</version>
           </dependency>
           <dependency>
             <groupId>com.google.auto.value</groupId>
             <artifactId>auto-value</artifactId>
-            <version>1.6.3</version>
+            <version>1.6.5</version>
           </dependency>
         </annotationProcessorPaths>
       </configuration>
@@ -160,9 +160,10 @@ The equivalent gradle configuration looks as follows:
  
 ````groovy
 dependencies {
-    api "com.google.auto.value:auto-value-annotations:1.6.3"
+    api "com.google.auto.value:auto-value-annotations:1.6.5"
     implementation "com.github.h908714124:auto-builder-annotations:1.0"
-    annotationProcessor "com.google.auto.value:auto-value:1.6.3"
-    annotationProcessor "com.github.h908714124:auto-builder:2.9.1"
+    annotationProcessor "com.google.auto.value:auto-value:1.6.5"
+    annotationProcessor "com.github.h908714124:auto-builder:$autoBuilderVersion"
 }
 ````
+
