@@ -88,7 +88,7 @@ final class Builder {
     ParameterSpec input = ParameterSpec.builder(TypeName.get(model.sourceElement().asType()), "input").build();
     CodeBlock.Builder block = CodeBlock.builder();
     for (Parameter parameter : parameters) {
-      block.addStatement("$N = $N.$L()",
+      block.addStatement("this.$N = $N.$L()",
           parameter.asRegularParameter().setterName, input,
           parameter.asRegularParameter().getterName);
     }
